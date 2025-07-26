@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+  <head>
+    <!-- Essential Meta Tags -->
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no, viewport-fit=cover" />
+    
+    <!-- Enhanced Security Headers -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://accounts.google.com https://apis.google.com https://www.facebook.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https: blob:; connect-src 'self' https://api.nexttechfusiongadgets.com http://localhost:5000 https://accounts.google.com; frame-src https://accounts.google.com https://www.facebook.com;" />
+    <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin" />
+    <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=()" />
+    
+    <!-- Favicon and Icons - Multiple formats for cross-browser support -->
+    <link rel="icon" type="image/x-icon" href="%PUBLIC_URL%/favicon.ico" />
+    <link rel="icon" type="image/png" sizes="16x16" href="%PUBLIC_URL%/favicon-16x16.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="%PUBLIC_URL%/favicon-32x32.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="%PUBLIC_URL%/apple-touch-icon.png" />
+    <link rel="mask-icon" href="%PUBLIC_URL%/safari-pinned-tab.svg" color="#3B82F6" />
+    
+    <!-- Theme Colors - Enhanced cross-browser support -->
+    <meta name="theme-color" content="#3B82F6" />
+    <meta name="msapplication-TileColor" content="#3B82F6" />
+    <meta name="msapplication-navbutton-color" content="#3B82F6" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="NextTechFusionGadgets" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="application-name" content="NextTechFusionGadgets" />
+    
+    <!-- SEO and Social Media Meta Tags -->
+    <title>%REACT_APP_ENV_NAME% - NextTechFusionGadgets - Premium Tech Store | Latest Gadgets & Electronics</title>
+    <meta name="description" content="Discover cutting-edge technology at NextTechFusionGadgets. Shop premium smartphones, laptops, smartwatches, headphones, and innovative gadgets with virtual try-on technology. Fast shipping, secure payments, and expert support." />
+    <meta name="keywords" content="tech gadgets, electronics, smartphones, laptops, smartwatches, headphones, virtual try-on, premium technology, online tech store" />
+    <meta name="author" content="NextTechFusionGadgets" />
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+    <meta name="googlebot" content="index, follow" />
+    <link rel="canonical" href="https://nexttechfusiongadgets.com" />
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://nexttechfusiongadgets.com" />
+    <meta property="og:title" content="NextTechFusionGadgets - Premium Tech Store" />
+    <meta property="og:description" content="Discover cutting-edge technology with virtual try-on. Shop premium gadgets with fast shipping and expert support." />
+    <meta property="og:image" content="%PUBLIC_URL%/og-image.jpg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:site_name" content="NextTechFusionGadgets" />
+    <meta property="og:locale" content="en_US" />
+    
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:url" content="https://nexttechfusiongadgets.com" />
+    <meta name="twitter:title" content="NextTechFusionGadgets - Premium Tech Store" />
+    <meta name="twitter:description" content="Discover cutting-edge technology with virtual try-on. Shop premium gadgets with fast shipping and expert support." />
+    <meta name="twitter:image" content="%PUBLIC_URL%/twitter-image.jpg" />
+    <meta name="twitter:creator" content="@NextTechFusion" />
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
+    
+    <!-- DNS Prefetch and Preconnect for Performance -->
+    <link rel="dns-prefetch" href="//fonts.googleapis.com" />
+    <link rel="dns-prefetch" href="//fonts.gstatic.com" />
+    <link rel="dns-prefetch" href="//accounts.google.com" />
+    <link rel="dns-prefetch" href="//www.facebook.com" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preconnect" href="https://accounts.google.com" crossorigin />
+    
+    <!-- Critical CSS and Performance Optimizations -->
+    <style>
+      /* Critical CSS for immediate rendering */
+      :root {
+        --primary-color: #3B82F6;
+        --primary-dark: #1E40AF;
+        --primary-light: #60A5FA;
+        --secondary-color: #8B5CF6;
+        --success-color: #10B981;
+        --warning-color: #F59E0B;
+        --error-color: #EF4444;
+        --gray-50: #F9FAFB;
+        --gray-100: #F3F4F6;
+        --gray-900: #111827;
+        --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+        
+        /* Environment-specific colors */
+        --env-development: #10B981;
+        --env-test: #F59E0B;
+        --env-production: #EF4444;
+      }
+      
+      /* Environment-specific body classes */
+      body.env-development {
+        border-top: 4px solid var(--env-development);
+      }
+      
+      body.env-test {
+        border-top: 4px solid var(--env-test);
+      }
+      
+      body.env-production {
+        border-top: 4px solid var(--env-production);
+      }
+      
+      /* Dark mode support */
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --primary-color: #60A5FA;
+          --primary-dark: #3B82F6;
+          --gray-50: #111827;
+          --gray-100: #1F2937;
+          --gray-900: #F9FAFB;
+        }
+      }
+      
+      /* Reset and base styles */
+      * {
+        box-sizing: border-box;
+      }
+      
+      html {
+        font-family: var(--font-family), -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+        line-height: 1.6;
+        text-size-adjust: 100%;
+        -webkit-text-size-adjust: 100%;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        text-rendering: optimizeLegibility;
+        /* Smooth scrolling with fallback */
+        scroll-behavior: smooth;
+      }
+      
+      /* Fallback for browsers that don't support scroll-behavior */
+      @supports not (scroll-behavior: smooth) {
+        html {
+          scroll-behavior: auto;
+        }
+      }
+      
+      body {
+        margin: 0;
+        padding: 0;
+        background-color: var(--gray-50);
+        color: var(--gray-900);
+        font-family: var(--font-family);
+        font-size: 16px;
+        line-height: 1.6;
+        overflow-x: hidden;
+      }
+      
+      /* Enhanced scrollbar styling */
+      ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+      }
+      
+      ::-webkit-scrollbar-track {
+        background: var(--gray-100);
+        border-radius: 4px;
+      }
+      
+      ::-webkit-scrollbar-thumb {
+        background: var(--primary-color);
+        border-radius: 4px;
+        transition: background-color 0.2s ease;
+      }
+      
+      ::-webkit-scrollbar-thumb:hover {
+        background: var(--primary-dark);
+      }
+      
+      ::-webkit-scrollbar-corner {
+        background: var(--gray-100);
+      }
+      
+      /* Loading spinner for better UX */
+      .loading-container {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: var(--gray-50);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+        transition: opacity 0.3s ease;
+      }
+      
+      .loading-spinner {
+        width: 40px;
+        height: 40px;
+        border: 3px solid var(--gray-100);
+        border-top: 3px solid var(--primary-color);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+      
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+      
+      .loading-text {
+        margin-top: 16px;
+        color: var(--gray-900);
+        font-size: 14px;
+        font-weight: 500;
+      }
+      
+      /* Focus management for accessibility */
+      .focus-visible {
+        outline: 2px solid var(--primary-color);
+        outline-offset: 2px;
+      }
+      
+      /* Reduced motion support */
+      @media (prefers-reduced-motion: reduce) {
+        html {
+          scroll-behavior: auto;
+        }
+        
+        *, *::before, *::after {
+          animation-duration: 0.01ms !important;
+          animation-iteration-count: 1 !important;
+          transition-duration: 0.01ms !important;
+        }
+        
+        .loading-spinner {
+          animation: none;
+          border-top-color: var(--primary-color);
+        }
+      }
+      
+      /* High contrast mode support */
+      @media (prefers-contrast: high) {
+        :root {
+          --primary-color: #0000FF;
+          --error-color: #FF0000;
+          --success-color: #008000;
+        }
+      }
+      
+      /* Print styles */
+      @media print {
+        body {
+          background: white !important;
+          color: black !important;
+        }
+        
+        .loading-container {
+          display: none !important;
+        }
+      }
+      
+      /* Error boundary styles */
+      .error-boundary {
+        padding: 20px;
+        text-align: center;
+        background: var(--error-color);
+        color: white;
+        border-radius: 8px;
+        margin: 20px;
+      }
+      
+      /* NoScript fallback styles */
+      .noscript-message {
+        background: var(--warning-color);
+        color: white;
+        padding: 16px;
+        text-align: center;
+        font-weight: 600;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 10000;
+      }
+    </style>
+    
+    <!-- Optimized Font Loading -->
+    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'" />
+    <noscript>
+      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" />
+    </noscript>
+    
+    <!-- Structured Data for SEO -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "NextTechFusionGadgets",
+      "url": "https://nexttechfusiongadgets.com",
+      "description": "Premium tech store offering latest gadgets and electronics with virtual try-on technology",
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": "https://nexttechfusiongadgets.com/search?q={search_term_string}",
+        "query-input": "required name=search_term_string"
+      },
+      "sameAs": [
+        "https://www.facebook.com/nexttechfusiongadgets",
+        "https://www.twitter.com/nexttechfusiongadgets",
+        "https://www.instagram.com/nexttechfusiongadgets"
+      ]
+    }
+    </script>
+    
+    <!-- Google Identity Services -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    
+    <!-- Service Worker Registration -->
+    <script>
+      // Register service worker for PWA functionality
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function() {
+          navigator.serviceWorker.register('/sw.js')
+            .then(function(registration) {
+              console.log('SW registered: ', registration);
+            })
+            .catch(function(registrationError) {
+              console.log('SW registration failed: ', registrationError);
+            });
+        });
+      }
+      
+      // Performance monitoring
+      window.addEventListener('load', function() {
+        if ('performance' in window) {
+          const perfData = performance.getEntriesByType('navigation')[0];
+          if (perfData) {
+            console.log('Page load time:', perfData.loadEventEnd - perfData.fetchStart, 'ms');
+          }
+        }
+      });
+      
+      // Error boundary for unhandled errors
+      window.addEventListener('error', function(event) {
+        console.error('Global error:', event.error);
+        // You can send this to your error tracking service
+      });
+      
+      window.addEventListener('unhandledrejection', function(event) {
+        console.error('Unhandled promise rejection:', event.reason);
+        // You can send this to your error tracking service
+      });
+    </script>
+</head>
+  </head>
+  <body>
+    <!-- Loading Screen -->
+    <div id="loading-screen" class="loading-container">
+      <div>
+        <div class="loading-spinner"></div>
+        <div class="loading-text">Loading NextTech...</div>
+      </div>
+    </div>
+    
+    <!-- Enhanced NoScript Message -->
+    <noscript>
+      <div class="noscript-message">
+        <strong>JavaScript Required:</strong> This application requires JavaScript to function properly. 
+        Please enable JavaScript in your browser settings and refresh the page.
+        <br />
+        <small>For help enabling JavaScript, visit: <a href="https://enable-javascript.com/" target="_blank" rel="noopener" style="color: white; text-decoration: underline;">enable-javascript.com</a></small>
+      </div>
+    </noscript>
+    
+    <!-- Main Application Container -->
+    <div id="root" role="main" aria-label="NextTechFusionGadgets Application"></div>
+    
+    <!-- Accessibility Skip Link -->
+    <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:top-0 focus:left-0 bg-blue-600 text-white p-2 z-50">
+      Skip to main content
+    </a>
+    
+    <!-- Browser Compatibility Checks -->
+    <script>
+      // Hide loading screen when React app loads
+      window.addEventListener('DOMContentLoaded', function() {
+        setTimeout(function() {
+          const loadingScreen = document.getElementById('loading-screen');
+          if (loadingScreen) {
+            loadingScreen.style.opacity = '0';
+            setTimeout(function() {
+              loadingScreen.style.display = 'none';
+            }, 300);
+          }
+        }, 1000);
+      });
+      
+      // Browser compatibility detection
+      function checkBrowserSupport() {
+        const isSupported = (
+          'fetch' in window &&
+          'Promise' in window &&
+          'localStorage' in window &&
+          'sessionStorage' in window &&
+          'addEventListener' in window
+        );
+        
+        if (!isSupported) {
+          document.body.innerHTML = `
+            <div style="padding: 20px; text-align: center; background: #fee; border: 1px solid #fcc; margin: 20px; border-radius: 8px;">
+              <h2 style="color: #c33;">Browser Not Supported</h2>
+              <p>Your browser doesn't support some features required by this application.</p>
+              <p>Please update to a modern browser like:</p>
+              <ul style="list-style: none; padding: 0;">
+                <li>• Chrome 60+</li>
+                <li>• Firefox 55+</li>
+                <li>• Safari 12+</li>
+                <li>• Edge 79+</li>
+              </ul>
+            </div>
+          `;
+        }
+      }
+      
+      checkBrowserSupport();
+      
+      // Viewport height fix for mobile browsers
+      function setViewportHeight() {
+        const vh = window.innerHeight * 0.01;
+        document.documentElement.style.setProperty('--vh', vh + 'px');
+      }
+      
+      setViewportHeight();
+      window.addEventListener('resize', setViewportHeight);
+      window.addEventListener('orientationchange', setViewportHeight);
+    </script>
+  </body>
+</html>

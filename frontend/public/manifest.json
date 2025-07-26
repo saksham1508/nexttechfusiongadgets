@@ -1,0 +1,112 @@
+{
+  "short_name": "NTFG",
+  "name": "NextTechFusionGadgets - Premium Tech Store",
+  "description": "Discover cutting-edge technology with virtual try-on. Shop premium gadgets with fast shipping and expert support.",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "theme_color": "#3B82F6",
+  "background_color": "#F9FAFB",
+  "lang": "en",
+  "scope": "/",
+  "categories": ["shopping", "technology", "electronics"],
+  "icons": [
+    {
+      "src": "favicon.ico",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/x-icon",
+      "purpose": "any"
+    },
+    {
+      "src": "logo192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "logo512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "apple-touch-icon.png",
+      "type": "image/png",
+      "sizes": "180x180",
+      "purpose": "any"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "screenshot-wide.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "NextTechFusionGadgets Desktop Experience"
+    },
+    {
+      "src": "screenshot-narrow.png",
+      "sizes": "750x1334",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "NextTechFusionGadgets Mobile Experience"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Shop Products",
+      "short_name": "Shop",
+      "description": "Browse our latest tech products",
+      "url": "/products",
+      "icons": [
+        {
+          "src": "shortcut-shop.png",
+          "sizes": "96x96"
+        }
+      ]
+    },
+    {
+      "name": "Virtual Try-On",
+      "short_name": "Try-On",
+      "description": "Experience virtual try-on technology",
+      "url": "/virtual-try-on",
+      "icons": [
+        {
+          "src": "shortcut-tryon.png",
+          "sizes": "96x96"
+        }
+      ]
+    },
+    {
+      "name": "My Account",
+      "short_name": "Account",
+      "description": "Manage your account and orders",
+      "url": "/account",
+      "icons": [
+        {
+          "src": "shortcut-account.png",
+          "sizes": "96x96"
+        }
+      ]
+    }
+  ],
+  "related_applications": [
+    {
+      "platform": "play",
+      "url": "https://play.google.com/store/apps/details?id=com.nexttechfusiongadgets.app",
+      "id": "com.nexttechfusiongadgets.app"
+    },
+    {
+      "platform": "itunes",
+      "url": "https://apps.apple.com/app/nexttechfusion/id123456789",
+      "id": "123456789"
+    }
+  ],
+  "prefer_related_applications": false,
+  "edge_side_panel": {
+    "preferred_width": 400
+  },
+  "launch_handler": {
+    "client_mode": "navigate-existing"
+  }
+}

@@ -1,0 +1,33 @@
+# Security.txt for NextTechFusionGadgets
+# https://nexttechfusiongadgets.com/.well-known/security.txt
+
+Contact: security@nexttechfusiongadgets.com
+Contact: https://nexttechfusiongadgets.com/security-report
+Expires: 2025-12-31T23:59:59.000Z
+Encryption: https://nexttechfusiongadgets.com/pgp-key.txt
+Acknowledgments: https://nexttechfusiongadgets.com/security-acknowledgments
+Preferred-Languages: en, hi
+Canonical: https://nexttechfusiongadgets.com/.well-known/security.txt
+Policy: https://nexttechfusiongadgets.com/security-policy
+
+# Scope
+# This security.txt file applies to the following domains and services:
+# - nexttechfusiongadgets.com
+# - *.nexttechfusiongadgets.com
+# - Mobile applications (iOS/Android)
+
+# Reporting Guidelines
+# Please report security vulnerabilities responsibly
+# Include detailed steps to reproduce the issue
+# Allow reasonable time for investigation and remediation
+# Do not access, modify, or delete user data without permission
+
+# Bug Bounty Program
+# We offer rewards for qualifying security vulnerabilities
+# Visit https://nexttechfusiongadgets.com/bug-bounty for details
+
+# Out of Scope
+# - Social engineering attacks
+# - Physical attacks
+# - Denial of service attacks
+# - Issues in third-party services we don't control

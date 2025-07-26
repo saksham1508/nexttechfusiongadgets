@@ -1,0 +1,241 @@
+# Six Sigma: Comprehensive load testing configuration
+config:
+  target: 'http://localhost:5000'
+  phases:
+    # Warm-up phase
+    - duration: 60
+      arrivalRate: 5
+      name: "Warm-up"
+    
+    # Gradual ramp-up
+    - duration: 120
+      arrivalRate: 10
+      rampTo: 50
+      name: "Ramp-up"
+    
+    # Sustained load
+    - duration: 300
+      arrivalRate: 50
+      name: "Sustained load"
+    
+    # Peak load testing
+    - duration: 120
+      arrivalRate: 50
+      rampTo: 100
+      name: "Peak load"
+    
+    # Stress testing
+    - duration: 60
+      arrivalRate: 100
+      rampTo: 200
+      name: "Stress test"
+    
+    # Cool-down
+    - duration: 60
+      arrivalRate: 200
+      rampTo: 5
+      name: "Cool-down"
+
+  # Performance thresholds (Six Sigma standards)
+  ensure:
+    - http.response_time.p95: 500  # 95th percentile under 500ms
+    - http.response_time.p99: 1000 # 99th percentile under 1s
+    - http.response_time.median: 200 # Median under 200ms
+    - http.codes.200: 95           # 95% success rate minimum
+    - http.codes.500: 1            # Less than 1% server errors
+
+  # Monitoring and metrics
+  plugins:
+    metrics-by-endpoint:
+      useOnlyRequestNames: true
+    
+    # Custom metrics
+    publish-metrics:
+      - type: cloudwatch
+        region: us-east-1
+      
+    # Real-time monitoring
+    hdrhistogram: {}
+
+# Test scenarios
+scenarios:
+  # Agile: User journey testing
+  - name: "Complete User Journey"
+    weight: 40
+    flow:
+      # Health check
+      - get:
+          url: "/api/health"
+          expect:
+            - statusCode: 200
+      
+      # Browse products
+      - get:
+          url: "/api/products"
+          qs:
+            page: "{{ $randomInt(1, 5) }}"
+            limit: "12"
+          expect:
+            - statusCode: 200
+            - hasProperty: "data.products"
+      
+      # Search products
+      - get:
+          url: "/api/products/search"
+          qs:
+            q: "{{ $pick(['iPhone', 'laptop', 'headphones', 'tablet', 'watch']) }}"
+          expect:
+            - statusCode: 200
+      
+      # View product details
+      - get:
+          url: "/api/products/{{ productId }}"
+          beforeRequest: "setProductId"
+          expect:
+            - statusCode: 200
+            - hasProperty: "data.product"
+
+  # Six Sigma: Authentication flow testing
+  - name: "Authentication Flow"
+    weight: 20
+    flow:
+      # Register new user
+      - post:
+          url: "/api/auth/register"
+          json:
+            name: "Test User {{ $randomInt(1000, 9999) }}"
+            email: "test{{ $randomInt(1000, 9999) }}@example.com"
+            password: "TestPassword123!"
+            phone: "+1{{ $randomInt(1000000000, 9999999999) }}"
+          expect:
+            - statusCode: 201
+            - hasProperty: "data.tokens.accessToken"
+          capture:
+            - json: "$.data.tokens.accessToken"
+              as: "authToken"
+      
+      # Login
+      - post:
+          url: "/api/auth/login"
+          json:
+            email: "{{ email }}"
+            password: "TestPassword123!"
+          beforeRequest: "setLoginCredentials"
+          expect:
+            - statusCode: 200
+            - hasProperty: "data.tokens.accessToken"
+
+  # Lean: API performance testing
+  - name: "API Performance"
+    weight: 30
+    flow:
+      # Test various endpoints
+      - get:
+          url: "/api/products"
+          expect:
+            - statusCode: 200
+            - contentType: json
+      
+      - get:
+          url: "/api/products/analytics"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          beforeRequest: "setAuthToken"
+          expect:
+            - statusCode: [200, 401] # May fail if not authenticated
+      
+      - get:
+          url: "/api/status"
+          expect:
+            - statusCode: 200
+            - hasProperty: "status"
+
+  # Six Sigma: Error handling testing
+  - name: "Error Scenarios"
+    weight: 10
+    flow:
+      # Test 404 errors
+      - get:
+          url: "/api/products/invalid-id"
+          expect:
+            - statusCode: 500 # Invalid ObjectId format
+      
+      # Test validation errors
+      - post:
+          url: "/api/products"
+          json:
+            name: "A" # Too short
+            price: -10 # Invalid price
+          expect:
+            - statusCode: [401, 422] # Unauthorized or validation error
+      
+      # Test rate limiting
+      - loop:
+          - get:
+              url: "/api/products"
+        count: 10
+        whileTrue: "{{ $loopCount < 10 }}"
+
+# Custom functions for dynamic data
+functions:
+  setProductId: |
+    function(requestParams, context, ee, next) {
+      // Use a predefined product ID or generate one
+      const productIds = [
+        '507f1f77bcf86cd799439011',
+        '507f1f77bcf86cd799439012',
+        '507f1f77bcf86cd799439013'
+      ];
+      requestParams.url = requestParams.url.replace('{{ productId }}', 
+        productIds[Math.floor(Math.random() * productIds.length)]);
+      return next();
+    }
+  
+  setAuthToken: |
+    function(requestParams, context, ee, next) {
+      // Use a test token or skip if not available
+      if (!context.vars.authToken) {
+        requestParams.headers = requestParams.headers || {};
+        requestParams.headers.Authorization = 'Bearer test-token';
+      }
+      return next();
+    }
+  
+  setLoginCredentials: |
+    function(requestParams, context, ee, next) {
+      // Use test credentials
+      requestParams.json.email = 'test@example.com';
+      requestParams.json.password = 'TestPassword123!';
+      return next();
+    }
+
+# Monitoring and reporting
+reporting:
+  # Generate detailed reports
+  - type: json
+    output: './load-test-results.json'
+  
+  - type: html
+    output: './load-test-report.html'
+
+# Environment-specific configurations
+environments:
+  development:
+    target: 'http://localhost:5000'
+    phases:
+      - duration: 30
+        arrivalRate: 5
+  
+  staging:
+    target: 'https://staging.nexttechfusiongadgets.com'
+    phases:
+      - duration: 120
+        arrivalRate: 20
+        rampTo: 50
+  
+  production:
+    target: 'https://api.nexttechfusiongadgets.com'
+    phases:
+      - duration: 300
+        arrivalRate: 50
+        rampTo: 100

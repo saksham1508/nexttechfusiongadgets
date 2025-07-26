@@ -1,0 +1,57 @@
+# Robots.txt for NextTechFusionGadgets
+# https://nexttechfusiongadgets.com/robots.txt
+
+User-agent: *
+Allow: /
+
+# Allow all major search engines
+User-agent: Googlebot
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+
+User-agent: Slurp
+Allow: /
+
+User-agent: DuckDuckBot
+Allow: /
+
+User-agent: Baiduspider
+Allow: /
+
+User-agent: YandexBot
+Allow: /
+
+User-agent: facebookexternalhit
+Allow: /
+
+User-agent: Twitterbot
+Allow: /
+
+# Disallow admin and private areas
+Disallow: /admin/
+Disallow: /api/
+Disallow: /private/
+Disallow: /*.json$
+Disallow: /static/js/
+Disallow: /static/css/
+
+# Allow important pages
+Allow: /products
+Allow: /categories
+Allow: /virtual-try-on
+Allow: /about
+Allow: /contact
+Allow: /help
+
+# Crawl delay (be respectful)
+Crawl-delay: 1
+
+# Sitemap location
+Sitemap: https://nexttechfusiongadgets.com/sitemap.xml
+Sitemap: https://nexttechfusiongadgets.com/sitemap-products.xml
+Sitemap: https://nexttechfusiongadgets.com/sitemap-categories.xml
+
+# Host directive (for Yandex)
+Host: https://nexttechfusiongadgets.com

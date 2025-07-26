@@ -1,0 +1,46 @@
+/* VirtualTryOn Component Styles */
+
+.product-overlay {
+  position: absolute;
+  pointer-events: none;
+  left: var(--position-x, 50%);
+  top: var(--position-y, 45%);
+  transform: translate(-50%, -50%) scale(var(--scale, 1)) rotate(var(--rotation, 0deg));
+}
+
+.product-image {
+  height: auto;
+  opacity: 0.8;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+  transition: all 0.3s ease;
+}
+
+/* Neon enhancement for product overlay */
+.product-overlay:hover .product-image {
+  filter: drop-shadow(0 0 10px var(--primary)) drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+}
+
+/* Product type specific widths */
+.product-image.smartwatch {
+  width: 6rem; /* w-24 */
+}
+
+.product-image.headphones {
+  width: 10rem; /* w-40 */
+}
+
+.product-image.vr-headset {
+  width: 12rem; /* w-48 */
+}
+
+.product-image.smart-glasses {
+  width: 8rem; /* w-32 */
+}
+
+.product-image.earbuds {
+  width: 4rem; /* w-16 */
+}
+
+.product-image.default {
+  width: 8rem; /* w-32 */
+}

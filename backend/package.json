@@ -1,0 +1,152 @@
+{
+  "name": "nexttechfusiongadgets-backend",
+  "version": "1.0.0",
+  "description": "Backend for NextTechFusionGadgets eCommerce platform - Enhanced with Agile, Six Sigma & Lean methodologies",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "start:dev": "NODE_ENV=development nodemon server.js",
+    "start:test": "NODE_ENV=test PORT=3001 nodemon server.js",
+    "start:prod": "NODE_ENV=production node server.js",
+    "dev": "nodemon server.js",
+    "seed": "node seeder.js",
+    "seed:categories": "node seeders/categorySeeder.js",
+    "test": "jest --detectOpenHandles --forceExit",
+    "test:watch": "jest --watch --detectOpenHandles",
+    "test:coverage": "jest --coverage --detectOpenHandles --forceExit",
+    "test:integration": "jest --testPathPattern=integration --detectOpenHandles --forceExit",
+    "test:unit": "jest --testPathPattern=unit --detectOpenHandles --forceExit",
+    "test:performance": "jest --testPathPattern=performance --detectOpenHandles --forceExit",
+    "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
+    "lint:fix": "eslint . --ext .js,.jsx,.ts,.tsx --fix",
+    "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,md}\"",
+    "format:check": "prettier --check \"**/*.{js,jsx,ts,tsx,json,md}\"",
+    "audit": "npm audit --audit-level moderate",
+    "audit:fix": "npm audit fix",
+    "security": "npm audit && snyk test",
+    "build": "echo 'No build step required for Node.js backend'",
+    "validate": "npm run lint && npm run format:check && npm run test:coverage && npm run security",
+    "precommit": "npm run lint:fix && npm run format && npm run test",
+    "prepare": "husky install",
+    "docker:build": "docker build -t nexttechfusiongadgets-backend .",
+    "docker:run": "docker run -p 5000:5000 nexttechfusiongadgets-backend",
+    "health-check": "curl -f http://localhost:5000/api/health || exit 1",
+    "load-test": "artillery run load-test.yml",
+    "monitor": "pm2 start ecosystem.config.js",
+    "logs": "pm2 logs nexttechfusiongadgets-backend"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "compression": "^1.7.4",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "express-async-handler": "^1.2.0",
+    "express-rate-limit": "^7.1.5",
+    "express-validator": "^7.0.1",
+    "helmet": "^7.0.0",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^7.5.0",
+    "morgan": "^1.10.0",
+    "multer": "1.4.5-lts.1",
+    "nodemailer": "^6.9.4",
+    "openai": "^5.8.2",
+    "stripe": "^13.5.0",
+    "cloudinary": "^1.41.0",
+    "razorpay": "^2.9.2",
+    "@paypal/checkout-server-sdk": "^1.0.3",
+    "socket.io": "^4.7.4",
+    "redis": "^4.6.10",
+    "bull": "^4.12.2",
+    "winston": "^3.11.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1",
+    "jest": "^29.7.0",
+    "supertest": "^6.3.3",
+    "mongodb-memory-server": "^9.1.3",
+    "@types/jest": "^29.5.8",
+    "@types/supertest": "^2.0.16",
+    "eslint": "^8.54.0",
+    "eslint-config-node": "^4.1.0",
+    "eslint-plugin-node": "^11.1.0",
+    "eslint-plugin-security": "^1.7.1",
+    "prettier": "^3.1.0",
+    "husky": "^8.0.3",
+    "lint-staged": "^15.1.0",
+    "snyk": "^1.1248.0",
+    "artillery": "^2.0.3",
+    "pm2": "^5.3.0",
+    "cross-env": "^7.0.3"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "setupFilesAfterEnv": ["<rootDir>/tests/setup.js"],
+    "testMatch": [
+      "**/__tests__/**/*.js",
+      "**/?(*.)+(spec|test).js"
+    ],
+    "collectCoverageFrom": [
+      "controllers/**/*.js",
+      "middleware/**/*.js",
+      "models/**/*.js",
+      "services/**/*.js",
+      "utils/**/*.js",
+      "!**/node_modules/**",
+      "!**/tests/**"
+    ],
+    "coverageThreshold": {
+      "global": {
+        "branches": 80,
+        "functions": 80,
+        "lines": 80,
+        "statements": 80
+      }
+    },
+    "coverageReporters": ["text", "lcov", "html"],
+    "verbose": true,
+    "detectOpenHandles": true,
+    "forceExit": true
+  },
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,md}": [
+      "prettier --write"
+    ]
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged && npm run test",
+      "pre-push": "npm run validate"
+    }
+  },
+  "engines": {
+    "node": ">=16.0.0",
+    "npm": ">=8.0.0"
+  },
+  "keywords": [
+    "ecommerce",
+    "nodejs",
+    "express",
+    "mongodb",
+    "api",
+    "quick-commerce",
+    "tech-gadgets",
+    "agile",
+    "six-sigma",
+    "lean"
+  ],
+  "author": "NextTechFusionGadgets Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nexttechfusiongadgets/backend.git"
+  },
+  "bugs": {
+    "url": "https://github.com/nexttechfusiongadgets/backend/issues"
+  },
+  "homepage": "https://nexttechfusiongadgets.com"
+}

@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+    "forceConsistentCasingInFileNames": true,
+    "strict": true
+    // ... other options
+  },
+  "include": [
+    "src",
+    "types" // <--- If you put global.d.ts in a 'types' folder
+  ],
+  "exclude": [
+    "node_modules"
+  ]
+}

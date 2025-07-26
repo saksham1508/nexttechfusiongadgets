@@ -1,0 +1,558 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  /* CSS Custom Properties for Theme Consistency */
+  :root {
+    /* Neon Theme Colors */
+    --background: #0f0f0f; /* Deep black */
+    --primary: #00f6ff;   /* Neon cyan */
+    --secondary: #ff00ff; /* Neon magenta */
+    --accent: #00ff6a;    /* Neon green */
+    --text: #e0e0e0;      /* Soft white */
+    
+    /* Transitions */
+    --transition-fast: 150ms ease-out;
+    --transition-normal: 300ms ease-out;
+    --transition-slow: 500ms ease-out;
+    
+    /* Shadows */
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+    --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+    --shadow-2xl: 0 25px 50px -12px rgb(0 0 0 / 0.25);
+    
+    /* Neon Shadows */
+    --shadow-neon-primary: 0 0 20px var(--primary);
+    --shadow-neon-secondary: 0 0 20px var(--secondary);
+    --shadow-neon-accent: 0 0 20px var(--accent);
+    
+    /* Border Radius */
+    --border-radius-sm: 0.5rem;
+    --border-radius-md: 0.75rem;
+    --border-radius-lg: 1rem;
+    --border-radius-xl: 1.5rem;
+  }
+
+  * {
+    @apply border-border;
+  }
+  
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+      'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+      'sans-serif';
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    @apply bg-gray-50 text-gray-900;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+@layer components {
+  /* ==================== BUTTON COMPONENTS ==================== */
+  
+  /* Base Button Style - Reduces Redundancy */
+  .btn-base {
+    @apply font-semibold py-3 px-6 rounded-xl shadow-lg 
+           transform hover:-translate-y-0.5 active:scale-95
+           focus:outline-none focus:ring-4 
+           transition-all;
+    transition-duration: var(--transition-normal);
+    will-change: transform, box-shadow;
+    contain: layout style;
+  }
+
+  .btn-primary {
+    @apply btn-base bg-gradient-to-r from-blue-600 to-purple-600 
+           hover:from-blue-700 hover:to-purple-700 
+           text-white hover:shadow-xl focus:ring-blue-300;
+  }
+  
+  .btn-secondary {
+    @apply btn-base bg-white hover:bg-gray-50 text-gray-700 
+           border-2 border-gray-200 hover:border-gray-300 
+           shadow-sm hover:shadow-md focus:ring-gray-200;
+  }
+
+  .btn-success {
+    @apply btn-base bg-gradient-to-r from-green-500 to-emerald-600 
+           hover:from-green-600 hover:to-emerald-700 
+           text-white hover:shadow-xl focus:ring-green-300;
+  }
+
+  .btn-danger {
+    @apply btn-base bg-gradient-to-r from-red-500 to-pink-600 
+           hover:from-red-600 hover:to-pink-700 
+           text-white hover:shadow-xl focus:ring-red-300;
+  }
+
+  .btn-outline {
+    @apply btn-base bg-transparent hover:bg-blue-50 text-blue-600 
+           border-2 border-blue-600 hover:border-blue-700 
+           focus:ring-blue-200;
+  }
+  
+  /* ==================== INPUT COMPONENTS ==================== */
+  
+  /* Base Input Style */
+  .input-base {
+    @apply w-full border-2 border-gray-200 bg-white placeholder-gray-400
+           focus:outline-none focus:ring-4 focus:ring-blue-100 focus:border-blue-500 
+           hover:border-gray-300 transition-all;
+    transition-duration: var(--transition-normal);
+    contain: layout style;
+  }
+
+  .input-field {
+    @apply input-base px-4 py-3 rounded-xl;
+  }
+
+  .input-search {
+    @apply input-base px-5 py-4 pl-12 rounded-2xl text-lg shadow-sm hover:shadow-md;
+  }
+  
+  /* ==================== CARD COMPONENTS ==================== */
+  
+  /* Base Card Style */
+  .card-base {
+    @apply bg-white rounded-2xl border border-gray-100 overflow-hidden
+           transform transition-all;
+    will-change: transform, box-shadow;
+    contain: layout style;
+  }
+
+  .card {
+    @apply card-base shadow-sm hover:shadow-xl hover:-translate-y-1;
+    transition-duration: var(--transition-normal);
+  }
+
+  .card-product {
+    @apply card-base shadow-sm hover:shadow-2xl hover:-translate-y-2 
+           hover:border-blue-200 cursor-pointer;
+    transition-duration: var(--transition-slow);
+  }
+
+  .card-feature {
+    @apply card-base bg-gradient-to-br from-white to-gray-50 
+           shadow-lg hover:shadow-2xl hover:-translate-y-2 
+           p-6 cursor-pointer hover:border-blue-200;
+    transition-duration: var(--transition-slow);
+  }
+
+  /* ==================== BADGE COMPONENTS ==================== */
+  
+  .badge {
+    @apply inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold;
+    contain: layout style;
+  }
+
+  .badge-success {
+    @apply badge bg-green-100 text-green-800 border border-green-200;
+  }
+
+  .badge-warning {
+    @apply badge bg-yellow-100 text-yellow-800 border border-yellow-200;
+  }
+
+  .badge-danger {
+    @apply badge bg-red-100 text-red-800 border border-red-200;
+  }
+
+  .badge-info {
+    @apply badge bg-blue-100 text-blue-800 border border-blue-200;
+  }
+
+  .badge-discount {
+    @apply badge bg-gradient-to-r from-red-500 to-pink-600 text-white shadow-lg;
+  }
+
+  /* ==================== LAYOUT COMPONENTS ==================== */
+  
+  .container-modern {
+    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+  }
+
+  .section-padding {
+    @apply py-12 sm:py-16 lg:py-20;
+  }
+
+  /* ==================== GRADIENT UTILITIES ==================== */
+  
+  .gradient-primary {
+    @apply bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600;
+  }
+
+  .gradient-secondary {
+    @apply bg-gradient-to-r from-gray-100 to-gray-200;
+  }
+
+  .gradient-success {
+    @apply bg-gradient-to-r from-green-400 to-emerald-500;
+  }
+
+  .gradient-warning {
+    @apply bg-gradient-to-r from-yellow-400 to-orange-500;
+  }
+
+  /* ==================== ANIMATION UTILITIES ==================== */
+  
+  .animate-fade-in {
+    animation: fadeIn 0.6s ease-out;
+    will-change: opacity, transform;
+  }
+
+  .animate-slide-up {
+    animation: slideUp 0.6s ease-out;
+    will-change: opacity, transform;
+  }
+
+  .animate-bounce-gentle {
+    animation: bounceGentle 2s infinite;
+    will-change: transform;
+  }
+
+  .animate-pulse-slow {
+    animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    will-change: opacity;
+  }
+
+  /* Neon Animations */
+  .animate-neon-pulse {
+    animation: neonPulse 2s ease-in-out infinite;
+    will-change: box-shadow;
+  }
+
+  .animate-neon-flicker {
+    animation: neonFlicker 3s ease-in-out infinite;
+    will-change: opacity;
+  }
+
+  .animate-neon-glow {
+    animation: neonGlow 2s ease-in-out infinite;
+    will-change: text-shadow;
+  }
+
+  .animate-neon-border {
+    animation: neonBorder 4s linear infinite;
+    will-change: border-color, box-shadow;
+  }
+
+  /* Optimized Staggered Animation Delays */
+  .animate-delay-0 { animation-delay: 0ms; }
+  .animate-delay-100 { animation-delay: 100ms; }
+  .animate-delay-200 { animation-delay: 200ms; }
+  .animate-delay-300 { animation-delay: 300ms; }
+  .animate-delay-400 { animation-delay: 400ms; }
+  .animate-delay-500 { animation-delay: 500ms; }
+  .animate-delay-600 { animation-delay: 600ms; }
+  .animate-delay-700 { animation-delay: 700ms; }
+
+  /* ==================== HOVER EFFECTS ==================== */
+  
+  .hover-lift {
+    @apply transform hover:-translate-y-2 hover:shadow-2xl transition-all;
+    transition-duration: var(--transition-normal);
+    will-change: transform, box-shadow;
+  }
+
+  .hover-scale {
+    @apply transform hover:scale-105 transition-all;
+    transition-duration: var(--transition-normal);
+    will-change: transform;
+  }
+
+  .hover-glow {
+    @apply hover:shadow-2xl hover:shadow-blue-500/25 transition-all;
+    transition-duration: var(--transition-normal);
+    will-change: box-shadow;
+  }
+
+  /* ==================== SCROLLBAR STYLING ==================== */
+  
+  .scrollbar-modern::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  .scrollbar-modern::-webkit-scrollbar-track {
+    @apply bg-gray-100 rounded-full;
+  }
+
+  .scrollbar-modern::-webkit-scrollbar-thumb {
+    @apply bg-gray-300 rounded-full hover:bg-gray-400;
+  }
+
+  /* ==================== LOADING COMPONENTS ==================== */
+  
+  .skeleton {
+    @apply animate-pulse bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200 bg-[length:200%_100%];
+    animation: shimmer 1.5s infinite;
+    will-change: background-position;
+    contain: layout style;
+  }
+}
+
+/* ==================== KEYFRAME ANIMATIONS ==================== */
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes bounceGentle {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@keyframes neonPulse {
+  0%, 100% {
+    box-shadow: 0 0 5px var(--primary), 0 0 10px var(--primary), 0 0 15px var(--primary);
+  }
+  50% {
+    box-shadow: 0 0 10px var(--primary), 0 0 20px var(--primary), 0 0 30px var(--primary);
+  }
+}
+
+@keyframes neonFlicker {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.8;
+  }
+  75% {
+    opacity: 1;
+  }
+  85% {
+    opacity: 0.9;
+  }
+}
+
+@keyframes neonGlow {
+  0% {
+    text-shadow: 0 0 5px var(--primary);
+  }
+  50% {
+    text-shadow: 0 0 10px var(--primary), 0 0 15px var(--primary);
+  }
+  100% {
+    text-shadow: 0 0 5px var(--primary);
+  }
+}
+
+@keyframes neonBorder {
+  0% {
+    border-color: var(--primary);
+    box-shadow: 0 0 5px var(--primary);
+  }
+  33% {
+    border-color: var(--secondary);
+    box-shadow: 0 0 5px var(--secondary);
+  }
+  66% {
+    border-color: var(--accent);
+    box-shadow: 0 0 5px var(--accent);
+  }
+  100% {
+    border-color: var(--primary);
+    box-shadow: 0 0 5px var(--primary);
+  }
+}
+
+/* ==================== UTILITY CLASSES ==================== */
+
+.text-gradient {
+  @apply bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent;
+}
+
+.border-gradient {
+  border: 2px solid transparent;
+  background: linear-gradient(white, white) padding-box,
+              linear-gradient(45deg, #3b82f6, #8b5cf6) border-box;
+}
+
+/* ==================== NEON THEME UTILITIES ==================== */
+
+/* Background Colors */
+.bg-neon-dark {
+  background-color: var(--background);
+}
+
+.bg-neon-primary {
+  background-color: var(--primary);
+}
+
+.bg-neon-secondary {
+  background-color: var(--secondary);
+}
+
+.bg-neon-accent {
+  background-color: var(--accent);
+}
+
+/* Text Colors */
+.text-neon-light {
+  color: var(--text);
+}
+
+.text-neon-primary {
+  color: var(--primary);
+}
+
+.text-neon-secondary {
+  color: var(--secondary);
+}
+
+.text-neon-accent {
+  color: var(--accent);
+}
+
+/* Border Colors */
+.border-neon-primary {
+  border-color: var(--primary);
+}
+
+.border-neon-secondary {
+  border-color: var(--secondary);
+}
+
+.border-neon-accent {
+  border-color: var(--accent);
+}
+
+/* Neon Glow Effects */
+.glow-neon-primary {
+  box-shadow: var(--shadow-neon-primary);
+}
+
+.glow-neon-secondary {
+  box-shadow: var(--shadow-neon-secondary);
+}
+
+.glow-neon-accent {
+  box-shadow: var(--shadow-neon-accent);
+}
+
+/* Neon Text Glow */
+.text-glow-primary {
+  color: var(--primary);
+  text-shadow: 0 0 10px var(--primary);
+}
+
+.text-glow-secondary {
+  color: var(--secondary);
+  text-shadow: 0 0 10px var(--secondary);
+}
+
+.text-glow-accent {
+  color: var(--accent);
+  text-shadow: 0 0 10px var(--accent);
+}
+
+/* Neon Button Styles */
+.btn-neon-primary {
+  @apply btn-base bg-transparent transition-all;
+  color: var(--primary);
+  border: 2px solid var(--primary);
+  box-shadow: 0 0 10px var(--primary);
+}
+
+.btn-neon-primary:hover {
+  background-color: var(--primary);
+  color: #000000;
+}
+
+.btn-neon-secondary {
+  @apply btn-base bg-transparent transition-all;
+  color: var(--secondary);
+  border: 2px solid var(--secondary);
+  box-shadow: 0 0 10px var(--secondary);
+}
+
+.btn-neon-secondary:hover {
+  background-color: var(--secondary);
+  color: #000000;
+}
+
+.btn-neon-accent {
+  @apply btn-base bg-transparent transition-all;
+  color: var(--accent);
+  border: 2px solid var(--accent);
+  box-shadow: 0 0 10px var(--accent);
+}
+
+.btn-neon-accent:hover {
+  background-color: var(--accent);
+  color: #000000;
+}
+
+/* Neon Gradients */
+.gradient-neon-primary {
+  background: linear-gradient(45deg, var(--primary), var(--accent));
+}
+
+.gradient-neon-secondary {
+  background: linear-gradient(45deg, var(--secondary), var(--primary));
+}
+
+.gradient-neon-full {
+  background: linear-gradient(45deg, var(--primary), var(--secondary), var(--accent));
+}
+
+/* ==================== PERFORMANCE OPTIMIZATIONS ==================== */
+
+/* Reduce paint and layout thrashing */
+.gpu-accelerated {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  perspective: 1000px;
+}
+
+/* Optimize for animations */
+.animate-optimized {
+  will-change: transform, opacity;
+  contain: layout style;
+}
+
+/* Remove will-change after animation completes */
+.animate-complete {
+  will-change: auto;
+}
