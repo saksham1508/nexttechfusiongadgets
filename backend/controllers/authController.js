@@ -423,9 +423,236 @@ const updateProfile = async (req, res) => {
   }
 };
 
+// @desc    Apple authentication callback
+// @route   POST /api/auth/apple/callback
+// @access  Public
+const appleAuthCallback = asyncHandler(async (req, res) => {
+  const startTime = Date.now();
+  
+  try {
+    // User should be attached by passport middleware
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        error: {
+          type: 'AUTHENTICATION_ERROR',
+          message: 'Apple authentication failed',
+          timestamp: new Date().toISOString()
+        }
+      });
+    }
+
+    const user = req.user;
+    const processingTime = Date.now() - startTime;
+
+    // Generate tokens
+    const accessToken = generateToken(user._id);
+    const refreshToken = generateRefreshToken(user._id);
+
+    // Record login metrics
+    authMetrics.recordLoginAttempt(user.email, true, req.ip, req.get('User-Agent'));
+
+    const response = {
+      success: true,
+      message: 'Apple authentication successful',
+      data: {
+        user: {
+          id: user._id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          isVerified: user.isEmailVerified,
+          authProvider: user.authProvider,
+          lastLogin: user.lastLogin,
+          preferences: user.preferences
+        },
+        tokens: {
+          accessToken,
+          refreshToken,
+          expiresIn: '30d'
+        },
+        session: {
+          loginTime: new Date(),
+          deviceInfo: {
+            ip: req.ip,
+            userAgent: req.get('User-Agent')
+          }
+        }
+      },
+      metadata: {
+        processingTime,
+        authProvider: 'apple'
+      },
+      timestamp: new Date().toISOString(),
+      correlationId: req.correlationId
+    };
+
+    // Set secure cookies
+    const cookieOptions = {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
+    };
+
+    res.cookie('refreshToken', refreshToken, cookieOptions);
+    res.cookie('sessionId', crypto.randomUUID(), cookieOptions);
+
+    // For web flow, redirect to frontend with token
+    if (req.query.web === 'true') {
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+      const redirectUrl = `${frontendUrl}/auth/callback?token=${accessToken}&provider=apple`;
+      return res.redirect(redirectUrl);
+    }
+
+    // For API flow, return JSON
+    res.json(response);
+
+  } catch (error) {
+    console.error('Apple auth callback error:', error);
+    res.status(500).json({
+      success: false,
+      error: {
+        type: 'INTERNAL_ERROR',
+        message: 'Apple authentication failed',
+        timestamp: new Date().toISOString()
+      }
+    });
+  }
+});
+
+// @desc    Handle Apple authentication token from frontend
+// @route   POST /api/auth/apple
+// @access  Public
+const appleAuth = asyncHandler(async (req, res) => {
+  const startTime = Date.now();
+  const { identityToken, authorizationCode, user: appleUser } = req.body;
+  const clientIP = req.ip || req.connection.remoteAddress;
+  const userAgent = req.get('User-Agent');
+
+  try {
+    if (!identityToken) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          type: 'VALIDATION_ERROR',
+          message: 'Apple identity token is required',
+          timestamp: new Date().toISOString()
+        }
+      });
+    }
+
+    // For demo/development mode
+    if (process.env.NODE_ENV === 'development' && identityToken.startsWith('mock_')) {
+      console.log('🔄 Using mock Apple authentication');
+      
+      const mockUser = {
+        id: 'mock_apple_' + Date.now(),
+        email: appleUser?.email || 'user@apple.demo',
+        name: appleUser?.name || { firstName: 'Apple', lastName: 'User' }
+      };
+
+      // Check if user exists
+      let user = await User.findOne({ email: mockUser.email.toLowerCase() });
+      
+      if (!user) {
+        user = new User({
+          appleId: mockUser.id,
+          email: mockUser.email.toLowerCase(),
+          name: `${mockUser.name.firstName} ${mockUser.name.lastName}`,
+          firstName: mockUser.name.firstName,
+          lastName: mockUser.name.lastName,
+          authProvider: 'apple',
+          isEmailVerified: true,
+          registrationIP: clientIP,
+          registrationUserAgent: userAgent,
+          lastLogin: new Date()
+        });
+        await user.save();
+      } else {
+        user.appleId = mockUser.id;
+        user.authProvider = 'apple';
+        user.lastLogin = new Date();
+        await user.save();
+      }
+
+      const processingTime = Date.now() - startTime;
+      const accessToken = generateToken(user._id);
+      const refreshToken = generateRefreshToken(user._id);
+
+      authMetrics.recordLoginAttempt(user.email, true, clientIP, userAgent);
+
+      const response = {
+        success: true,
+        message: 'Apple authentication successful (Demo Mode)',
+        data: {
+          user: {
+            id: user._id,
+            name: user.name,
+            email: user.email,
+            role: user.role,
+            isVerified: user.isEmailVerified,
+            authProvider: user.authProvider,
+            lastLogin: user.lastLogin,
+            preferences: user.preferences
+          },
+          tokens: {
+            accessToken,
+            refreshToken,
+            expiresIn: '30d'
+          }
+        },
+        metadata: {
+          processingTime,
+          authProvider: 'apple',
+          demoMode: true
+        },
+        timestamp: new Date().toISOString()
+      };
+
+      const cookieOptions = {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        maxAge: 30 * 24 * 60 * 60 * 1000
+      };
+
+      res.cookie('refreshToken', refreshToken, cookieOptions);
+      return res.json(response);
+    }
+
+    // TODO: Implement real Apple ID token verification
+    // This would involve verifying the JWT token with Apple's public keys
+    // For now, return an error for production use
+    return res.status(501).json({
+      success: false,
+      error: {
+        type: 'NOT_IMPLEMENTED',
+        message: 'Apple ID token verification not yet implemented for production',
+        timestamp: new Date().toISOString()
+      }
+    });
+
+  } catch (error) {
+    console.error('Apple auth error:', error);
+    authMetrics.recordLoginAttempt(req.body.user?.email || 'unknown', false, clientIP, userAgent);
+    
+    res.status(500).json({
+      success: false,
+      error: {
+        type: 'INTERNAL_ERROR',
+        message: 'Apple authentication failed',
+        timestamp: new Date().toISOString()
+      }
+    });
+  }
+});
+
 module.exports = {
   register,
   login,
   getProfile,
-  updateProfile
+  updateProfile,
+  appleAuthCallback,
+  appleAuth
 };

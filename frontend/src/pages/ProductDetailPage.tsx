@@ -1,5 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useDispatch, useSelector } from 'react-redux';
+import { AppDispatch, RootState } from '../store/store';
+import { addToCart } from '../store/slices/cartSlice';
+import CartRecommendationsModal from '../components/CartRecommendationsModal';
+import toast from 'react-hot-toast';
 
 interface Product {
   _id: string;
@@ -22,11 +27,14 @@ interface Product {
 const ProductDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const dispatch = useDispatch<AppDispatch>();
+  const { user } = useSelector((state: RootState) => state.auth);
 
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [quantity, setQuantity] = useState(1);
   const [selectedImage, setSelectedImage] = useState(0);
+  const [showRecommendationsModal, setShowRecommendationsModal] = useState(false);
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -43,17 +51,39 @@ const ProductDetailPage: React.FC = () => {
     fetchProduct();
   }, [id]);
 
-  const handleAddToCart = () => {
+  const handleAddToCart = async () => {
     if (!product) return;
-    const cartItem = {
-      productId: product._id,
-      name: product.name,
-      price: product.price,
-      image: product.images[0],
-      quantity,
-    };
-    localStorage.setItem('cart', JSON.stringify([cartItem])); // minimal persistence
-    alert('Added to cart!');
+    
+    // Check if user is logged in using Redux state first, then localStorage as fallback
+    const storedUser = localStorage.getItem('user');
+    const storedToken = localStorage.getItem('token');
+    const isAuthenticated = user || (storedUser && storedToken);
+    
+    if (!isAuthenticated) {
+      toast.error('Please login to add items to cart');
+      navigate('/login');
+      return;
+    }
+
+    if (!product.inStock || product.stockQuantity === 0) {
+      toast.error('Product is out of stock');
+      return;
+    }
+
+    // User is logged in - use Redux/API cart system
+    try {
+      await dispatch(addToCart({ 
+        productId: product._id, 
+        quantity: quantity 
+      })).unwrap();
+      toast.success(`Added ${quantity} item(s) to cart successfully`);
+      
+      // Show smart recommendations modal
+      setShowRecommendationsModal(true);
+    } catch (error: any) {
+      console.error('Cart error:', error);
+      toast.error('Failed to add item to cart. Please try again.');
+    }
   };
 
   const formatPrice = (price: number) =>
@@ -125,10 +155,16 @@ const ProductDetailPage: React.FC = () => {
           </div>
 
           <button
+            type="button"
             onClick={handleAddToCart}
-            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+            disabled={!product.inStock || product.stockQuantity === 0}
+            className={`px-6 py-3 rounded-lg font-semibold transition-all duration-300 ${
+              !product.inStock || product.stockQuantity === 0
+                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                : 'bg-blue-600 text-white hover:bg-blue-700 hover:shadow-lg'
+            }`}
           >
-            Add to Cart
+            {!product.inStock || product.stockQuantity === 0 ? 'Out of Stock' : 'Add to Cart'}
           </button>
         </div>
       </div>
@@ -154,6 +190,24 @@ const ProductDetailPage: React.FC = () => {
           </tbody>
         </table>
       </div>
+
+      {/* Smart Recommendations Modal */}
+      {product && (
+        <CartRecommendationsModal
+          isOpen={showRecommendationsModal}
+          onClose={() => setShowRecommendationsModal(false)}
+          addedProduct={{
+            _id: product._id,
+            name: product.name,
+            price: product.price,
+            images: product.images.map(img => ({ url: img, alt: product.name })),
+            rating: product.rating,
+            numReviews: product.numReviews,
+            category: product.category,
+            brand: product.brand
+          }}
+        />
+      )}
     </div>
   );
 };

@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Plus, Minus, ShoppingCart, Zap } from 'lucide-react';
-import { useDispatch } from 'react-redux';
-import { AppDispatch } from '../store/store';
+import { useDispatch, useSelector } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
+import { AppDispatch, RootState } from '../store/store';
 import { addToCart, updateCartItem } from '../store/slices/cartSlice';
+import CartRecommendationsModal from './CartRecommendationsModal';
 import toast from 'react-hot-toast';
 
 interface Product {
@@ -27,8 +29,29 @@ const QuickAddToCart: React.FC<QuickAddToCartProps> = ({
   showQuickBuy = false
 }) => {
   const dispatch = useDispatch<AppDispatch>();
+  const navigate = useNavigate();
+  const { user } = useSelector((state: RootState) => state.auth);
   const [isLoading, setIsLoading] = useState(false);
-  const [quantity, setQuantity] = useState(cartQuantity);
+  const [quantity, setQuantity] = useState(0);
+  const [showRecommendationsModal, setShowRecommendationsModal] = useState(false);
+
+  // Load quantity for authenticated users only
+  useEffect(() => {
+    const loadQuantity = () => {
+      const user = localStorage.getItem('user');
+      
+      if (user) {
+        // For authenticated users, quantity will be managed by Redux state
+        // This will be updated when the parent component fetches cart data
+        setQuantity(cartQuantity);
+      } else {
+        // For non-authenticated users, no cart quantity
+        setQuantity(0);
+      }
+    };
+
+    loadQuantity();
+  }, [product._id, cartQuantity]);
 
   const sizeClasses = {
     sm: {
@@ -56,23 +79,66 @@ const QuickAddToCart: React.FC<QuickAddToCartProps> = ({
       return;
     }
 
+    // Check if user is logged in using Redux state first, then localStorage as fallback
+    const storedUser = localStorage.getItem('user');
+    const storedToken = localStorage.getItem('token');
+    const isAuthenticated = user || (storedUser && storedToken);
+    
+    if (!isAuthenticated) {
+      // User not logged in - redirect to login
+      toast.error('Please login to add items to cart');
+      navigate('/login');
+      return;
+    }
+
     setIsLoading(true);
+    
+    // User is logged in - use Redux/API cart system
     try {
-      await dispatch(addToCart({
-        productId: product._id,
-        quantity: 1
-      })).unwrap();
-      
+      await dispatch(addToCart({ productId: product._id, quantity: 1 })).unwrap();
       setQuantity(prev => prev + 1);
       toast.success('Added to cart!', {
         duration: 2000,
         icon: '🛒',
       });
-    } catch (error) {
-      toast.error('Failed to add to cart');
-    } finally {
-      setIsLoading(false);
+      // Show smart recommendations modal
+      setShowRecommendationsModal(true);
+    } catch (error: any) {
+      console.error('Cart error:', error);
+      console.error('Error details:', error.message || error);
+      toast.error(`Failed to add item to cart: ${error.message || 'Please try again'}`);
     }
+    
+    setIsLoading(false);
+  };
+
+  const handleTempCartAdd = () => {
+    const tempCart = JSON.parse(localStorage.getItem('tempCart') || '[]');
+    const existingItem = tempCart.find((item: any) => item.productId === product._id);
+    
+    if (existingItem) {
+      existingItem.quantity += 1;
+    } else {
+      tempCart.push({
+        productId: product._id,
+        name: product.name,
+        price: product.price,
+        image: product.image,
+        quantity: 1
+      });
+    }
+    
+    localStorage.setItem('tempCart', JSON.stringify(tempCart));
+    // Dispatch custom event to notify cart page
+    window.dispatchEvent(new Event('cartUpdated'));
+    setQuantity(prev => prev + 1);
+    toast.success('Added to cart! (Demo Mode)', {
+      duration: 2000,
+      icon: '🛒',
+    });
+    
+    // Show smart recommendations modal
+    setShowRecommendationsModal(true);
   };
 
   const handleUpdateQuantity = async (newQuantity: number) => {
@@ -82,29 +148,41 @@ const QuickAddToCart: React.FC<QuickAddToCartProps> = ({
       return;
     }
 
+    // Check if user is logged in
+    const user = localStorage.getItem('user');
+    
+    if (!user) {
+      // User not logged in - redirect to login
+      toast.error('Please login to manage cart items');
+      navigate('/login');
+      return;
+    }
+
     setIsLoading(true);
+    
+    // User is logged in - use Redux/API cart system
     try {
       if (newQuantity === 0) {
         // Remove from cart
-        await dispatch(updateCartItem({
-          productId: product._id,
-          quantity: 0
-        })).unwrap();
+        await dispatch(updateCartItem({ productId: product._id, quantity: 0 })).unwrap();
+        setQuantity(0);
         toast.success('Removed from cart');
       } else {
-        await dispatch(updateCartItem({
-          productId: product._id,
-          quantity: newQuantity
-        })).unwrap();
+        // Update quantity
+        await dispatch(updateCartItem({ productId: product._id, quantity: newQuantity })).unwrap();
+        setQuantity(newQuantity);
+        toast.success('Cart updated');
       }
-      
-      setQuantity(newQuantity);
-    } catch (error) {
-      toast.error('Failed to update cart');
-    } finally {
-      setIsLoading(false);
+    } catch (error: any) {
+      console.error('Update cart error:', error);
+      console.error('Error details:', error.message || error);
+      toast.error(`Failed to update cart: ${error.message || 'Please try again'}`);
     }
+    
+    setIsLoading(false);
   };
+
+
 
   const handleQuickBuy = () => {
     // Add to cart and redirect to checkout
@@ -120,6 +198,7 @@ const QuickAddToCart: React.FC<QuickAddToCartProps> = ({
     return (
       <div className="flex flex-col space-y-2">
         <button
+          type="button"
           onClick={handleAddToCart}
           disabled={isLoading || product.stock <= 0}
           className={`
@@ -143,6 +222,7 @@ const QuickAddToCart: React.FC<QuickAddToCartProps> = ({
 
         {showQuickBuy && (
           <button
+            type="button"
             onClick={handleQuickBuy}
             disabled={isLoading || product.stock <= 0}
             className={`
@@ -167,6 +247,7 @@ const QuickAddToCart: React.FC<QuickAddToCartProps> = ({
     <div className="flex flex-col space-y-2">
       <div className="flex items-center space-x-1 bg-gray-100 rounded-lg p-1">
         <button
+          type="button"
           onClick={() => handleUpdateQuantity(quantity - 1)}
           disabled={isLoading}
           className={`
@@ -195,6 +276,7 @@ const QuickAddToCart: React.FC<QuickAddToCartProps> = ({
         </div>
 
         <button
+          type="button"
           onClick={() => handleUpdateQuantity(quantity + 1)}
           disabled={isLoading || quantity >= product.stock}
           className={`
@@ -212,6 +294,7 @@ const QuickAddToCart: React.FC<QuickAddToCartProps> = ({
 
       {showQuickBuy && (
         <button
+          type="button"
           onClick={handleQuickBuy}
           disabled={isLoading}
           className={`
@@ -234,6 +317,22 @@ const QuickAddToCart: React.FC<QuickAddToCartProps> = ({
           Only {product.stock} left!
         </div>
       )}
+
+      {/* Smart Recommendations Modal */}
+      <CartRecommendationsModal
+        isOpen={showRecommendationsModal}
+        onClose={() => setShowRecommendationsModal(false)}
+        addedProduct={{
+          _id: product._id,
+          name: product.name,
+          price: product.price,
+          images: [{ url: product.image, alt: product.name }],
+          rating: 4.5,
+          numReviews: 100,
+          category: 'Electronics',
+          brand: 'Brand'
+        }}
+      />
     </div>
   );
 };

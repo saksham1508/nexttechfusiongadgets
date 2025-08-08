@@ -18,9 +18,9 @@ router.get('/forecast/:productId', auth, adminAuth, async (req, res) => {
   try {
     const { productId } = req.params;
     const { days = 30 } = req.query;
-    
+
     const forecast = await aiInventoryService.getDemandForecast(productId, parseInt(days));
-    
+
     if (!forecast.success) {
       return res.status(404).json({
         success: false,
@@ -53,9 +53,9 @@ router.get('/forecast/:productId', auth, adminAuth, async (req, res) => {
 router.get('/reorder-status/:productId', auth, adminAuth, async (req, res) => {
   try {
     const { productId } = req.params;
-    
+
     const reorderStatus = await aiInventoryService.checkReorderStatus(productId);
-    
+
     res.json({
       success: true,
       data: {
@@ -81,7 +81,7 @@ router.get('/performance', auth, adminAuth, async (req, res) => {
   try {
     const cacheKey = 'ai_inventory:performance_analysis';
     let analysis = await cacheOptimizer.get(cacheKey);
-    
+
     if (!analysis) {
       analysis = await aiInventoryService.analyzeInventoryPerformance();
       await cacheOptimizer.set(cacheKey, analysis, 1800); // Cache for 30 minutes
@@ -110,7 +110,7 @@ router.get('/performance', auth, adminAuth, async (req, res) => {
 router.get('/purchase-orders', auth, adminAuth, async (req, res) => {
   try {
     const { status = 'pending', page = 1, limit = 20 } = req.query;
-    
+
     const query = { aiGenerated: true };
     if (status !== 'all') {
       query.status = status;
@@ -154,7 +154,7 @@ router.get('/purchase-orders', auth, adminAuth, async (req, res) => {
 router.post('/generate-orders', auth, adminAuth, async (req, res) => {
   try {
     const orders = await aiInventoryService.generateAutomatedOrders();
-    
+
     res.json({
       success: true,
       data: {
@@ -180,9 +180,9 @@ router.put('/purchase-orders/:orderId/approve', auth, adminAuth, async (req, res
   try {
     const { orderId } = req.params;
     const { notes } = req.body;
-    
+
     const order = await PurchaseOrder.findById(orderId);
-    
+
     if (!order) {
       return res.status(404).json({
         success: false,
@@ -198,7 +198,7 @@ router.put('/purchase-orders/:orderId/approve', auth, adminAuth, async (req, res
     }
 
     await order.approve(req.user._id);
-    
+
     if (notes) {
       order.notes.push({
         user: req.user._id,
@@ -235,9 +235,9 @@ router.put('/purchase-orders/:orderId/reject', auth, adminAuth, async (req, res)
   try {
     const { orderId } = req.params;
     const { reason } = req.body;
-    
+
     const order = await PurchaseOrder.findById(orderId);
-    
+
     if (!order) {
       return res.status(404).json({
         success: false,
@@ -268,9 +268,9 @@ router.put('/purchase-orders/:orderId/reject', auth, adminAuth, async (req, res)
 router.get('/alerts', auth, adminAuth, async (req, res) => {
   try {
     const { limit = 20 } = req.query;
-    
+
     const alerts = aiInventoryService.getInventoryAlerts(parseInt(limit));
-    
+
     res.json({
       success: true,
       data: {
@@ -296,7 +296,7 @@ router.get('/dashboard', auth, adminAuth, async (req, res) => {
   try {
     const cacheKey = 'ai_inventory:dashboard';
     let dashboardData = await cacheOptimizer.get(cacheKey);
-    
+
     if (!dashboardData) {
       // Get various metrics for dashboard
       const [
@@ -385,7 +385,7 @@ router.put('/products/:productId/auto-reorder', auth, adminAuth, async (req, res
   try {
     const { productId } = req.params;
     const { autoReorder, minStock, maxStock, leadTime } = req.body;
-    
+
     const product = await Product.findByIdAndUpdate(
       productId,
       {
@@ -434,7 +434,7 @@ router.put('/products/:productId/auto-reorder', auth, adminAuth, async (req, res
 router.get('/suppliers/performance', auth, adminAuth, async (req, res) => {
   try {
     const { supplier } = req.query;
-    
+
     let performance;
     if (supplier) {
       performance = await PurchaseOrder.getSupplierPerformance(supplier);
@@ -481,13 +481,9 @@ router.get('/insights', auth, adminAuth, async (req, res) => {
   try {
     const cacheKey = 'ai_inventory:insights';
     let insights = await cacheOptimizer.get(cacheKey);
-    
+
     if (!insights) {
-      const [
-        inventoryInsights,
-        seasonalTrends,
-        categoryPerformance
-      ] = await Promise.all([
+      const [inventoryInsights, seasonalTrends, categoryPerformance] = await Promise.all([
         PurchaseOrder.getInventoryInsights(),
         aiInventoryService.getSeasonalTrends(),
         aiInventoryService.getCategoryPerformance()

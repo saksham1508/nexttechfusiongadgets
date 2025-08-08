@@ -30,6 +30,8 @@ axiosInstance.interceptors.request.use(
     // Add token to headers if available
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+    } else {
+      console.warn('⚠️ No token found for API request:', config.url);
     }
     
     // Ensure content type is set
@@ -40,6 +42,7 @@ axiosInstance.interceptors.request.use(
     return config;
   },
   (error) => {
+    console.error('❌ Request interceptor error:', error);
     return Promise.reject(error);
   }
 );
@@ -50,16 +53,16 @@ axiosInstance.interceptors.response.use(
     return response;
   },
   (error) => {
+    console.error('❌ API error:', error.response?.status, error.response?.data?.message || error.response?.data, error.config?.url);
+    
     // Handle 401 errors by clearing auth data
     if (error.response?.status === 401) {
       localStorage.removeItem('user');
       localStorage.removeItem('token');
       
-      // Only redirect to login if not already on login/register pages
-      const currentPath = window.location.pathname;
-      if (!currentPath.includes('/login') && !currentPath.includes('/register')) {
-        window.location.href = '/login';
-      }
+      // Don't redirect automatically - let the component handle it
+      // This prevents unwanted page refreshes when cart operations fail
+      console.log('Authentication failed - token cleared');
     }
     
     return Promise.reject(error);

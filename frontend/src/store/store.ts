@@ -66,9 +66,10 @@ const persistConfig = {
   key: 'root',
   storage,
   // Only persist essential data to reduce storage usage
-  whitelist: ['auth', 'cart', 'wishlist', 'delivery', 'categories'],
+  // Remove 'auth' from whitelist to prevent persistence conflicts with logout
+  whitelist: ['cart', 'wishlist', 'delivery', 'categories'],
   // Blacklist sensitive or temporary data
-  blacklist: ['chat', 'flashSales', 'payment'],
+  blacklist: ['chat', 'flashSales', 'payment', 'auth'],
   // Transform data before persisting
   transforms: []
 };

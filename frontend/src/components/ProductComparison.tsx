@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import { 
   X, 
   Star, 
@@ -31,7 +32,9 @@ const ProductComparison: React.FC<ProductComparisonProps> = ({
   onRemoveProduct
 }) => {
   const dispatch = useAppDispatch();
+  const navigate = useNavigate();
   const { wishlist } = useAppSelector(state => state.wishlist);
+  const { user } = useAppSelector(state => state.auth);
   const wishlistItems = wishlist?.items || [];
   const [selectedFeature, setSelectedFeature] = useState<string | null>(null);
 
@@ -45,12 +48,35 @@ const ProductComparison: React.FC<ProductComparisonProps> = ({
     return Array.from(allFeatures);
   };
 
-  const handleAddToCart = (product: any) => {
-    dispatch(addToCart({
-      productId: product._id,
-      quantity: 1
-    }));
-    toast.success(`${product.name} added to cart!`);
+  const handleAddToCart = async (product: any) => {
+    // Check if user is logged in using Redux state first, then localStorage as fallback
+    const storedUser = localStorage.getItem('user');
+    const storedToken = localStorage.getItem('token');
+    const isAuthenticated = user || (storedUser && storedToken);
+    
+    if (!isAuthenticated) {
+      // User not logged in - redirect to login
+      toast.error('Please login to add items to cart');
+      navigate('/login');
+      return;
+    }
+
+    if (product.stock === 0) {
+      toast.error('Product is out of stock');
+      return;
+    }
+
+    // User is logged in - use Redux/API cart system
+    try {
+      await dispatch(addToCart({
+        productId: product._id,
+        quantity: 1
+      })).unwrap();
+      toast.success(`${product.name} added to cart!`);
+    } catch (error: any) {
+      console.error('Cart error:', error);
+      toast.error('Failed to add item to cart. Please try again.');
+    }
   };
 
   const handleToggleWishlist = (productId: string) => {

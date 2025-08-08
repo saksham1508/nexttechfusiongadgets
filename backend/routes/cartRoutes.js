@@ -1,16 +1,31 @@
 const express = require('express');
+
+// Check if MongoDB is available
+const mongoose = require('mongoose');
+const isMongoConnected = mongoose.connection.readyState === 1;
+
+// Use appropriate middleware and controller based on MongoDB availability
+let auth, cartController;
+if (isMongoConnected) {
+  auth = require('../middleware/auth').auth;
+  cartController = require('../controllers/cartController');
+} else {
+  console.log('🔄 Using mock cart controller and auth (MongoDB not available)');
+  auth = require('../middleware/mockAuth').auth;
+  cartController = require('../controllers/mockCartController');
+}
+
 const {
   getCart,
   addToCart,
   updateCartItem,
   removeFromCart,
   clearCart
-} = require('../controllers/cartController');
-const { protect } = require('../middleware/auth');
+} = cartController;
 
 const router = express.Router();
 
-router.use(protect);
+router.use(auth);
 
 router.route('/').get(getCart);
 router.post('/add', addToCart);

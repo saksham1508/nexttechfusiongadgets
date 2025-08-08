@@ -78,6 +78,18 @@ export const removeFromCart = createAsyncThunk(
   }
 );
 
+export const clearCart = createAsyncThunk(
+  'cart/clearCart',
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await axiosInstance.delete(API_ENDPOINTS.CART.CLEAR);
+      return response.data;
+    } catch (error: any) {
+      return rejectWithValue(handleApiError(error));
+    }
+  }
+);
+
 const cartSlice = createSlice({
   name: 'cart',
   initialState,
@@ -102,9 +114,18 @@ const cartSlice = createSlice({
         state.isLoading = false;
         state.error = action.payload as string;
       })
+      .addCase(addToCart.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
       .addCase(addToCart.fulfilled, (state, action) => {
+        state.isLoading = false;
         state.items = action.payload.items;
         state.totalAmount = action.payload.totalAmount;
+      })
+      .addCase(addToCart.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload as string;
       })
       .addCase(updateCartItem.fulfilled, (state, action) => {
         state.items = action.payload.items;
@@ -113,10 +134,13 @@ const cartSlice = createSlice({
       .addCase(removeFromCart.fulfilled, (state, action) => {
         state.items = action.payload.items;
         state.totalAmount = action.payload.totalAmount;
+      })
+      .addCase(clearCart.fulfilled, (state, action) => {
+        state.items = [];
+        state.totalAmount = 0;
       });
   },
 });
 
 export const { reset } = cartSlice.actions;
-/*export { clearCart }; // Export clearCart*/
 export default cartSlice.reducer;

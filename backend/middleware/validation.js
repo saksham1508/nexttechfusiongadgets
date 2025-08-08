@@ -257,11 +257,11 @@ const createRateLimit = (windowMs, max, message) => {
 
 // Different rate limits for different endpoints
 const rateLimits = {
-  // Strict limits for authentication
-  auth: createRateLimit(15 * 60 * 1000, 5, 'Too many authentication attempts. Please try again in 15 minutes.'),
+  // More lenient limits for development/testing
+  auth: createRateLimit(15 * 60 * 1000, 50, 'Too many authentication attempts. Please try again in 15 minutes.'),
   
   // Moderate limits for API calls
-  api: createRateLimit(15 * 60 * 1000, 100, 'Too many API requests. Please try again in 15 minutes.'),
+  api: createRateLimit(15 * 60 * 1000, 500, 'Too many API requests. Please try again in 15 minutes.'),
   
   // Lenient limits for general browsing
   general: createRateLimit(15 * 60 * 1000, 1000, 'Too many requests. Please try again in 15 minutes.'),

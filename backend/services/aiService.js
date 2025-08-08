@@ -1,7 +1,10 @@
 const OpenAI = require('openai');
+async function createAIService() {
+  const fetch = (await import('node-fetch')).default;
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
+  fetch: fetch
 });
 
 class AIService {
@@ -55,7 +58,7 @@ Available product categories: Smartphones, Laptops, Tablets, Smartwatches, Headp
         max_tokens: 500,
         temperature: 0.7,
         presence_penalty: 0.1,
-        frequency_penalty: 0.1,
+        frequency_penalty: 0.1
       });
 
       return {
@@ -67,7 +70,8 @@ Available product categories: Smartphones, Laptops, Tablets, Smartwatches, Headp
       console.error('AI Service Error:', error);
       return {
         success: false,
-        message: "I'm having trouble processing your request right now. Please try again or contact our support team.",
+        message:
+          "I'm having trouble processing your request right now. Please try again or contact our support team.",
         error: error.message
       };
     }
@@ -93,7 +97,7 @@ Available product categories: Smartphones, Laptops, Tablets, Smartwatches, Headp
           { role: 'user', content: message }
         ],
         max_tokens: 200,
-        temperature: 0.3,
+        temperature: 0.3
       });
 
       return JSON.parse(response.choices[0].message.content);
@@ -126,13 +130,13 @@ Available product categories: Smartphones, Laptops, Tablets, Smartwatches, Headp
               "severity": "low|medium|high"
             }`
           },
-          { 
-            role: 'user', 
-            content: `Payment failure data: ${JSON.stringify(failureData)}` 
+          {
+            role: 'user',
+            content: `Payment failure data: ${JSON.stringify(failureData)}`
           }
         ],
         max_tokens: 300,
-        temperature: 0.3,
+        temperature: 0.3
       });
 
       return JSON.parse(response.choices[0].message.content);
@@ -168,13 +172,13 @@ Available product categories: Smartphones, Laptops, Tablets, Smartwatches, Headp
               "optimizations": ["optimization1", "optimization2"]
             }`
           },
-          { 
-            role: 'user', 
-            content: `User profile: ${JSON.stringify(userProfile)}, Transaction history: ${JSON.stringify(transactionHistory)}` 
+          {
+            role: 'user',
+            content: `User profile: ${JSON.stringify(userProfile)}, Transaction history: ${JSON.stringify(transactionHistory)}`
           }
         ],
         max_tokens: 400,
-        temperature: 0.5,
+        temperature: 0.5
       });
 
       return JSON.parse(response.choices[0].message.content);
@@ -192,3 +196,4 @@ Available product categories: Smartphones, Laptops, Tablets, Smartwatches, Headp
 }
 
 module.exports = new AIService();
+}

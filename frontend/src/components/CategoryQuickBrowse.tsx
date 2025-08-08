@@ -145,7 +145,7 @@ const CategoryQuickBrowse: React.FC = () => {
           </div>
           <Link
             to="/categories"
-            className="btn-outline hover-glow"
+            className="flex btn-outline hover-glow"
           >
             <span>View All Categories</span>
             <ChevronRight className="h-5 w-5 ml-2" />

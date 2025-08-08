@@ -23,10 +23,23 @@ const getCart = async (req, res) => {
 // @access  Private
 const addToCart = async (req, res) => {
   try {
+    console.log('🛒 Add to cart request:', { body: req.body, user: req.user });
+    
     const { productId, quantity } = req.body;
+    
+    if (!req.user) {
+      console.error('❌ No user found in request');
+      return res.status(401).json({ message: 'Authentication required' });
+    }
+    
+    if (!productId || !quantity) {
+      console.error('❌ Missing productId or quantity:', { productId, quantity });
+      return res.status(400).json({ message: 'Product ID and quantity are required' });
+    }
     
     const product = await Product.findById(productId);
     if (!product) {
+      console.error('❌ Product not found:', productId);
       return res.status(404).json({ message: 'Product not found' });
     }
 
@@ -57,9 +70,11 @@ const addToCart = async (req, res) => {
     }, 0);
 
     await cart.save();
+    console.log('✅ Cart updated successfully:', cart);
     res.json(cart);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error('❌ Cart add error:', error);
+    res.status(500).json({ message: `Failed to add item to cart: ${error.message}` });
   }
 };
 

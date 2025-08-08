@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const asyncHandler = require('express-async-handler');
-const { protect } = require('../middleware/auth');
+const { auth } = require('../middleware/auth');
 const PaymentMethod = require('../models/PaymentMethod');
 const paymentService = require('../services/paymentService');
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
@@ -10,11 +10,11 @@ const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 // @route   GET /api/payment-methods
 // @access  Private
 const getPaymentMethods = asyncHandler(async (req, res) => {
-  const paymentMethods = await PaymentMethod.find({ 
+  const paymentMethods = await PaymentMethod.find({
     user: req.user._id,
-    isActive: true 
+    isActive: true
   }).sort({ isDefault: -1, createdAt: -1 });
-  
+
   res.json({
     success: true,
     count: paymentMethods.length,
@@ -560,39 +560,39 @@ const createRefund = asyncHandler(async (req, res) => {
 
 // Routes
 router.route('/')
-  .get(protect, getPaymentMethods)
-  .post(protect, addPaymentMethod);
+  .get(auth, getPaymentMethods)
+  .post(auth, addPaymentMethod);
 
 router.route('/:id')
-  .put(protect, updatePaymentMethod)
-  .delete(protect, deletePaymentMethod);
+  .put(auth, updatePaymentMethod)
+  .delete(auth, deletePaymentMethod);
 
-router.put('/:id/default', protect, setDefaultPaymentMethod);
+router.put('/:id/default', auth, setDefaultPaymentMethod);
 
 // Stripe routes
-router.post('/create-intent', protect, createPaymentIntent);
-router.post('/confirm-intent', protect, confirmPaymentIntent);
+router.post('/create-intent', auth, createPaymentIntent);
+router.post('/confirm-intent', auth, confirmPaymentIntent);
 
 // Razorpay routes
-router.post('/razorpay/create-order', protect, createRazorpayOrder);
-router.post('/razorpay/verify', protect, verifyRazorpayPayment);
+router.post('/razorpay/create-order', auth, createRazorpayOrder);
+router.post('/razorpay/verify', auth, verifyRazorpayPayment);
 
 // PayPal routes
-router.post('/paypal/create-order', protect, createPayPalOrder);
-router.post('/paypal/capture/:orderId', protect, capturePayPalOrder);
+router.post('/paypal/create-order', auth, createPayPalOrder);
+router.post('/paypal/capture/:orderId', auth, capturePayPalOrder);
 
 // UPI routes
-router.post('/upi/create', protect, createUPIPayment);
+router.post('/upi/create', auth, createUPIPayment);
 
 // Google Pay routes
-router.post('/googlepay/create', protect, createGooglePayPayment);
-router.post('/googlepay/process', protect, processGooglePayPayment);
+router.post('/googlepay/create', auth, createGooglePayPayment);
+router.post('/googlepay/process', auth, processGooglePayPayment);
 
 // Webhook routes (public)
 router.post('/webhooks/stripe', handleStripeWebhook);
 router.post('/webhooks/razorpay', handleRazorpayWebhook);
 
 // Refund routes
-router.post('/refund', protect, createRefund);
+router.post('/refund', auth, createRefund);
 
 module.exports = router;

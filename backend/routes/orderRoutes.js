@@ -8,15 +8,15 @@ const {
   updateOrderToDelivered,
   createPaymentIntent
 } = require('../controllers/orderController');
-const { protect, admin } = require('../middleware/auth');
+const { auth, adminAuth } = require('../middleware/auth');
 
 const router = express.Router();
 
-router.route('/').post(protect, addOrderItems).get(protect, admin, getOrders);
-router.route('/myorders').get(protect, getMyOrders);
-router.route('/create-payment-intent').post(protect, createPaymentIntent);
-router.route('/:id').get(protect, getOrderById);
-router.route('/:id/pay').put(protect, updateOrderToPaid);
-router.route('/:id/deliver').put(protect, admin, updateOrderToDelivered);
+router.route('/').post(auth, addOrderItems).get(auth, adminAuth, getOrders);
+router.route('/myorders').get(auth, getMyOrders);
+router.route('/create-payment-intent').post(auth, createPaymentIntent);
+router.route('/:id').get(auth, getOrderById);
+router.route('/:id/pay').put(auth, updateOrderToPaid);
+router.route('/:id/deliver').put(auth, adminAuth, updateOrderToDelivered);
 
 module.exports = router;

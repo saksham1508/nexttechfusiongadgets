@@ -53,8 +53,25 @@ interface AuthState {
   error: string | null;
 }
 
+const getInitialUser = (): AuthUser | null => {
+  try {
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      const userData = JSON.parse(storedUser);
+      // Handle both direct user object and wrapped user object
+      return userData.user || userData;
+    }
+  } catch (error) {
+    console.error('Error parsing stored user data:', error);
+    // Clear invalid data
+    localStorage.removeItem('user');
+    localStorage.removeItem('token');
+  }
+  return null;
+};
+
 const initialState: AuthState = {
-  user: localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')!) : null,
+  user: getInitialUser(),
   isLoading: false,
   error: null,
 };
@@ -100,8 +117,15 @@ export const register = createAsyncThunk(
 );
 
 export const logout = createAsyncThunk('auth/logout', async () => {
+  // Clear all authentication-related data
   localStorage.removeItem('user');
   localStorage.removeItem('token');
+  localStorage.removeItem('userRole');
+  
+  // Clear any temporary cart data if user wants to start fresh
+  // Note: We keep tempCart as it might contain items user wants to keep
+  
+  return null;
 });
 
 // Google Authentication
@@ -146,6 +170,20 @@ export const loginWithFacebook = createAsyncThunk(
   }
 );
 
+// Apple Authentication
+export const loginWithApple = createAsyncThunk(
+  'auth/loginWithApple',
+  async (appleData: any, { rejectWithValue }) => {
+    try {
+      const response = await axiosInstance.post(API_ENDPOINTS.AUTH.APPLE, appleData);
+      localStorage.setItem('user', JSON.stringify(response.data));
+      return response.data;
+    } catch (error: any) {
+      return rejectWithValue(handleApiError(error));
+    }
+  }
+);
+
 // Phone Authentication
 export const loginWithPhone = createAsyncThunk(
   'auth/loginWithPhone',
@@ -181,6 +219,33 @@ const authSlice = createSlice({
       state.isLoading = false;
       state.error = null;
     },
+    logoutSync: (state) => {
+      // Synchronous logout action
+      state.user = null;
+      state.isLoading = false;
+      state.error = null;
+      
+      // Clear localStorage
+      localStorage.removeItem('user');
+      localStorage.removeItem('token');
+      localStorage.removeItem('userRole');
+      
+      // Clear any persisted auth data
+      localStorage.removeItem('persist:root');
+      localStorage.removeItem('persist:auth');
+      
+      console.log('🧹 Auth data cleared from localStorage and Redux');
+    },
+    syncFromLocalStorage: (state) => {
+      // Sync auth state from localStorage
+      const user = getInitialUser();
+      if (user) {
+        state.user = user;
+        state.isLoading = false;
+        state.error = null;
+        console.log('🔄 Auth state synced from localStorage');
+      }
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -190,7 +255,7 @@ const authSlice = createSlice({
       })
       .addCase(login.fulfilled, (state, action) => {
         state.isLoading = false;
-        state.user = action.payload.user;
+        state.user = action.payload.user || action.payload;
       })
       .addCase(login.rejected, (state, action) => {
         state.isLoading = false;
@@ -202,14 +267,24 @@ const authSlice = createSlice({
       })
       .addCase(register.fulfilled, (state, action) => {
         state.isLoading = false;
-        state.user = action.payload.user;
+        state.user = action.payload.user || action.payload;
       })
       .addCase(register.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload as string;
       })
+      .addCase(logout.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
       .addCase(logout.fulfilled, (state) => {
+        state.isLoading = false;
         state.user = null;
+        state.error = null;
+      })
+      .addCase(logout.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload as string;
       })
       // Google Authentication
       .addCase(loginWithGoogle.pending, (state) => {
@@ -234,6 +309,19 @@ const authSlice = createSlice({
         state.user = action.payload.user;
       })
       .addCase(loginWithFacebook.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload as string;
+      })
+      // Apple Authentication
+      .addCase(loginWithApple.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(loginWithApple.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.user = action.payload.data?.user || action.payload.user;
+      })
+      .addCase(loginWithApple.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload as string;
       })
@@ -265,5 +353,5 @@ const authSlice = createSlice({
   },
 });
 
-export const { reset } = authSlice.actions;
+export const { reset, logoutSync, syncFromLocalStorage } = authSlice.actions;
 export default authSlice.reducer;

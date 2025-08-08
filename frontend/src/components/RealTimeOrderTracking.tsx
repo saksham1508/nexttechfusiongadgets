@@ -84,7 +84,7 @@ const RealTimeOrderTracking: React.FC<RealTimeOrderTrackingProps> = ({
         timestamp: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
         message: 'Order picked up by delivery partner',
         isActive: true,
-        location: 'NextTech Store, MG Road'
+        location: 'NextFuga Store, MG Road'
       },
       {
         id: '4',

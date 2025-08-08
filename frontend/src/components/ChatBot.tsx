@@ -69,7 +69,7 @@ const ChatBot: React.FC = () => {
             <LucideIcons.MessageCircle className="w-4 h-4" />
           </div>
           <div>
-            <h3 className="font-semibold">NextTech Assistant</h3>
+            <h3 className="font-semibold">NexFuga Assistant</h3>
             <p className="text-xs text-blue-100">
               {isTyping ? 'Typing...' : 'Online • Ready to help'}
             </p>
@@ -104,7 +104,7 @@ const ChatBot: React.FC = () => {
               <LucideIcons.MessageCircle className="w-8 h-8 text-white" />
             </div>
             <h4 className="font-semibold text-gray-800 mb-2">
-              Welcome to NextTech Support!
+              Welcome to NexFuga Support!
             </h4>
             <p className="text-sm text-gray-600 mb-4">
               I'm here to help you find products, answer questions, and assist with your orders.

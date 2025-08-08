@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const asyncHandler = require('express-async-handler');
-const { protect, admin } = require('../middleware/auth');
+const { auth, adminAuth } = require('../middleware/auth');
 const Category = require('../models/Category');
 const Product = require('../models/Product');
 
@@ -246,14 +246,14 @@ const deleteCategory = asyncHandler(async (req, res) => {
 // Routes
 router.route('/')
   .get(getCategories)
-  .post(protect, admin, createCategory);
+  .post(auth, adminAuth, createCategory);
 
 router.get('/tree', getCategoryTree);
 
 router.route('/:id')
   .get(getCategory)
-  .put(protect, admin, updateCategory)
-  .delete(protect, admin, deleteCategory);
+  .put(auth, adminAuth, updateCategory)
+  .delete(auth, adminAuth, deleteCategory);
 
 router.get('/slug/:slug', getCategoryBySlug);
 

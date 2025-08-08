@@ -1,11 +1,12 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { Star, ShoppingCart, Clock, Zap, Eye, Scale } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '../store/store';
 import { addToCart } from '../store/slices/cartSlice';
 import QuickAddToCart from './QuickAddToCart';
 import WishlistButton from './WishlistButton';
+import CartRecommendationsModal from './CartRecommendationsModal';
 import toast from 'react-hot-toast';
 
 interface Product {
@@ -18,6 +19,7 @@ interface Product {
   numReviews: number;
   stock: number;
   brand: string;
+  category?: string;
 }
 
 interface ProductCardProps {
@@ -28,39 +30,84 @@ interface ProductCardProps {
 
 const ProductCard: React.FC<ProductCardProps> = ({ product, showQuickCommerce = true, onAddToComparison }) => {
   const dispatch = useDispatch<AppDispatch>();
+  const navigate = useNavigate();
   const { items } = useSelector((state: RootState) => state.cart);
+  const { user } = useSelector((state: RootState) => state.auth);
+  const [cartQuantity, setCartQuantity] = useState(0);
+  const [showRecommendationsModal, setShowRecommendationsModal] = useState(false);
 
-  const handleAddToCart = (e: React.MouseEvent) => {
+  // Load cart quantity for authenticated users only
+  useEffect(() => {
+    const loadCartQuantity = () => {
+      const user = localStorage.getItem('user');
+      
+      if (user) {
+        // For authenticated users, get quantity from Redux state
+        const existingItem = items.find(item => item.product._id === product._id);
+        setCartQuantity(existingItem ? existingItem.quantity : 0);
+      } else {
+        // For non-authenticated users, no cart quantity
+        setCartQuantity(0);
+      }
+    };
+
+    loadCartQuantity();
+  }, [product._id, items]);
+
+  const handleAddToCart = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     
-    const user = localStorage.getItem('user');
-    if (!user) {
-      toast.error('Please login to add items to cart');
-      return;
-    }
-
+    console.log('🛒 Add to cart clicked for product:', product._id);
+    
     if (product.stock === 0) {
       toast.error('Product is out of stock');
       return;
     }
 
-    dispatch(addToCart({ productId: product._id, quantity: 1 }))
-      .unwrap()
-      .then(() => {
+    // Check if user is logged in using Redux state first, then localStorage as fallback
+    const storedUser = localStorage.getItem('user');
+    const storedToken = localStorage.getItem('token');
+    const isAuthenticated = user || (storedUser && storedToken);
+    
+    console.log('🔍 Auth check:', {
+      reduxUser: !!user,
+      storedUser: !!storedUser,
+      storedToken: !!storedToken,
+      isAuthenticated
+    });
+    
+    if (isAuthenticated) {
+      // User is logged in - use Redux/API cart system
+      try {
+        console.log('🚀 Adding to cart:', { productId: product._id, quantity: 1 });
+        console.log('📦 User data:', user);
+        console.log('🔑 Token:', storedToken?.substring(0, 20) + '...');
+        
+        const result = await dispatch(addToCart({ productId: product._id, quantity: 1 })).unwrap();
+        console.log('✅ Cart add result:', result);
         toast.success('Added to cart successfully');
-      })
-      .catch((error: any) => {
-        toast.error(error || 'Failed to add to cart');
-      });
+        // Show smart recommendations modal
+        setShowRecommendationsModal(true);
+      } catch (error: any) {
+        console.error('❌ Cart error:', error);
+        console.error('❌ Error details:', error.message || error);
+        console.error('❌ Full error object:', error);
+        toast.error(`Failed to add item to cart: ${error.message || 'Please try again'}`);
+      }
+    } else {
+      // User not logged in - redirect to login
+      console.log('❌ User not authenticated, redirecting to login');
+      toast.error('Please login to add items to cart');
+      navigate('/login');
+    }
   };
+
+
 
   const discountPercentage = product.originalPrice 
     ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
     : 0;
-
-  const cartItem = items.find((item: any) => item.product._id === product._id);
-  const cartQuantity = cartItem ? cartItem.quantity : 0;
 
   return (
     <div className="card-product group">
@@ -222,6 +269,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, showQuickCommerce = 
             )}
             
             <button
+              type="button"
               onClick={handleAddToCart}
               disabled={product.stock === 0}
               className={`w-full flex items-center justify-center space-x-3 py-4 px-6 rounded-xl font-semibold transition-all duration-300 transform ${
@@ -236,6 +284,16 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, showQuickCommerce = 
           </div>
         )}
       </div>
+
+      {/* Smart Recommendations Modal */}
+      <CartRecommendationsModal
+        isOpen={showRecommendationsModal}
+        onClose={() => setShowRecommendationsModal(false)}
+        addedProduct={{
+          ...product,
+          category: product.category || 'Electronics'
+        }}
+      />
     </div>
   );
 };

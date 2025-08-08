@@ -336,7 +336,7 @@ const OffersAndCoupons: React.FC = () => {
             <li>• Cannot be combined with other offers</li>
             <li>• Applicable on select products only</li>
             <li>• Minimum order value required</li>
-            <li>• NextTech reserves the right to modify or cancel offers</li>
+            <li>• NexFuga reserves the right to modify or cancel offers</li>
           </ul>
         </div>
       </div>

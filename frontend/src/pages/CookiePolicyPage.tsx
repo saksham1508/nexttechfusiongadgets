@@ -256,7 +256,7 @@ const CookiePolicyPage: React.FC = () => {
             If you have any questions about our use of cookies or this cookie policy, please contact us:
           </p>
           <div className="space-y-2 text-gray-600">
-            <p><strong>Email:</strong> privacy@nexttechfusiongadgets.com</p>
+            <p><strong>Email:</strong> privacy@nextTechfusiongadgets.com</p>
             <p><strong>Address:</strong> 123 Tech Street, Innovation City, TC 12345</p>
             <p><strong>Phone:</strong> +1 (555) 123-4567</p>
           </div>

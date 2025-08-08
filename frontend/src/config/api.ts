@@ -6,11 +6,11 @@ export const getApiUrl = (): string => {
     case 'production':
       return process.env.REACT_APP_API_URL || 'https://api.nexttechfusiongadgets.com';
     case 'development':
-      return process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+      return process.env.REACT_APP_API_URL || 'http://localhost:5001/api';
     case 'test':
       return process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
     default:
-      return 'http://localhost:5000/api';
+      return 'http://localhost:5001/api';
   }
 };
 
@@ -46,6 +46,7 @@ export const API_ENDPOINTS = {
     VERIFY_EMAIL: '/auth/verify-email',
     GOOGLE: '/auth/google',
     FACEBOOK: '/auth/facebook',
+    APPLE: '/auth/apple',
     PHONE: '/auth/phone',
     SEND_OTP: '/auth/send-otp'
   },

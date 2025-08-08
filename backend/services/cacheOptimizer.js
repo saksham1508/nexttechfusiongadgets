@@ -1,15 +1,19 @@
 // Cache Optimizer - O(1) memory-efficient caching system
 const Redis = require('redis');
 const LRU = require('lru-cache');
+const RedisConfig = require('../config/redis');
+
+// Ensure environment variables are loaded
+require('dotenv').config();
 
 class CacheOptimizer {
   constructor() {
     // O(1) - Multi-level caching system
     this.memoryCache = new LRU({
       max: 1000, // Maximum items
-      ttl: 1000 * 60 * 15, // 15 minutes TTL
+      maxAge: 1000 * 60 * 15, // 15 minutes TTL
       updateAgeOnGet: true,
-      allowStale: false
+      stale: false
     });
 
     this.redisClient = null;
@@ -28,24 +32,30 @@ class CacheOptimizer {
   // O(1) - Initialize Redis connection
   async initializeRedis() {
     try {
-      this.redisClient = Redis.createClient({
-        host: process.env.REDIS_HOST || 'localhost',
-        port: process.env.REDIS_PORT || 6379,
-        password: process.env.REDIS_PASSWORD,
-        db: process.env.REDIS_DB || 0,
-        retryDelayOnFailover: 100,
-        maxRetriesPerRequest: 3
-      });
+      // Check if Redis is explicitly disabled
+      if (process.env.DISABLE_REDIS === 'true') {
+        console.log('ℹ️  Redis disabled by configuration, using memory cache only');
+        this.redisClient = null;
+        return;
+      }
+
+      this.redisClient = await RedisConfig.createClient();
 
       this.redisClient.on('error', (err) => {
-        console.warn('Redis connection error:', err.message);
+        // Only log Redis errors in development mode to avoid spam
+        if (process.env.NODE_ENV === 'development') {
+          console.warn('Cache optimizer Redis connection error:', err.message);
+        }
         this.redisClient = null; // Fallback to memory cache only
       });
 
       await this.redisClient.connect();
-      console.log('✅ Redis cache connected');
+      console.log('✅ Cache optimizer Redis connected');
     } catch (error) {
-      console.warn('Redis initialization failed, using memory cache only:', error.message);
+      // Only log Redis initialization errors in development mode
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('Cache optimizer Redis initialization failed, using memory cache only:', error.message);
+      }
       this.redisClient = null;
     }
   }
@@ -91,10 +101,7 @@ class CacheOptimizer {
       const serializedValue = this.serializeValue(value, useCompression);
       
       // Set in memory cache
-      this.memoryCache.set(key, serializedValue, {
-        ttl: ttl * 1000,
-        priority: priority === 'high' ? 2 : 1
-      });
+      this.memoryCache.set(key, serializedValue, ttl * 1000);
 
       // Set in Redis cache
       if (this.redisClient) {

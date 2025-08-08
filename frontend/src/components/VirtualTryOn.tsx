@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import { 
   Camera, 
   RotateCcw, 
@@ -21,7 +22,7 @@ import {
   Volume2
 } from 'lucide-react';
 
-import { useAppDispatch } from '../store/store';
+import { useAppDispatch, useAppSelector } from '../store/store';
 import { addToCart } from '../store/slices/cartSlice';
 import toast from 'react-hot-toast';
 import '../styles/VirtualTryOn.css';
@@ -48,6 +49,8 @@ const VirtualTryOn: React.FC<VirtualTryOnProps> = ({
   productType
 }) => {
   const dispatch = useAppDispatch();
+  const navigate = useNavigate();
+  const { user } = useAppSelector(state => state.auth);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -179,12 +182,35 @@ const VirtualTryOn: React.FC<VirtualTryOnProps> = ({
   };
 
   // Add to cart
-  const handleAddToCart = () => {
-    dispatch(addToCart({
-      productId: product._id,
-      quantity: 1
-    }));
-    toast.success(`${product.name} added to cart!`);
+  const handleAddToCart = async () => {
+    // Check if user is logged in using Redux state first, then localStorage as fallback
+    const storedUser = localStorage.getItem('user');
+    const storedToken = localStorage.getItem('token');
+    const isAuthenticated = user || (storedUser && storedToken);
+    
+    if (!isAuthenticated) {
+      // User not logged in - redirect to login
+      toast.error('Please login to add items to cart');
+      navigate('/login');
+      return;
+    }
+
+    if (product.stock === 0) {
+      toast.error('Product is out of stock');
+      return;
+    }
+
+    // User is logged in - use Redux/API cart system
+    try {
+      await dispatch(addToCart({
+        productId: product._id,
+        quantity: 1
+      })).unwrap();
+      toast.success(`${product.name} added to cart!`);
+    } catch (error: any) {
+      console.error('Cart error:', error);
+      toast.error('Failed to add item to cart. Please try again.');
+    }
   };
 
   // Reset positions

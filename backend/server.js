@@ -4,7 +4,9 @@ const helmet = require('helmet');
 const morgan = require('morgan');
 const compression = require('compression');
 const dotenv = require('dotenv');
+const passport = require('./config/passport');
 const connectDB = require('./config/database');
+const RedisConfig = require('./config/redis');
 const { errorHandler, getHealthMetrics } = require('./middleware/errorHandler');
 const { rateLimits, sanitizeInput, addCorrelationId } = require('./middleware/validation');
 
@@ -14,28 +16,53 @@ dotenv.config();
 // Connect to database
 connectDB();
 
+// Initialize cache service with Redis fallback
+const FallbackCacheService = require('./services/fallbackCacheService');
+const cacheService = new FallbackCacheService();
+
+// Test Redis connection on startup (non-blocking)
+RedisConfig.testConnection().then(isConnected => {
+  if (isConnected) {
+    console.log('✅ Redis connection verified on startup');
+  } else {
+    console.warn('⚠️  Redis connection failed - using memory cache fallback');
+    console.warn('   To enable Redis caching, install and start Redis server');
+  }
+}).catch(error => {
+  console.warn('⚠️  Redis connection test error:', error.message);
+  console.warn('   Application will continue with memory cache fallback');
+});
+
 const app = express();
 
 // Six Sigma: Define - Security and performance middleware stack
-app.use(helmet({
-  contentSecurityPolicy: {
-    directives: {
-      defaultSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
-      fontSrc: ["'self'", "https://fonts.gstatic.com"],
-      imgSrc: ["'self'", "data:", "https://res.cloudinary.com"],
-      scriptSrc: ["'self'"],
-      connectSrc: ["'self'", "https://api.stripe.com"]
-    }
-  },
-  crossOriginEmbedderPolicy: false
-}));
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+        fontSrc: ["'self'", 'https://fonts.gstatic.com'],
+        imgSrc: ["'self'", 'data:', 'https://res.cloudinary.com'],
+        scriptSrc: ["'self'"],
+        connectSrc: ["'self'", 'https://api.stripe.com']
+      }
+    },
+    crossOriginEmbedderPolicy: false
+  })
+);
 
 // CORS configuration for production
 const corsOptions = {
-  origin: process.env.NODE_ENV === 'production' 
-    ? [process.env.FRONTEND_URL, 'https://nexttechfusiongadgets.com']
-    : ['http://localhost:3000', 'http://localhost:3001', 'http://127.0.0.1:3000', 'http://127.0.0.1:3001'],
+  origin:
+    process.env.NODE_ENV === 'production'
+      ? [process.env.FRONTEND_URL, 'https://nexttechfusiongadgets.com']
+      : [
+          'http://localhost:3000',
+          'http://localhost:3001',
+          'http://127.0.0.1:3000',
+          'http://127.0.0.1:3001'
+        ],
   credentials: true,
   optionsSuccessStatus: 200,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
@@ -47,22 +74,32 @@ app.use(compression());
 
 // Agile: Enhanced logging with correlation IDs
 app.use(addCorrelationId);
-app.use(morgan(':method :url :status :res[content-length] - :response-time ms [:date[clf]] :req[x-correlation-id]'));
+app.use(
+  morgan(
+    ':method :url :status :res[content-length] - :response-time ms [:date[clf]] :req[x-correlation-id]'
+  )
+);
 
 // Request parsing with size limits (Lean: prevent resource waste)
-app.use(express.json({ 
-  limit: '10mb',
-  verify: (req, res, buf) => {
-    req.rawBody = buf;
-  }
-}));
+app.use(
+  express.json({
+    limit: '10mb',
+    verify: (req, res, buf) => {
+      req.rawBody = buf;
+    }
+  })
+);
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Input sanitization
 app.use(sanitizeInput);
 
+// Initialize Passport
+app.use(passport.initialize());
+
 // Six Sigma: Control - Apply rate limiting to different route groups
-app.use('/api/auth', rateLimits.auth, require('./routes/authRoutes'));
+// Use fallback auth routes that work with or without MongoDB
+app.use('/api/auth', rateLimits.auth, require('./routes/authRoutesFallback'));
 app.use('/api/products', rateLimits.api, require('./routes/productRoutes'));
 app.use('/api/categories', rateLimits.api, require('./routes/categoryRoutes'));
 app.use('/api/cart', rateLimits.api, require('./routes/cartRoutes'));
@@ -86,23 +123,22 @@ const { optional } = require('./middleware/auth');
 // @access  Public
 const sendMessage = async (req, res) => {
   try {
-  const { message, sessionId } = req.body;
-  const userId = req.user ? req.user._id : null;
+    const { message, sessionId } = req.body;
+    const userId = req.user ? req.user._id : null;
 
-  if (!message || !sessionId) {
-    res.status(400);
-    throw new Error('Message and session ID are required');
-  }
+    if (!message || !sessionId) {
+      res.status(400);
+      throw new Error('Message and session ID are required');
+    }
 
-  // Analyze user intent
+    // Analyze user intent
     const intent = await aiService.analyzeUserIntent(message);
 
     // Get user context if logged in
     let context = {};
     if (userId) {
       const user = await User.findById(userId).select('-password');
-      const recentOrders = await Order
-        .find({ user: userId })
+      const recentOrders = await Order.find({ user: userId })
         .sort({ createdAt: -1 })
         .limit(3)
         .populate('orderItems.product', 'name category');
@@ -125,7 +161,9 @@ const sendMessage = async (req, res) => {
           { description: { $regex: intent.keywords.join('|'), $options: 'i' } },
           { category: { $regex: intent.keywords.join('|'), $options: 'i' } }
         ]
-      }).limit(5).select('name price category description images');
+      })
+        .limit(5)
+        .select('name price category description images');
 
       context.currentProducts = products;
     }
@@ -162,7 +200,7 @@ const sendMessage = async (req, res) => {
       error: error.message
     });
   }
-}
+};
 
 // @desc    Get chat history
 // @route   GET /api/chat/history/:sessionId
@@ -183,7 +221,7 @@ const getChatHistory = asyncHandler(async (req, res) => {
 });
 
 app.post('/api/chat/message', optional, asyncHandler(sendMessage));
-app.get('/api/chat/history/:sessionId', getChatHistory); 
+app.get('/api/chat/history/:sessionId', getChatHistory);
 
 // Six Sigma: Measure - Comprehensive health and monitoring endpoints
 app.get('/api/health', getHealthMetrics);
@@ -192,7 +230,8 @@ app.get('/api/health', getHealthMetrics);
 app.get('/api/status', (req, res) => {
   const memoryUsage = process.memoryUsage();
   const uptime = process.uptime();
-  
+  const cacheStatus = cacheService.getStatus();
+
   res.json({
     status: 'operational',
     timestamp: new Date().toISOString(),
@@ -204,6 +243,17 @@ app.get('/api/status', (req, res) => {
       used: `${Math.round(memoryUsage.heapUsed / 1024 / 1024)}MB`,
       total: `${Math.round(memoryUsage.heapTotal / 1024 / 1024)}MB`,
       external: `${Math.round(memoryUsage.external / 1024 / 1024)}MB`
+    },
+    cache: {
+      redis: {
+        connected: cacheStatus.redis.connected,
+        status: cacheStatus.redis.connected ? 'active' : 'disconnected'
+      },
+      memoryCache: {
+        items: cacheStatus.memoryCache.size,
+        maxItems: cacheStatus.memoryCache.maxSize
+      },
+      fallbackActive: cacheStatus.fallbackActive
     },
     environment: process.env.NODE_ENV,
     version: process.env.npm_package_version || '1.0.0',
@@ -234,17 +284,8 @@ app.get('/api/docs', (req, res) => {
         'GET /api/products/search',
         'GET /api/products/analytics'
       ],
-      orders: [
-        'GET /api/orders',
-        'POST /api/orders',
-        'GET /api/orders/:id',
-        'PUT /api/orders/:id'
-      ],
-      monitoring: [
-        'GET /api/health',
-        'GET /api/status',
-        'GET /api/docs'
-      ]
+      orders: ['GET /api/orders', 'POST /api/orders', 'GET /api/orders/:id', 'PUT /api/orders/:id'],
+      monitoring: ['GET /api/health', 'GET /api/status', 'GET /api/docs']
     },
     rateLimit: {
       auth: '5 requests per 15 minutes',

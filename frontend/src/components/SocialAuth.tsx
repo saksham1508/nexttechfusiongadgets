@@ -1,11 +1,16 @@
 import React, { useState } from 'react';
 import { Mail, Phone, Eye, EyeOff } from 'lucide-react';
+import { useDispatch } from 'react-redux';
+import { AppDispatch } from '../store/store';
+import { syncFromLocalStorage } from '../store/slices/authSlice';
 import toast from 'react-hot-toast';
 import GoogleSignInButton from './GoogleSignInButton';
+import AppleSignInButton from './AppleSignInButton';
 
 interface SocialAuthProps {
   onGoogleAuth: (googleUser: any) => void;
   onFacebookAuth: (token: string) => void;
+  onAppleAuth: (appleData: any) => void;
   onPhoneAuth: (phone: string, otp: string) => void;
   onEmailAuth: (email: string, password: string) => void;
   isLoading: boolean;
@@ -14,10 +19,12 @@ interface SocialAuthProps {
 const SocialAuth: React.FC<SocialAuthProps> = ({
   onGoogleAuth,
   onFacebookAuth,
+  onAppleAuth,
   onPhoneAuth,
   onEmailAuth,
   isLoading
 }) => {
+  const dispatch = useDispatch<AppDispatch>();
   const [authMethod, setAuthMethod] = useState<'email' | 'phone' | 'social'>('email');
   const [showPassword, setShowPassword] = useState(false);
   const [phoneStep, setPhoneStep] = useState<'phone' | 'otp'>('phone');
@@ -44,7 +51,20 @@ const SocialAuth: React.FC<SocialAuthProps> = ({
 
   const handleFacebookLogin = async () => {
     try {
-      // Using Facebook SDK
+      const facebookAppId = process.env.REACT_APP_FACEBOOK_APP_ID;
+      
+      // Check if Facebook App ID is properly configured
+      if (!facebookAppId || facebookAppId === 'your-dev-facebook-app-id' || facebookAppId.includes('mock')) {
+        console.log('🔄 Using mock Facebook authentication');
+        
+        // Create mock Facebook access token and call the handler
+        const mockAccessToken = 'mock_facebook_token_' + Date.now();
+        toast.success('Facebook authentication successful (Demo Mode)');
+        onFacebookAuth(mockAccessToken);
+        return;
+      }
+
+      // Using Facebook SDK (real authentication)
       if (typeof window !== 'undefined' && window.FB) {
         window.FB.login((response: any) => {
           if (response.authResponse) {
@@ -55,7 +75,7 @@ const SocialAuth: React.FC<SocialAuthProps> = ({
         }, { scope: 'email,public_profile' });
       } else {
         // Fallback: Open Facebook OAuth in popup
-        const facebookAuthUrl = `https://www.facebook.com/v18.0/dialog/oauth?client_id=${process.env.REACT_APP_FACEBOOK_APP_ID}&redirect_uri=${encodeURIComponent(window.location.origin + '/auth/facebook/callback')}&response_type=code&scope=email`;
+        const facebookAuthUrl = `https://www.facebook.com/v18.0/dialog/oauth?client_id=${facebookAppId}&redirect_uri=${encodeURIComponent(window.location.origin + '/auth/facebook/callback')}&response_type=code&scope=email`;
         
         const popup = window.open(
           facebookAuthUrl,
@@ -117,10 +137,60 @@ const SocialAuth: React.FC<SocialAuthProps> = ({
     }
   };
 
-  const handleEmailSubmit = () => {
+  const handleEmailSubmit = async () => {
     if (!formData.email || !formData.password) {
       toast.error('Please fill in all fields');
       return;
+    }
+    
+    // For demo purposes, allow test@example.com with testpassword
+    if (formData.email === 'test@example.com' && formData.password === 'testpassword') {
+      try {
+        // Use the backend mock auth endpoint to get a proper JWT token
+        const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5001/api'}/auth/login`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            email: formData.email,
+            password: formData.password,
+            rememberMe: formData.rememberMe
+          }),
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          // Store user data with proper JWT token
+          const userData = {
+            user: data.user,
+            token: data.token
+          };
+          
+          localStorage.setItem('user', JSON.stringify(userData));
+          localStorage.setItem('token', data.token);
+          
+          // Update Redux auth state immediately
+          dispatch(syncFromLocalStorage());
+          
+          toast.success('Demo login successful!');
+          
+          // Small delay to ensure state is updated, then reload
+          setTimeout(() => {
+            window.location.reload();
+          }, 500);
+          
+          return;
+        } else {
+          toast.error(data.error?.message || 'Login failed');
+          return;
+        }
+      } catch (error) {
+        console.error('Demo login error:', error);
+        toast.error('Demo login failed. Please try again.');
+        return;
+      }
     }
     
     onEmailAuth(formData.email, formData.password);
@@ -180,6 +250,13 @@ const SocialAuth: React.FC<SocialAuthProps> = ({
       {/* Email Authentication */}
       {authMethod === 'email' && (
         <form onSubmit={(e) => { e.preventDefault(); handleEmailSubmit(); }} className="space-y-4">
+          {/* Demo Login Notice */}
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+            <p className="text-sm text-blue-700">
+              <strong>Demo Login:</strong> Use <code className="bg-blue-100 px-1 rounded">test@example.com</code> with password <code className="bg-blue-100 px-1 rounded">testpassword</code> to test the functionality.
+            </p>
+          </div>
+          
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
               Email Address
@@ -192,7 +269,7 @@ const SocialAuth: React.FC<SocialAuthProps> = ({
               value={formData.email}
               onChange={handleInputChange}
               className="input-field"
-              placeholder="Enter your email"
+              placeholder="Enter your email (try test@example.com)"
               autoComplete="email"
             />
           </div>
@@ -381,10 +458,28 @@ const SocialAuth: React.FC<SocialAuthProps> = ({
       {/* Social Authentication */}
       {authMethod === 'social' && (
         <div className="space-y-4">
+          {/* Demo Notice */}
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+            <p className="text-sm text-blue-700">
+              <strong>Demo Mode:</strong> Social authentication is currently in demo mode. Click any button below to test the authentication flow.
+            </p>
+          </div>
+          
           <div className="w-full flex justify-center">
             <GoogleSignInButton
-              onSuccess={onGoogleAuth}
-              onError={(error) => toast.error(error)}
+              onSuccess={(googleUser) => {
+                // Show success message for demo mode
+                if (googleUser.email === 'demo.google@example.com') {
+                  toast.success('Google authentication successful (Demo Mode)');
+                }
+                onGoogleAuth(googleUser);
+              }}
+              onError={(error) => {
+                // Don't show error toast for configuration issues in demo mode
+                if (!error.includes('not configured')) {
+                  toast.error(error);
+                }
+              }}
               text="continue_with"
               theme="outline"
               size="large"
@@ -401,8 +496,29 @@ const SocialAuth: React.FC<SocialAuthProps> = ({
             <svg className="w-5 h-5 mr-3" fill="currentColor" viewBox="0 0 24 24">
               <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
             </svg>
-            Continue with Facebook
+            {(!process.env.REACT_APP_FACEBOOK_APP_ID || 
+              process.env.REACT_APP_FACEBOOK_APP_ID === 'your-dev-facebook-app-id' || 
+              process.env.REACT_APP_FACEBOOK_APP_ID.includes('mock')) 
+              ? 'Continue with Facebook (Demo)' 
+              : 'Continue with Facebook'}
           </button>
+
+          <div className="w-full flex justify-center">
+            <AppleSignInButton
+              onSuccess={onAppleAuth}
+              onError={(error) => {
+                // Don't show error toast for configuration issues in demo mode
+                if (!error.includes('not configured')) {
+                  toast.error(error);
+                }
+              }}
+              text="continue"
+              theme="black"
+              size="large"
+              width={400}
+              disabled={isLoading}
+            />
+          </div>
 
           <div className="relative">
             <div className="absolute inset-0 flex items-center">

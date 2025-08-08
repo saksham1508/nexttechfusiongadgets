@@ -37,7 +37,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
           <div className="w-6 h-6 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center mr-2">
             <span className="text-white text-xs font-bold">AI</span>
           </div>
-          <span className="text-xs text-gray-500">NextTech Assistant</span>
+          <span className="text-xs text-gray-500">NexFuga Assistant</span>
         </div>
         <p className="text-sm whitespace-pre-wrap">{message.text}</p>
         <p className="text-xs text-gray-500 mt-2">{formatTime(message.timestamp)}</p>

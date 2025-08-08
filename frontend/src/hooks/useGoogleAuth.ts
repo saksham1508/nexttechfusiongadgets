@@ -34,8 +34,10 @@ const useGoogleAuth = (): UseGoogleAuthReturn => {
   const clientId = process.env.REACT_APP_GOOGLE_CLIENT_ID;
 
   useEffect(() => {
-    if (!clientId || clientId === 'your-google-client-id') {
+    if (!clientId || clientId === 'your-google-client-id' || clientId.includes('mock')) {
+      console.log('🔄 Google Client ID not configured, using mock mode');
       setError('Google Client ID not configured');
+      setIsLoaded(true); // Set as loaded so the fallback button appears
       return;
     }
 
@@ -110,6 +112,28 @@ const useGoogleAuth = (): UseGoogleAuthReturn => {
   }, [clientId]);
 
   const signIn = async (): Promise<GoogleUser | null> => {
+    // If Google Client ID is not configured, return mock user
+    if (!clientId || clientId === 'your-google-client-id' || clientId.includes('mock')) {
+      console.log('🔄 Using mock Google authentication');
+      
+      // Simulate loading delay for realistic experience
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      const mockGoogleUser: GoogleUser = {
+        id: 'mock_google_' + Date.now(),
+        name: 'Demo Google User',
+        email: 'demo.google@example.com',
+        picture: 'https://via.placeholder.com/150/4285F4/FFFFFF?text=DG',
+        given_name: 'Demo',
+        family_name: 'Google User',
+      };
+      
+      setUser(mockGoogleUser);
+      setIsSignedIn(true);
+      setError(null);
+      return mockGoogleUser;
+    }
+
     if (!isLoaded || !window.google) {
       setError('Google authentication not loaded');
       return null;

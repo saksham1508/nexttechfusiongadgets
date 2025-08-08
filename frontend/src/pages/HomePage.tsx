@@ -160,8 +160,8 @@ const HomePage: React.FC = () => {
       <section className="gradient-primary text-white section-padding relative overflow-hidden">
         {/* Background Effects */}
         <div className="absolute inset-0">
-          <div className="absolute top-10 left-10 w-32 h-32 bg-white/10 rounded-full blur-2xl animate-pulse-slow"></div>
-          <div className="absolute bottom-10 right-10 w-40 h-40 bg-white/5 rounded-full blur-3xl animate-bounce-gentle"></div>
+          <div className="absolute top-10 left-10 w-32 h-32 bg-#F4A300 rounded-full blur-2xl animate-pulse-slow"></div>
+          <div className="absolute bottom-10 right-10 w-40 h-40 bg-#2E2E2E rounded-full blur-3xl animate-bounce-gentle"></div>
           <div className="absolute top-1/2 left-1/3 w-24 h-24 bg-white/10 rounded-full blur-xl animate-pulse"></div>
         </div>
         
@@ -174,11 +174,13 @@ const HomePage: React.FC = () => {
                   <Zap className="h-16 w-16 text-yellow-300/50" />
                 </div>
               </div>
-              <h1 className="text-5xl md:text-7xl font-black tracking-tight">
-                <span className="block">NextTech</span>
-                <span className="block text-gradient bg-gradient-to-r from-yellow-300 to-orange-300 bg-clip-text text-transparent">
+              <h1 className="flex text-5xl md:text-7xl font-black tracking-tight">
+                <span className="block text-yellow-500">Nex</span>
+                <span className="block text-gray-800">Fuga</span>
+
+                {/* <span className="block text-gradient bg-gradient-to-r from-yellow-300 to-orange-300 bg-clip-text text-transparent">
                   FusionGadgets
-                </span>
+                </span> */}
               </h1>
               <div className="relative">
                 <Zap className="h-16 w-16 text-yellow-300 animate-bounce-gentle" />
@@ -196,7 +198,7 @@ const HomePage: React.FC = () => {
             <div className="flex flex-col sm:flex-row items-center justify-center space-y-6 sm:space-y-0 sm:space-x-8">
               <Link
                 to="/products"
-                className="btn-secondary text-lg px-10 py-4 hover-glow"
+                className="flex btn-secondary text-lg px-10 py-4 hover-glow"
               >
                 <span>🛍️ Shop Now</span>
                 <ArrowRight className="h-6 w-6 ml-2" />
@@ -264,7 +266,7 @@ const HomePage: React.FC = () => {
             </div>
             <Link
               to="/products"
-              className="btn-outline hover-glow"
+              className="flex btn-outline hover-glow"
             >
               <span>View All Products</span>
               <ArrowRight className="h-5 w-5 ml-2" />

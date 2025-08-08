@@ -2,20 +2,20 @@ const express = require('express');
 const router = express.Router();
 const FlashSale = require('../models/FlashSale');
 const Product = require('../models/Product');
-const { protect } = require('../middleware/auth');
+const { auth } = require('../middleware/auth');
 
 // Get active flash sales
 router.get('/active', async (req, res) => {
   try {
     const now = new Date();
-    
+
     const flashSales = await FlashSale.find({
       isActive: true,
       startTime: { $lte: now },
       endTime: { $gte: now }
     })
-    .populate('products.product')
-    .sort({ priority: -1, startTime: 1 });
+      .populate('products.product')
+      .sort({ priority: -1, startTime: 1 });
 
     // Transform data for frontend
     const transformedSales = flashSales.map(sale => ({
@@ -38,7 +38,6 @@ router.get('/active', async (req, res) => {
     }));
 
     res.json(transformedSales);
-
   } catch (error) {
     console.error('Flash sales error:', error);
     res.status(500).json({ message: 'Server error' });
@@ -48,15 +47,13 @@ router.get('/active', async (req, res) => {
 // Get flash sale by ID
 router.get('/:id', async (req, res) => {
   try {
-    const flashSale = await FlashSale.findById(req.params.id)
-      .populate('products.product');
-    
+    const flashSale = await FlashSale.findById(req.params.id).populate('products.product');
+
     if (!flashSale) {
       return res.status(404).json({ message: 'Flash sale not found' });
     }
 
     res.json(flashSale);
-
   } catch (error) {
     console.error('Flash sale error:', error);
     res.status(500).json({ message: 'Server error' });
@@ -64,7 +61,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // Create flash sale (admin)
-router.post('/', protect, async (req, res) => {
+router.post('/', auth, async (req, res) => {
   try {
     const flashSale = new FlashSale(req.body);
     await flashSale.save();
@@ -76,18 +73,14 @@ router.post('/', protect, async (req, res) => {
 });
 
 // Update flash sale (admin)
-router.put('/:id', protect, async (req, res) => {
+router.put('/:id', auth, async (req, res) => {
   try {
-    const flashSale = await FlashSale.findByIdAndUpdate(
-      req.params.id,
-      req.body,
-      { new: true }
-    );
-    
+    const flashSale = await FlashSale.findByIdAndUpdate(req.params.id, req.body, { new: true });
+
     if (!flashSale) {
       return res.status(404).json({ message: 'Flash sale not found' });
     }
-    
+
     res.json(flashSale);
   } catch (error) {
     console.error('Update flash sale error:', error);
@@ -96,25 +89,23 @@ router.put('/:id', protect, async (req, res) => {
 });
 
 // Update product sold quantity
-router.post('/:id/purchase', protect, async (req, res) => {
+router.post('/:id/purchase', auth, async (req, res) => {
   try {
     const { productId, quantity } = req.body;
-    
+
     const flashSale = await FlashSale.findById(req.params.id);
     if (!flashSale) {
       return res.status(404).json({ message: 'Flash sale not found' });
     }
 
-    const productIndex = flashSale.products.findIndex(
-      p => p.product.toString() === productId
-    );
-    
+    const productIndex = flashSale.products.findIndex(p => p.product.toString() === productId);
+
     if (productIndex === -1) {
       return res.status(404).json({ message: 'Product not found in flash sale' });
     }
 
     const product = flashSale.products[productIndex];
-    
+
     // Check availability
     if (product.soldQuantity + quantity > product.maxQuantity) {
       return res.status(400).json({ message: 'Not enough stock available' });
@@ -125,7 +116,6 @@ router.post('/:id/purchase', protect, async (req, res) => {
     await flashSale.save();
 
     res.json({ message: 'Purchase recorded successfully' });
-
   } catch (error) {
     console.error('Flash sale purchase error:', error);
     res.status(500).json({ message: 'Server error' });
@@ -136,17 +126,15 @@ router.post('/:id/purchase', protect, async (req, res) => {
 router.get('/upcoming/list', async (req, res) => {
   try {
     const now = new Date();
-    
     const upcomingSales = await FlashSale.find({
       isActive: true,
       startTime: { $gt: now }
     })
-    .populate('products.product', 'name images')
-    .sort({ startTime: 1 })
-    .limit(5);
+      .populate('products.product', 'name images')
+      .sort({ startTime: 1 })
+      .limit(5);
 
     res.json(upcomingSales);
-
   } catch (error) {
     console.error('Upcoming flash sales error:', error);
     res.status(500).json({ message: 'Server error' });

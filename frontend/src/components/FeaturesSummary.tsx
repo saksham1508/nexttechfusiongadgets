@@ -93,7 +93,7 @@ const FeaturesSummary: React.FC = () => {
       features: ["15-min delivery", "Multiple categories", "Offers & coupons", "Live updates"]
     },
     {
-      platform: "NextTech Express",
+      platform: "NexFuga Express",
       features: ["10-15 min delivery", "Tech products", "All above features", "AI-powered experience"]
     }
   ];
@@ -159,18 +159,18 @@ const FeaturesSummary: React.FC = () => {
               <div
                 key={index}
                 className={`rounded-xl p-6 border-2 ${
-                  platform.platform === 'NextTech Express'
+                  platform.platform === 'NexFuga Express'
                     ? 'border-green-500 bg-green-50'
                     : 'border-gray-200 bg-gray-50'
                 }`}
               >
                 <h4 className={`font-bold text-lg mb-4 ${
-                  platform.platform === 'NextTech Express'
+                  platform.platform === 'NexFuga Express'
                     ? 'text-green-800'
                     : 'text-gray-900'
                 }`}>
                   {platform.platform}
-                  {platform.platform === 'NextTech Express' && (
+                  {platform.platform === 'NexFuga Express' && (
                     <span className="ml-2 text-sm bg-green-500 text-white px-2 py-1 rounded-full">
                       Our Platform
                     </span>
@@ -182,7 +182,7 @@ const FeaturesSummary: React.FC = () => {
                     <li
                       key={featureIndex}
                       className={`flex items-center space-x-2 text-sm ${
-                        platform.platform === 'NextTech Express'
+                        platform.platform === 'NexFuga Express'
                           ? 'text-green-700'
                           : 'text-gray-600'
                       }`}

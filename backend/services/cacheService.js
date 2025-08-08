@@ -1,94 +1,118 @@
 const redis = require('redis');
 const winston = require('winston');
+const RedisConfig = require('../config/redis');
+
+// Ensure environment variables are loaded
+require('dotenv').config();
 
 class CacheService {
   constructor() {
     this.client = null;
     this.isConnected = false;
     this.defaultTTL = 3600; // 1 hour
+    this.memoryCache = new Map(); // Fallback memory cache
     
     this.connect();
   }
 
   async connect() {
     try {
-      this.client = redis.createClient({
-        host: process.env.REDIS_HOST || 'localhost',
-        port: process.env.REDIS_PORT || 6379,
-        password: process.env.REDIS_PASSWORD,
-        db: process.env.REDIS_DB || 0,
-        retry_strategy: (options) => {
-          if (options.error && options.error.code === 'ECONNREFUSED') {
-            return new Error('Redis server connection refused');
-          }
-          if (options.total_retry_time > 1000 * 60 * 60) {
-            return new Error('Retry time exhausted');
-          }
-          if (options.attempt > 10) {
-            return undefined;
-          }
-          return Math.min(options.attempt * 100, 3000);
-        }
-      });
+      // Check if Redis is explicitly disabled
+      if (process.env.DISABLE_REDIS === 'true') {
+        winston.info('Cache service Redis disabled by configuration, using memory cache only');
+        this.isConnected = false;
+        return;
+      }
+
+      this.client = await RedisConfig.createClient();
 
       this.client.on('connect', () => {
-        winston.info('Redis client connected');
+        winston.info('Cache service Redis client connected');
         this.isConnected = true;
       });
 
       this.client.on('error', (err) => {
-        winston.error('Redis client error:', err);
+        // Only log in development mode
+        if (process.env.NODE_ENV === 'development') {
+          winston.warn('Fallback cache service Redis error, using memory cache:', err.message);
+        }
         this.isConnected = false;
       });
 
       this.client.on('end', () => {
-        winston.info('Redis client disconnected');
+        winston.info('Cache service Redis client disconnected');
         this.isConnected = false;
       });
 
       await this.client.connect();
     } catch (error) {
-      winston.error('Failed to connect to Redis:', error);
+      // Only log in development mode
+      if (process.env.NODE_ENV === 'development') {
+        winston.warn('Failed to connect Cache service to Redis, using memory cache:', error.message);
+      }
       this.isConnected = false;
     }
   }
 
-  // Basic cache operations
+  // Basic cache operations with memory fallback
   async get(key) {
-    if (!this.isConnected) return null;
-    
-    try {
-      const value = await this.client.get(key);
-      return value ? JSON.parse(value) : null;
-    } catch (error) {
-      winston.error('Cache get error:', error);
-      return null;
+    if (this.isConnected) {
+      try {
+        const value = await this.client.get(key);
+        return value ? JSON.parse(value) : null;
+      } catch (error) {
+        winston.error('Cache get error:', error);
+      }
     }
+    
+    // Fallback to memory cache
+    const memValue = this.memoryCache.get(key);
+    if (memValue && memValue.expires > Date.now()) {
+      return memValue.data;
+    } else if (memValue) {
+      this.memoryCache.delete(key); // Clean up expired
+    }
+    return null;
   }
 
   async set(key, value, ttl = this.defaultTTL) {
-    if (!this.isConnected) return false;
+    let success = false;
     
-    try {
-      const serialized = JSON.stringify(value);
-      await this.client.setEx(key, ttl, serialized);
-      return true;
-    } catch (error) {
-      winston.error('Cache set error:', error);
-      return false;
+    if (this.isConnected) {
+      try {
+        const serialized = JSON.stringify(value);
+        await this.client.setEx(key, ttl, serialized);
+        success = true;
+      } catch (error) {
+        winston.error('Cache set error:', error);
+      }
     }
+    
+    // Always set in memory cache as fallback
+    this.memoryCache.set(key, {
+      data: value,
+      expires: Date.now() + (ttl * 1000)
+    });
+    
+    return success || true; // Return true if at least memory cache worked
   }
 
   async del(key) {
-    if (!this.isConnected) return false;
+    let success = false;
     
-    try {
-      await this.client.del(key);
-      return true;
-    } catch (error) {
-      winston.error('Cache delete error:', error);
-      return false;
+    if (this.isConnected) {
+      try {
+        await this.client.del(key);
+        success = true;
+      } catch (error) {
+        winston.error('Cache delete error:', error);
+      }
     }
+    
+    // Also delete from memory cache
+    this.memoryCache.delete(key);
+    
+    return success || true; // Return true if at least memory cache worked
   }
 
   async exists(key) {

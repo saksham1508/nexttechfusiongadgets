@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const DeliveryZone = require('../models/DeliveryZone');
-const { protect } = require('../middleware/auth');
+const { auth } = require('../middleware/auth');
 
 // Check delivery availability
 router.post('/check', async (req, res) => {
@@ -68,19 +68,19 @@ router.post('/check', async (req, res) => {
 });
 
 // Get delivery slots
-router.get('/slots', protect, async (req, res) => {
+router.get('/slots', auth, async (req, res) => {
   try {
     const { addressId } = req.query;
-    
+
     // Mock delivery slots for now
     const now = new Date();
     const slots = [];
-    
+
     // Generate slots for next 3 days
     for (let day = 0; day < 3; day++) {
       const date = new Date(now);
       date.setDate(date.getDate() + day);
-      
+
       // Generate time slots
       const timeSlots = [
         { start: '09:00', end: '12:00', label: 'Morning' },
@@ -88,7 +88,7 @@ router.get('/slots', protect, async (req, res) => {
         { start: '15:00', end: '18:00', label: 'Evening' },
         { start: '18:00', end: '21:00', label: 'Night' }
       ];
-      
+
       timeSlots.forEach((slot, index) => {
         slots.push({
           id: `${day}-${index}`,
@@ -111,7 +111,7 @@ router.get('/slots', protect, async (req, res) => {
 });
 
 // Get delivery zones (admin)
-router.get('/zones', protect, async (req, res) => {
+router.get('/zones', auth, async (req, res) => {
   try {
     const zones = await DeliveryZone.find().sort({ city: 1, name: 1 });
     res.json(zones);
@@ -122,7 +122,7 @@ router.get('/zones', protect, async (req, res) => {
 });
 
 // Create delivery zone (admin)
-router.post('/zones', protect, async (req, res) => {
+router.post('/zones', auth, async (req, res) => {
   try {
     const zone = new DeliveryZone(req.body);
     await zone.save();
@@ -134,18 +134,18 @@ router.post('/zones', protect, async (req, res) => {
 });
 
 // Update delivery zone (admin)
-router.put('/zones/:id', protect, async (req, res) => {
+router.put('/zones/:id', auth, async (req, res) => {
   try {
     const zone = await DeliveryZone.findByIdAndUpdate(
       req.params.id,
       req.body,
       { new: true }
     );
-    
+
     if (!zone) {
       return res.status(404).json({ message: 'Zone not found' });
     }
-    
+
     res.json(zone);
   } catch (error) {
     console.error('Update zone error:', error);

@@ -10,7 +10,7 @@ const {
   bulkUpdateProducts,
   searchProducts
 } = require('../controllers/productController');
-const { protect, seller, admin } = require('../middleware/auth');
+const { auth, seller, adminAuth } = require('../middleware/auth');
 const { ValidationRules, handleValidationErrors, rateLimits } = require('../middleware/validation');
 
 const router = express.Router();
@@ -22,54 +22,54 @@ router.get('/search', rateLimits.api, ValidationRules.productQuery(), handleVali
 router.get('/:id', rateLimits.general, ValidationRules.mongoIdParam(), handleValidationErrors, getProductById);
 
 // Protected routes with API rate limiting
-router.post('/', 
-  rateLimits.api, 
-  protect, 
+router.post('/',
+  rateLimits.api,
+  auth,
   seller,
-  ValidationRules.productCreation(), 
-  handleValidationErrors, 
+  ValidationRules.productCreation(),
+  handleValidationErrors,
   createProduct
 );
 
-router.put('/:id', 
-  rateLimits.api, 
-  protect, 
+router.put('/:id',
+  rateLimits.api,
+  auth,
   seller,
-  ValidationRules.productUpdate(), 
-  handleValidationErrors, 
+  ValidationRules.productUpdate(),
+  handleValidationErrors,
   updateProduct
 );
 
-router.delete('/:id', 
-  rateLimits.api, 
-  protect, 
+router.delete('/:id',
+  rateLimits.api,
+  auth,
   seller,
-  ValidationRules.mongoIdParam(), 
-  handleValidationErrors, 
+  ValidationRules.mongoIdParam(),
+  handleValidationErrors,
   deleteProduct
 );
 
 // Review routes
-router.post('/:id/reviews', 
-  rateLimits.api, 
-  protect, 
-  ValidationRules.mongoIdParam(), 
-  handleValidationErrors, 
+router.post('/:id/reviews',
+  rateLimits.api,
+  auth,
+  ValidationRules.mongoIdParam(),
+  handleValidationErrors,
   createProductReview
 );
 
 // Admin-only routes with stricter rate limiting
-router.get('/admin/analytics', 
-  rateLimits.api, 
-  protect, 
-  admin, 
+router.get('/admin/analytics',
+  rateLimits.api,
+  auth,
+  adminAuth,
   getProductAnalytics
 );
 
-router.patch('/admin/bulk', 
-  rateLimits.api, 
-  protect, 
-  admin, 
+router.patch('/admin/bulk',
+  rateLimits.api,
+  auth,
+  adminAuth,
   bulkUpdateProducts
 );
 

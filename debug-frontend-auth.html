@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug Frontend Auth</title>
+</head>
+<body>
+    <h1>Frontend Auth Debug</h1>
+    <div id="output"></div>
+    
+    <script>
+        function debugAuth() {
+            const output = document.getElementById('output');
+            
+            // Check localStorage
+            const user = localStorage.getItem('user');
+            const token = localStorage.getItem('token');
+            
+            output.innerHTML = `
+                <h2>LocalStorage Contents:</h2>
+                <p><strong>User:</strong> ${user || 'null'}</p>
+                <p><strong>Token:</strong> ${token || 'null'}</p>
+                
+                <h2>Parsed User Data:</h2>
+                <pre>${user ? JSON.stringify(JSON.parse(user), null, 2) : 'No user data'}</pre>
+                
+                <h2>All LocalStorage Keys:</h2>
+                <ul>
+                    ${Object.keys(localStorage).map(key => `<li>${key}: ${localStorage.getItem(key)?.substring(0, 100)}...</li>`).join('')}
+                </ul>
+            `;
+        }
+        
+        // Run debug on load
+        debugAuth();
+        
+        // Add button to clear auth data
+        const clearButton = document.createElement('button');
+        clearButton.textContent = 'Clear Auth Data';
+        clearButton.onclick = () => {
+            localStorage.removeItem('user');
+            localStorage.removeItem('token');
+            debugAuth();
+        };
+        document.body.appendChild(clearButton);
+        
+        // Add button to set demo user
+        const demoButton = document.createElement('button');
+        demoButton.textContent = 'Set Demo User';
+        demoButton.onclick = () => {
+            const demoUser = {
+                _id: 'demo_user_123',
+                name: 'Demo User',
+                email: 'test@example.com',
+                role: 'customer'
+            };
+            const demoToken = 'demo_token_123456789';
+            
+            localStorage.setItem('user', JSON.stringify(demoUser));
+            localStorage.setItem('token', demoToken);
+            debugAuth();
+        };
+        document.body.appendChild(demoButton);
+    </script>
+</body>
+</html>

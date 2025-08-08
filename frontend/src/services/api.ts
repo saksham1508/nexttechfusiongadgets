@@ -64,11 +64,11 @@ export const productAPI = {
 export const cartAPI = {
   getCart: () => api.get('/cart'),
   addToCart: (productId: string, quantity: number) => 
-    api.post('/cart', { productId, quantity }),
-  updateCartItem: (id: string, quantity: number) => 
-    api.put(`/cart/${id}`, { quantity }),
-  removeFromCart: (id: string) => api.delete(`/cart/${id}`),
-  clearCart: () => api.delete('/cart'),
+    api.post('/cart/add', { productId, quantity }),
+  updateCartItem: (productId: string, quantity: number) => 
+    api.put('/cart/update', { productId, quantity }),
+  removeFromCart: (productId: string) => api.delete(`/cart/remove/${productId}`),
+  clearCart: () => api.delete('/cart/clear'),
 };
 
 export const orderAPI = {

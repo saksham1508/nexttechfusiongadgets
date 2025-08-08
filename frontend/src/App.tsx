@@ -1,5 +1,8 @@
 import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { useDispatch } from 'react-redux';
+import { AppDispatch } from './store/store';
+import { syncFromLocalStorage } from './store/slices/authSlice';
 import { suppressChromeExtensionErrors } from './utils/errorHandler';
 import { Toaster } from 'react-hot-toast';
 import Header from './components/Header';
@@ -28,12 +31,19 @@ import DevelopmentBanner from './components/DevelopmentBanner';
 import CookieConsent from './components/CookieConsent';
 import EnvironmentBadge from './components/EnvironmentBadge';
 import EnvironmentInfo from './components/EnvironmentInfo';
+// Debug components removed for production
+
 // Optional: Use ApiStatusIndicator for enhanced connection feedback
 // import ApiStatusIndicator from './components/ApiStatusIndicator';
 import './styles/globals.css';
 
 function App() {
+  const dispatch = useDispatch<AppDispatch>();
+  
   useEffect(() => {
+    // Sync auth state from localStorage on app load
+    dispatch(syncFromLocalStorage());
+    
     // Initialize error suppression
     suppressChromeExtensionErrors();
     
@@ -165,6 +175,7 @@ function App() {
           <ErrorBoundary>
             <EnvironmentInfo />
           </ErrorBoundary>
+          {/* Debug components removed for cleaner UI */}
           <Toaster
             position="top-right"
             toastOptions={{
