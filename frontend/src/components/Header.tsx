@@ -123,8 +123,8 @@ const Header: React.FC = () => {
           <div className="flex justify-between items-center h-20 ">
             {/* Logo */}
             <Link to="/" className="flex items-center space-x-3 hover-scale">
-              <div className="w-12 h-12 gradient-primary rounded-2xl flex items-center justify-center shadow-lg">
-                <Zap className="text-white h-6 w-6" />
+              <div className="w-12 h-12  flex items-center justify-center shadow-lg">
+                <img src="/Icon.png" alt="NexFuga Logo" className="h-6 w-6"/>
               </div>
               <div className=" hidden sm:block">
                 <span className="text-4xl font-bold text-gradient text-yellow-500">

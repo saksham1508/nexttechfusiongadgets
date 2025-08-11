@@ -157,7 +157,8 @@ const HomePage: React.FC = () => {
       </div>
 
       {/* Hero Section */}
-      <section className="gradient-primary text-white section-padding relative overflow-hidden">
+      <section className="bg-gradient-to-r from-yellow-400 via-slate-700 to-white text-white section-padding relative overflow-hidden">
+
         {/* Background Effects */}
         <div className="absolute inset-0">
           <div className="absolute top-10 left-10 w-32 h-32 bg-#F4A300 rounded-full blur-2xl animate-pulse-slow"></div>
