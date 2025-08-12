@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { AppDispatch, RootState } from '../store/store';
 import { addToCart, updateCartItem } from '../store/slices/cartSlice';
 import CartRecommendationsModal from './CartRecommendationsModal';
+import { checkAuthentication, clearAuthData } from '../utils/authHelpers';
 import toast from 'react-hot-toast';
 
 interface Product {
@@ -35,23 +36,46 @@ const QuickAddToCart: React.FC<QuickAddToCartProps> = ({
   const [quantity, setQuantity] = useState(0);
   const [showRecommendationsModal, setShowRecommendationsModal] = useState(false);
 
-  // Load quantity for authenticated users only
+  // Load quantity only for authenticated users
   useEffect(() => {
     const loadQuantity = () => {
-      const user = localStorage.getItem('user');
+      const authResult = checkAuthentication(user);
       
-      if (user) {
+      if (authResult.isAuthenticated) {
         // For authenticated users, quantity will be managed by Redux state
         // This will be updated when the parent component fetches cart data
         setQuantity(cartQuantity);
+        console.log('🔄 QuickAdd: Setting quantity from Redux:', { productId: product._id, cartQuantity });
       } else {
-        // For non-authenticated users, no cart quantity
+        // For non-authenticated users, always show 0
         setQuantity(0);
+        console.log('🔄 QuickAdd: User not authenticated, setting quantity to 0');
       }
     };
 
     loadQuantity();
-  }, [product._id, cartQuantity]);
+    
+    // Listen for cart updates (only for authenticated users)
+    const handleCartUpdate = () => {
+      console.log('🔄 QuickAdd: Cart update event received');
+      loadQuantity();
+    };
+    
+    window.addEventListener('cartUpdated', handleCartUpdate);
+    
+    return () => {
+      window.removeEventListener('cartUpdated', handleCartUpdate);
+    };
+  }, [product._id, cartQuantity, user]);
+
+  // Additional effect to sync with Redux cart state changes
+  useEffect(() => {
+    const authResult = checkAuthentication(user);
+    if (authResult.isAuthenticated) {
+      setQuantity(cartQuantity);
+      console.log('🔄 QuickAdd: Syncing with Redux cart quantity:', { productId: product._id, cartQuantity });
+    }
+  }, [cartQuantity, user, product._id]);
 
   const sizeClasses = {
     sm: {
@@ -79,67 +103,100 @@ const QuickAddToCart: React.FC<QuickAddToCartProps> = ({
       return;
     }
 
-    // Check if user is logged in using Redux state first, then localStorage as fallback
-    const storedUser = localStorage.getItem('user');
-    const storedToken = localStorage.getItem('token');
-    const isAuthenticated = user || (storedUser && storedToken);
+    // Use the centralized authentication check
+    const authResult = checkAuthentication(user);
     
-    if (!isAuthenticated) {
-      // User not logged in - redirect to login
-      toast.error('Please login to add items to cart');
-      navigate('/login');
+    if (!authResult.isAuthenticated) {
+      // User not logged in - show login prompt
+      toast.error('Please log in to add items to cart', {
+        duration: 4000,
+        icon: '🔒',
+      });
+      
+      // Clear any invalid auth data
+      if (authResult.error) {
+        clearAuthData();
+      }
+      
+      // Optional: Redirect to login page after a delay
+      setTimeout(() => {
+        navigate('/login');
+      }, 2000);
       return;
     }
-
+    
     setIsLoading(true);
     
-    // User is logged in - use Redux/API cart system
+    // User is authenticated - proceed with cart operations
     try {
-      await dispatch(addToCart({ productId: product._id, quantity: 1 })).unwrap();
-      setQuantity(prev => prev + 1);
+      console.log('🚀 QuickAdd: Adding to authenticated cart:', { productId: product._id, quantity: 1 });
+      
+      const result = await dispatch(addToCart({ productId: product._id, quantity: 1 })).unwrap();
+      console.log('✅ QuickAdd: Cart operation successful', result);
+      
+      // Update local quantity based on the result
+      const updatedItem = result.items?.find((item: any) => item.product._id === product._id);
+      if (updatedItem) {
+        setQuantity(updatedItem.quantity);
+        console.log('✅ QuickAdd: Updated local quantity to', updatedItem.quantity);
+      } else {
+        setQuantity(prev => prev + 1);
+      }
+      
       toast.success('Added to cart!', {
-        duration: 2000,
+        duration: 3000,
         icon: '🛒',
       });
+      
+      // Dispatch custom event for other components to listen
+      window.dispatchEvent(new CustomEvent('cartUpdated', { 
+        detail: { productId: product._id, action: 'add', result } 
+      }));
+      
       // Show smart recommendations modal
       setShowRecommendationsModal(true);
     } catch (error: any) {
-      console.error('Cart error:', error);
-      console.error('Error details:', error.message || error);
-      toast.error(`Failed to add item to cart: ${error.message || 'Please try again'}`);
+      console.error('❌ QuickAdd Cart error:', error);
+      console.error('❌ Error details:', error.message || error);
+      
+      // Enhanced error handling
+      let errorMessage = 'Failed to add item to cart. Please try again.';
+      
+      if (error.message) {
+        if (error.message.includes('401') || error.message.includes('unauthorized') || error.message.includes('Unauthorized') || error.message.includes('session has expired')) {
+          errorMessage = 'Your session has expired. Please log in again.';
+          // Clear invalid auth data
+          clearAuthData();
+          
+          toast.error(errorMessage, {
+            duration: 4000,
+            icon: '🔒',
+          });
+          
+          setTimeout(() => {
+            navigate('/login');
+          }, 2000);
+          setIsLoading(false);
+          return;
+        } else if (error.message.includes('Network') || error.message.includes('network')) {
+          errorMessage = 'Network error. Please check your connection and try again.';
+        } else if (error.message.includes('stock') || error.message.includes('Stock')) {
+          errorMessage = 'This item is out of stock.';
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
+      toast.error(errorMessage, {
+        duration: 4000,
+        icon: '❌',
+      });
     }
     
     setIsLoading(false);
   };
 
-  const handleTempCartAdd = () => {
-    const tempCart = JSON.parse(localStorage.getItem('tempCart') || '[]');
-    const existingItem = tempCart.find((item: any) => item.productId === product._id);
-    
-    if (existingItem) {
-      existingItem.quantity += 1;
-    } else {
-      tempCart.push({
-        productId: product._id,
-        name: product.name,
-        price: product.price,
-        image: product.image,
-        quantity: 1
-      });
-    }
-    
-    localStorage.setItem('tempCart', JSON.stringify(tempCart));
-    // Dispatch custom event to notify cart page
-    window.dispatchEvent(new Event('cartUpdated'));
-    setQuantity(prev => prev + 1);
-    toast.success('Added to cart! (Demo Mode)', {
-      duration: 2000,
-      icon: '🛒',
-    });
-    
-    // Show smart recommendations modal
-    setShowRecommendationsModal(true);
-  };
+
 
   const handleUpdateQuantity = async (newQuantity: number) => {
     if (newQuantity < 0) return;
@@ -148,35 +205,105 @@ const QuickAddToCart: React.FC<QuickAddToCartProps> = ({
       return;
     }
 
-    // Check if user is logged in
-    const user = localStorage.getItem('user');
-    
-    if (!user) {
-      // User not logged in - redirect to login
-      toast.error('Please login to manage cart items');
-      navigate('/login');
+    // Use the centralized authentication check
+    const authResult = checkAuthentication(user);
+
+    if (!authResult.isAuthenticated) {
+      // User not logged in - show login prompt
+      toast.error('Please log in to manage cart items', {
+        duration: 4000,
+        icon: '🔒',
+      });
+      
+      // Clear any invalid auth data
+      if (authResult.error) {
+        clearAuthData();
+      }
+      
+      setTimeout(() => {
+        navigate('/login');
+      }, 2000);
       return;
     }
 
     setIsLoading(true);
     
-    // User is logged in - use Redux/API cart system
+    // User is authenticated - proceed with cart operations
     try {
       if (newQuantity === 0) {
         // Remove from cart
-        await dispatch(updateCartItem({ productId: product._id, quantity: 0 })).unwrap();
+        const result = await dispatch(updateCartItem({ productId: product._id, quantity: 0 })).unwrap();
+        console.log('✅ QuickAdd: Remove from cart operation successful', result);
         setQuantity(0);
-        toast.success('Removed from cart');
+        toast.success('Removed from cart', {
+          duration: 2000,
+          icon: '🗑️',
+        });
+        
+        // Dispatch custom event for other components to listen
+        window.dispatchEvent(new CustomEvent('cartUpdated', { 
+          detail: { productId: product._id, action: 'remove', result } 
+        }));
       } else {
         // Update quantity
-        await dispatch(updateCartItem({ productId: product._id, quantity: newQuantity })).unwrap();
-        setQuantity(newQuantity);
-        toast.success('Cart updated');
+        const result = await dispatch(updateCartItem({ productId: product._id, quantity: newQuantity })).unwrap();
+        console.log('✅ QuickAdd: Update cart operation successful', result);
+        
+        // Update local quantity based on the result
+        const updatedItem = result.items?.find((item: any) => item.product._id === product._id);
+        if (updatedItem) {
+          setQuantity(updatedItem.quantity);
+          console.log('✅ QuickAdd: Updated local quantity to', updatedItem.quantity);
+        } else {
+          setQuantity(newQuantity);
+        }
+        
+        toast.success('Cart updated', {
+          duration: 2000,
+          icon: '✅',
+        });
+        
+        // Dispatch custom event for other components to listen
+        window.dispatchEvent(new CustomEvent('cartUpdated', { 
+          detail: { productId: product._id, action: 'update', result } 
+        }));
       }
     } catch (error: any) {
-      console.error('Update cart error:', error);
-      console.error('Error details:', error.message || error);
-      toast.error(`Failed to update cart: ${error.message || 'Please try again'}`);
+      console.error('❌ Update cart error:', error);
+      console.error('❌ Error details:', error.message || error);
+      
+      // Enhanced error handling
+      let errorMessage = 'Failed to update cart. Please try again.';
+      
+      if (error.message) {
+        if (error.message.includes('401') || error.message.includes('unauthorized') || error.message.includes('Unauthorized') || error.message.includes('session has expired')) {
+          errorMessage = 'Your session has expired. Please log in again.';
+          // Clear invalid auth data
+          clearAuthData();
+          
+          toast.error(errorMessage, {
+            duration: 4000,
+            icon: '🔒',
+          });
+          
+          setTimeout(() => {
+            navigate('/login');
+          }, 2000);
+          setIsLoading(false);
+          return;
+        } else if (error.message.includes('Network') || error.message.includes('network')) {
+          errorMessage = 'Network error. Please check your connection and try again.';
+        } else if (error.message.includes('stock') || error.message.includes('Stock')) {
+          errorMessage = 'Not enough stock available.';
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
+      toast.error(errorMessage, {
+        duration: 4000,
+        icon: '❌',
+      });
     }
     
     setIsLoading(false);

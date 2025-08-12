@@ -169,19 +169,45 @@ class AuthService {
   // Get current user from localStorage
   getCurrentUser() {
     const userStr = localStorage.getItem('user');
-    return userStr ? JSON.parse(userStr) : null;
+    if (!userStr) return null;
+    
+    try {
+      const userData = JSON.parse(userStr);
+      // Handle both direct user object and wrapped user object
+      return userData.user || userData;
+    } catch (error) {
+      console.error('Error parsing user data:', error);
+      return null;
+    }
   }
 
   // Check if user is authenticated
   isAuthenticated(): boolean {
     const user = this.getCurrentUser();
-    return !!user && !!user.token;
+    const token = this.getToken();
+    return !!user && !!token;
   }
 
   // Get auth token
   getToken(): string | null {
+    // First try to get token from separate localStorage item
+    const directToken = localStorage.getItem('token');
+    if (directToken) return directToken;
+    
+    // Fallback to token in user object
     const user = this.getCurrentUser();
-    return user?.token || null;
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      try {
+        const userData = JSON.parse(userStr);
+        return userData.token || user?.token || null;
+      } catch (error) {
+        console.error('Error parsing user data for token:', error);
+        return null;
+      }
+    }
+    
+    return null;
   }
 
   // Set auth token in axios headers

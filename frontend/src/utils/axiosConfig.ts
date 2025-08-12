@@ -11,7 +11,7 @@ const axiosInstance = axios.create({
 // Request interceptor to add auth token
 axiosInstance.interceptors.request.use(
   (config) => {
-    // Get token from localStorage
+    // Get token from localStorage - try direct token first
     let token = localStorage.getItem('token');
     
     // If no direct token, try to get from user object
@@ -21,23 +21,34 @@ axiosInstance.interceptors.request.use(
         try {
           const userData = JSON.parse(user);
           token = userData.token;
+          console.log('🔑 Axios: Token extracted from user object:', token ? token.substring(0, 20) + '...' : 'null');
         } catch (error) {
-          console.error('Error parsing user data:', error);
+          console.error('❌ Axios: Error parsing user data:', error);
         }
       }
+    } else {
+      console.log('🔑 Axios: Token found directly in localStorage:', token.substring(0, 20) + '...');
     }
     
     // Add token to headers if available
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+      console.log('✅ Axios: Authorization header set for:', config.url);
     } else {
-      console.warn('⚠️ No token found for API request:', config.url);
+      console.warn('⚠️ Axios: No token found for API request:', config.url);
     }
     
     // Ensure content type is set
     if (!config.headers['Content-Type']) {
       config.headers['Content-Type'] = 'application/json';
     }
+    
+    console.log('📤 Axios: Request config:', {
+      url: config.url,
+      method: config.method,
+      hasAuth: !!config.headers.Authorization,
+      headers: config.headers
+    });
     
     return config;
   },

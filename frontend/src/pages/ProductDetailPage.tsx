@@ -40,11 +40,16 @@ const ProductDetailPage: React.FC = () => {
     const fetchProduct = async () => {
       setLoading(true);
       try {
-        const res = await fetch(`/api/products/${id}`);
-        const data = await res.json();
+        // Use axiosInstance for consistent API calls
+        const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000/api'}/products/${id}`);
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
         setProduct(data);
       } catch (err) {
         console.error('Failed to fetch product:', err);
+        toast.error('Failed to load product details');
       }
       setLoading(false);
     };
@@ -53,36 +58,72 @@ const ProductDetailPage: React.FC = () => {
 
   const handleAddToCart = async () => {
     if (!product) return;
-    
-    // Check if user is logged in using Redux state first, then localStorage as fallback
-    const storedUser = localStorage.getItem('user');
-    const storedToken = localStorage.getItem('token');
-    const isAuthenticated = user || (storedUser && storedToken);
-    
-    if (!isAuthenticated) {
-      toast.error('Please login to add items to cart');
-      navigate('/login');
-      return;
-    }
 
     if (!product.inStock || product.stockQuantity === 0) {
       toast.error('Product is out of stock');
       return;
     }
 
-    // User is logged in - use Redux/API cart system
-    try {
-      await dispatch(addToCart({ 
-        productId: product._id, 
-        quantity: quantity 
-      })).unwrap();
-      toast.success(`Added ${quantity} item(s) to cart successfully`);
+    // Check if user is logged in using Redux state first, then localStorage as fallback
+    const storedUser = localStorage.getItem('user');
+    const storedToken = localStorage.getItem('token');
+    const isAuthenticated = user || (storedUser && storedToken);
+    
+    console.log('🔍 Add to cart - Auth check:', {
+      reduxUser: !!user,
+      storedUser: !!storedUser,
+      storedToken: !!storedToken,
+      isAuthenticated
+    });
+    
+    if (isAuthenticated) {
+      // User is logged in - use Redux/API cart system
+      try {
+        console.log('🚀 Adding to authenticated cart:', { productId: product._id, quantity });
+        await dispatch(addToCart({ 
+          productId: product._id, 
+          quantity: quantity 
+        })).unwrap();
+        toast.success(`Added ${quantity} item(s) to cart successfully`);
+        
+        // Show smart recommendations modal
+        setShowRecommendationsModal(true);
+      } catch (error: any) {
+        console.error('❌ Cart error:', error);
+        console.error('❌ Error details:', error.message || error);
+        
+        // Provide more specific error messages
+        let errorMessage = 'Failed to add item to cart. Please try again.';
+        if (error.message) {
+          if (error.message.includes('401') || error.message.includes('unauthorized')) {
+            errorMessage = 'Please log in again to add items to cart.';
+            // Clear invalid auth data
+            localStorage.removeItem('user');
+            localStorage.removeItem('token');
+            navigate('/login');
+            return;
+          } else if (error.message.includes('Network')) {
+            errorMessage = 'Network error. Please check your connection and try again.';
+          } else {
+            errorMessage = error.message;
+          }
+        }
+        
+        toast.error(errorMessage);
+      }
+    } else {
+      // User not logged in - show login prompt
+      console.log('👤 ProductDetailPage: User not authenticated, showing login prompt');
       
-      // Show smart recommendations modal
-      setShowRecommendationsModal(true);
-    } catch (error: any) {
-      console.error('Cart error:', error);
-      toast.error('Failed to add item to cart. Please try again.');
+      toast.error('Please log in to add items to cart', {
+        duration: 4000,
+        icon: '🔒',
+      });
+      
+      // Redirect to login page after a delay
+      setTimeout(() => {
+        navigate('/login');
+      }, 2000);
     }
   };
 

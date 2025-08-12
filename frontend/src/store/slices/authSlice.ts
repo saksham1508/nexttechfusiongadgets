@@ -59,7 +59,14 @@ const getInitialUser = (): AuthUser | null => {
     if (storedUser) {
       const userData = JSON.parse(storedUser);
       // Handle both direct user object and wrapped user object
-      return userData.user || userData;
+      const user = userData.user || userData;
+      
+      // Ensure token is available in localStorage if it exists in the user data
+      if (userData.token && !localStorage.getItem('token')) {
+        localStorage.setItem('token', userData.token);
+      }
+      
+      return user;
     }
   } catch (error) {
     console.error('Error parsing stored user data:', error);
@@ -134,23 +141,59 @@ export const loginWithGoogle = createAsyncThunk(
   async (googleUser: any, { rejectWithValue }) => {
     try {
       const response = await authService.loginWithGoogle(googleUser);
+      
+      // Store both user data and token properly
       localStorage.setItem('user', JSON.stringify(response));
+      if (response.token) {
+        localStorage.setItem('token', response.token);
+      }
+      
+      console.log('🔍 Google Auth Debug:');
+      console.log('Redux User ID:', response.user._id);
+      console.log('Redux User Name:', response.user.name);
+      console.log('Raw Token:', response.token ? '✅ Present' : '❌ None');
+      console.log('Raw User:', response.user ? '✅ Present' : '❌ None');
+      console.log('Parsed User Structure:');
+      console.log(JSON.stringify(response, null, 2));
+      console.log('Final Auth Result:', response.user && response.token ? '✅ Authenticated' : '❌ Failed');
+      console.log('Final User ID:', response.user._id);
+      console.log('Final User Name:', response.user.name);
+      console.log('Final Token:', response.token ? '✅ Present' : '❌ None');
+      console.log('Token Preview:', response.token ? response.token.substring(0, 20) + '...' : 'None');
+      
       return response;
     } catch (error: any) {
       // Fallback for development/demo
       console.warn('Google auth API not available, using mock data');
       const mockResponse = {
         user: {
-          _id: 'google_' + googleUser.id,
-          name: googleUser.name,
-          email: googleUser.email,
+          _id: 'google_mock_google_' + Date.now(),
+          name: googleUser.name || 'Demo Google User',
+          email: googleUser.email || 'demo.google@example.com',
           role: 'customer',
-          avatar: googleUser.picture,
+          avatar: googleUser.picture || 'https://via.placeholder.com/150/4285F4/FFFFFF?text=DG',
           authProvider: 'google'
         },
         token: 'mock_google_token_' + Date.now()
       };
+      
+      // Store both user data and token properly
       localStorage.setItem('user', JSON.stringify(mockResponse));
+      localStorage.setItem('token', mockResponse.token);
+      
+      console.log('🔍 Google Auth Debug:');
+      console.log('Redux User ID:', mockResponse.user._id);
+      console.log('Redux User Name:', mockResponse.user.name);
+      console.log('Raw Token:', mockResponse.token ? '✅ Present' : '❌ None');
+      console.log('Raw User:', mockResponse.user ? '✅ Present' : '❌ None');
+      console.log('Parsed User Structure:');
+      console.log(JSON.stringify(mockResponse, null, 2));
+      console.log('Final Auth Result:', mockResponse.user && mockResponse.token ? '✅ Authenticated' : '❌ Failed');
+      console.log('Final User ID:', mockResponse.user._id);
+      console.log('Final User Name:', mockResponse.user.name);
+      console.log('Final Token:', mockResponse.token ? '✅ Present' : '❌ None');
+      console.log('Token Preview:', mockResponse.token ? mockResponse.token.substring(0, 20) + '...' : 'None');
+      
       return mockResponse;
     }
   }
@@ -294,6 +337,10 @@ const authSlice = createSlice({
       .addCase(loginWithGoogle.fulfilled, (state, action) => {
         state.isLoading = false;
         state.user = action.payload.user;
+        // Ensure token is stored in localStorage for Google auth
+        if (action.payload.token) {
+          localStorage.setItem('token', action.payload.token);
+        }
       })
       .addCase(loginWithGoogle.rejected, (state, action) => {
         state.isLoading = false;

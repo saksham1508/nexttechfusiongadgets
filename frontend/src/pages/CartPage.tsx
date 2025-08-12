@@ -254,13 +254,30 @@ const CartPage: React.FC = () => {
         <div className="text-center p-8 bg-white rounded-lg shadow-lg">
           <ShoppingBag className="h-16 w-16 text-gray-400 mx-auto mb-4" />
           <h2 className="text-2xl font-bold text-gray-900 mb-4">Your cart is empty</h2>
-          <p className="text-gray-600 mb-6">Add some products to get started</p>
-          <Link
-            to="/products"
-            className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition duration-150 ease-in-out"
-          >
-            Continue Shopping
-          </Link>
+          <p className="text-gray-600 mb-6">
+            {useApiCart 
+              ? "Add some products to get started" 
+              : "Please log in to add items to your cart and start shopping"
+            }
+          </p>
+          <div className="space-y-3">
+            <Link
+              to="/products"
+              className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition duration-150 ease-in-out"
+            >
+              Continue Shopping
+            </Link>
+            {!useApiCart && (
+              <div className="mt-4">
+                <Link
+                  to="/login"
+                  className="inline-flex items-center px-6 py-3 border border-gray-300 text-base font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-150 ease-in-out"
+                >
+                  Log In to Save Cart
+                </Link>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     );
@@ -275,22 +292,22 @@ const CartPage: React.FC = () => {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12 bg-gray-50 min-h-screen font-sans">
       {/* Cart Status Notice */}
-      <div className={`border rounded-lg p-4 mb-6 ${useApiCart ? 'bg-green-50 border-green-200' : 'bg-blue-50 border-blue-200'}`}>
+      <div className={`border rounded-lg p-4 mb-6 ${useApiCart ? 'bg-green-50 border-green-200' : 'bg-yellow-50 border-yellow-200'}`}>
         <div className="flex items-center">
           <div className="flex-shrink-0">
-            <svg className={`h-5 w-5 ${useApiCart ? 'text-green-400' : 'text-blue-400'}`} viewBox="0 0 20 20" fill="currentColor">
+            <svg className={`h-5 w-5 ${useApiCart ? 'text-green-400' : 'text-yellow-400'}`} viewBox="0 0 20 20" fill="currentColor">
               <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
             </svg>
           </div>
           <div className="ml-3">
-            <p className={`text-sm ${useApiCart ? 'text-green-700' : 'text-blue-700'}`}>
+            <p className={`text-sm ${useApiCart ? 'text-green-700' : 'text-yellow-700'}`}>
               {useApiCart ? (
                 <>
                   <strong>Authenticated Cart:</strong> Your cart is synced with your account and will persist across sessions.
                 </>
               ) : (
                 <>
-                  <strong>Demo Mode:</strong> This cart uses temporary storage. Items will be cleared when you refresh the page or close the browser.
+                  <strong>Guest Cart Notice:</strong> This cart contains temporary items. To add new items or save your cart, please <Link to="/login" className="underline font-semibold hover:text-yellow-800">log in to your account</Link>.
                 </>
               )}
             </p>

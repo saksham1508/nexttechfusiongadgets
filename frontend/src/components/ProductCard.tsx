@@ -7,6 +7,7 @@ import { addToCart } from '../store/slices/cartSlice';
 import QuickAddToCart from './QuickAddToCart';
 import WishlistButton from './WishlistButton';
 import CartRecommendationsModal from './CartRecommendationsModal';
+import { checkAuthentication, clearAuthData } from '../utils/authHelpers';
 import toast from 'react-hot-toast';
 
 interface Product {
@@ -39,20 +40,31 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, showQuickCommerce = 
   // Load cart quantity for authenticated users only
   useEffect(() => {
     const loadCartQuantity = () => {
-      const user = localStorage.getItem('user');
+      const authResult = checkAuthentication(user);
       
-      if (user) {
+      if (authResult.isAuthenticated) {
         // For authenticated users, get quantity from Redux state
         const existingItem = items.find(item => item.product._id === product._id);
         setCartQuantity(existingItem ? existingItem.quantity : 0);
       } else {
-        // For non-authenticated users, no cart quantity
+        // For non-authenticated users, always show 0
         setCartQuantity(0);
       }
     };
 
     loadCartQuantity();
-  }, [product._id, items]);
+    
+    // Listen for cart updates (for authenticated users only)
+    const handleCartUpdate = () => {
+      loadCartQuantity();
+    };
+    
+    window.addEventListener('cartUpdated', handleCartUpdate);
+    
+    return () => {
+      window.removeEventListener('cartUpdated', handleCartUpdate);
+    };
+  }, [product._id, items, user]);
 
   const handleAddToCart = async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -65,41 +77,90 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, showQuickCommerce = 
       return;
     }
 
-    // Check if user is logged in using Redux state first, then localStorage as fallback
-    const storedUser = localStorage.getItem('user');
-    const storedToken = localStorage.getItem('token');
-    const isAuthenticated = user || (storedUser && storedToken);
+    // Use the centralized authentication check
+    const authResult = checkAuthentication(user);
     
-    console.log('🔍 Auth check:', {
-      reduxUser: !!user,
-      storedUser: !!storedUser,
-      storedToken: !!storedToken,
-      isAuthenticated
+    console.log('🛒 ProductCard: Auth check before add to cart:', {
+      isAuthenticated: authResult.isAuthenticated,
+      hasUser: !!authResult.user,
+      hasToken: !!authResult.token,
+      userId: authResult.user?._id || authResult.user?.id,
+      error: authResult.error
     });
     
-    if (isAuthenticated) {
-      // User is logged in - use Redux/API cart system
+    if (authResult.isAuthenticated) {
+      // User is authenticated - use Redux/API cart system
+      console.log('✅ ProductCard: Authentication passed, proceeding with authenticated cart add');
+
       try {
-        console.log('🚀 Adding to cart:', { productId: product._id, quantity: 1 });
-        console.log('📦 User data:', user);
-        console.log('🔑 Token:', storedToken?.substring(0, 20) + '...');
+        console.log('🚀 Adding to authenticated cart:', { productId: product._id, quantity: 1 });
+        console.log('📦 User data:', authResult.user);
+        console.log('🔑 Token:', authResult.token?.substring(0, 20) + '...');
         
         const result = await dispatch(addToCart({ productId: product._id, quantity: 1 })).unwrap();
         console.log('✅ Cart add result:', result);
-        toast.success('Added to cart successfully');
+        toast.success('Added to cart successfully!', {
+          duration: 3000,
+          icon: '🛒',
+        });
+        
         // Show smart recommendations modal
         setShowRecommendationsModal(true);
       } catch (error: any) {
         console.error('❌ Cart error:', error);
         console.error('❌ Error details:', error.message || error);
         console.error('❌ Full error object:', error);
-        toast.error(`Failed to add item to cart: ${error.message || 'Please try again'}`);
+        
+        // Enhanced error handling
+        let errorMessage = 'Failed to add item to cart. Please try again.';
+        
+        if (error.message) {
+          if (error.message.includes('401') || error.message.includes('unauthorized') || error.message.includes('Unauthorized') || error.message.includes('session has expired')) {
+            errorMessage = 'Your session has expired. Please log in again.';
+            // Clear invalid auth data
+            clearAuthData();
+            
+            toast.error(errorMessage, {
+              duration: 4000,
+              icon: '🔒',
+            });
+            
+            setTimeout(() => {
+              navigate('/login');
+            }, 2000);
+            return;
+          } else if (error.message.includes('Network') || error.message.includes('network')) {
+            errorMessage = 'Network error. Please check your connection and try again.';
+          } else if (error.message.includes('stock') || error.message.includes('Stock')) {
+            errorMessage = 'This item is out of stock.';
+          } else {
+            errorMessage = error.message;
+          }
+        }
+        
+        toast.error(errorMessage, {
+          duration: 4000,
+          icon: '❌',
+        });
       }
     } else {
-      // User not logged in - redirect to login
-      console.log('❌ User not authenticated, redirecting to login');
-      toast.error('Please login to add items to cart');
-      navigate('/login');
+      // User not logged in - show login prompt
+      console.log('👤 ProductCard: User not authenticated, showing login prompt');
+      
+      toast.error('Please log in to add items to cart', {
+        duration: 4000,
+        icon: '🔒',
+      });
+      
+      // Clear any invalid auth data
+      if (authResult.error) {
+        clearAuthData();
+      }
+      
+      // Redirect to login page after a delay
+      setTimeout(() => {
+        navigate('/login');
+      }, 2000);
     }
   };
 
@@ -234,6 +295,14 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, showQuickCommerce = 
             </>
           )}
         </div>
+
+        {/* Authentication Notice */}
+        {!checkAuthentication(user).isAuthenticated && (
+          <div className="flex items-center space-x-2 mb-4 bg-orange-50 px-3 py-2 rounded-xl">
+            <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+            <span className="text-sm font-semibold text-orange-700">Login required to add to cart</span>
+          </div>
+        )}
 
         {/* Delivery Info */}
         {showQuickCommerce && (

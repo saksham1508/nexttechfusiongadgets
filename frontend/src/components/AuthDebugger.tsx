@@ -2,7 +2,7 @@ import React from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState, AppDispatch } from '../store/store';
 import { logout, logoutSync } from '../store/slices/authSlice';
-import { clearAllAuthData, forceLogout } from '../utils/authUtils';
+import { clearAllAuthData, forceLogout, debugAuthState, fixAuthTokenSync } from '../utils/authUtils';
 import toast from 'react-hot-toast';
 
 const AuthDebugger: React.FC = () => {
@@ -99,17 +99,25 @@ const AuthDebugger: React.FC = () => {
         </button>
         
         <button
-          onClick={() => {
-            console.log('🔍 Current Auth State:', {
-              reduxUser: user,
-              localStorage: localStorage.getItem('user'),
-              token: localStorage.getItem('token'),
-              allLocalStorageKeys: Object.keys(localStorage)
-            });
-          }}
+          onClick={() => debugAuthState()}
           className="w-full bg-blue-500 text-white px-2 py-1 rounded text-xs hover:bg-blue-600"
         >
-          Log Auth State
+          Debug Auth State
+        </button>
+        
+        <button
+          onClick={() => {
+            const fixed = fixAuthTokenSync();
+            if (fixed) {
+              toast.success('Token synchronization fixed');
+              window.location.reload();
+            } else {
+              toast('No token sync issues found', { icon: 'ℹ️' });
+            }
+          }}
+          className="w-full bg-green-500 text-white px-2 py-1 rounded text-xs hover:bg-green-600"
+        >
+          Fix Token Sync
         </button>
       </div>
     </div>

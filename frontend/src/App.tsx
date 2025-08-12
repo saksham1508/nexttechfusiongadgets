@@ -1,8 +1,10 @@
 import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { useDispatch } from 'react-redux';
-import { AppDispatch } from './store/store';
+import { useDispatch, useSelector } from 'react-redux';
+import { AppDispatch, RootState } from './store/store';
 import { syncFromLocalStorage } from './store/slices/authSlice';
+import { fetchCart } from './store/slices/cartSlice';
+import { checkAuthentication } from './utils/authHelpers';
 import { suppressChromeExtensionErrors } from './utils/errorHandler';
 import { Toaster } from 'react-hot-toast';
 import Header from './components/Header';
@@ -31,6 +33,7 @@ import DevelopmentBanner from './components/DevelopmentBanner';
 import CookieConsent from './components/CookieConsent';
 import EnvironmentBadge from './components/EnvironmentBadge';
 import EnvironmentInfo from './components/EnvironmentInfo';
+import CartDebugger from './components/CartDebugger';
 // Debug components removed for production
 
 // Optional: Use ApiStatusIndicator for enhanced connection feedback
@@ -39,6 +42,7 @@ import './styles/globals.css';
 
 function App() {
   const dispatch = useDispatch<AppDispatch>();
+  const { user } = useSelector((state: RootState) => state.auth);
   
   useEffect(() => {
     // Sync auth state from localStorage on app load
@@ -78,6 +82,19 @@ function App() {
       window.removeEventListener('error', handleError);
     };
   }, []);
+
+  // Fetch cart when user is authenticated
+  useEffect(() => {
+    const authResult = checkAuthentication(user);
+    if (authResult.isAuthenticated) {
+      console.log('🛒 App: User authenticated, fetching cart');
+      dispatch(fetchCart()).catch((error) => {
+        console.error('❌ App: Failed to fetch cart:', error);
+      });
+    } else {
+      console.log('👤 App: User not authenticated, skipping cart fetch');
+    }
+  }, [dispatch, user]);
 
   return (
     <ErrorBoundary>
@@ -174,6 +191,9 @@ function App() {
           </ErrorBoundary>
           <ErrorBoundary>
             <EnvironmentInfo />
+          </ErrorBoundary>
+          <ErrorBoundary>
+            <CartDebugger />
           </ErrorBoundary>
           {/* Debug components removed for cleaner UI */}
           <Toaster

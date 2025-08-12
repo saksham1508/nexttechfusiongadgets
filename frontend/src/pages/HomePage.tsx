@@ -16,6 +16,7 @@ import DealOfTheDay from '../components/DealOfTheDay';
 import SmartRecommendations from '../components/SmartRecommendations';
 import ProductComparison from '../components/ProductComparison';
 import BulkOrderManager from '../components/BulkOrderManager';
+import AuthTestComponent from '../components/AuthTestComponent';
 import { ArrowRight, Smartphone, Laptop, Headphones, Watch, MapPin, Clock, Zap, Scale, Package } from 'lucide-react';
 import { Location } from '../services/locationService';
 
@@ -157,7 +158,7 @@ const HomePage: React.FC = () => {
       </div>
 
       {/* Hero Section */}
-      <section className="bg-gradient-to-r from-yellow-400 via-slate-700 to-white text-white section-padding relative overflow-hidden">
+      <section className="bg-gradient-to-r from-orange-600 via-orange-400 to-white text-white section-padding relative overflow-hidden">
 
         {/* Background Effects */}
         <div className="absolute inset-0">
@@ -176,7 +177,7 @@ const HomePage: React.FC = () => {
                 </div>
               </div>
               <h1 className="flex text-5xl md:text-7xl font-black tracking-tight">
-                <span className="block text-yellow-500">Nex</span>
+                <span className="block text-yellow-300">Nex</span>
                 <span className="block text-gray-800">Fuga</span>
 
                 {/* <span className="block text-gradient bg-gradient-to-r from-yellow-300 to-orange-300 bg-clip-text text-transparent">
@@ -344,6 +345,9 @@ const HomePage: React.FC = () => {
         onClose={() => setShowBulkOrder(false)}
         initialProducts={featuredProducts.slice(0, 2)}
       />
+
+      {/* Debug Component - Remove in production */}
+      <AuthTestComponent />
     </div>
   );
 };
