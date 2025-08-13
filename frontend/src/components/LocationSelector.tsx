@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   MapPin, 
   Plus, 
@@ -38,11 +38,26 @@ const LocationSelector: React.FC<LocationSelectorProps> = ({
     isDefault: false
   });
 
+  // Ref for scrollable container
+  const scrollableRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     if (isOpen) {
       fetchAddresses();
     }
   }, [isOpen]);
+
+  // Auto-scroll to form when it opens
+  useEffect(() => {
+    if (showAddForm && scrollableRef.current) {
+      setTimeout(() => {
+        scrollableRef.current?.scrollTo({
+          top: scrollableRef.current.scrollHeight,
+          behavior: 'smooth'
+        });
+      }, 100);
+    }
+  }, [showAddForm]);
 
   const fetchAddresses = async () => {
     try {
@@ -171,7 +186,7 @@ const LocationSelector: React.FC<LocationSelectorProps> = ({
           </div>
         </div>
 
-        <div className="overflow-y-auto max-h-[60vh]">
+        <div ref={scrollableRef} className="overflow-y-auto max-h-[65vh]">
           {/* Current Location Option */}
           <div className="p-4 border-b border-gray-100">
             <button
@@ -316,11 +331,10 @@ const LocationSelector: React.FC<LocationSelectorProps> = ({
               </div>
             )}
           </div>
-        </div>
 
-        {/* Add/Edit Address Form */}
-        {showAddForm && (
-          <div className="border-t border-gray-200 p-4">
+          {/* Add/Edit Address Form - Now inside scrollable area */}
+          {showAddForm && (
+            <div className="border-t border-gray-200 p-4">
             <h4 className="font-medium text-gray-900 mb-3">
               {editingAddress ? 'Edit Address' : 'Add New Address'}
             </h4>
@@ -404,7 +418,8 @@ const LocationSelector: React.FC<LocationSelectorProps> = ({
               </div>
             </div>
           </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );
