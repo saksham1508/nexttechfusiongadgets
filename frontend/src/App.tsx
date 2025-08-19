@@ -33,7 +33,6 @@ import DevelopmentBanner from './components/DevelopmentBanner';
 import CookieConsent from './components/CookieConsent';
 import EnvironmentBadge from './components/EnvironmentBadge';
 import EnvironmentInfo from './components/EnvironmentInfo';
-import CartDebugger from './components/CartDebugger';
 import VendorDashboardPage from './pages/VendorDashboardPage';
 // Debug components removed for production
 
@@ -200,9 +199,6 @@ function App() {
           </ErrorBoundary>
           <ErrorBoundary>
             <EnvironmentInfo />
-          </ErrorBoundary>
-          <ErrorBoundary>
-            <CartDebugger />
           </ErrorBoundary>
           {/* Debug components removed for cleaner UI */}
           <Toaster
