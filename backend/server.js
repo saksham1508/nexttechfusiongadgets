@@ -110,6 +110,7 @@ app.use('/api/delivery', rateLimits.api, require('./routes/deliveryRoutes'));
 app.use('/api/flash-sales', rateLimits.api, require('./routes/flashSaleRoutes'));
 app.use('/api/coupons', rateLimits.api, require('./routes/couponRoutes'));
 app.use('/api/ai-inventory', rateLimits.api, require('./routes/aiInventoryRoutes'));
+app.use('/api/user', rateLimits.api, require('./routes/userRoutes'));
 const asyncHandler = require('express-async-handler');
 const aiService = require('./services/aiService');
 const Chat = require('./models/Chat');
