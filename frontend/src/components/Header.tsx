@@ -124,10 +124,10 @@ const Header: React.FC = () => {
             {/* Logo */}
             <Link to="/" className="flex items-center space-x-3 hover-scale">
               <div className="w-12 h-12  flex items-center justify-center shadow-lg">
-                <img src="/Icon.png" alt="NexFuga Logo" className="h-6 w-6"/>
+                <img src="/Icon.png" alt="NexFuga Logo" className="h-7 w-7"/>
               </div>
               <div className=" hidden sm:block">
-                <span className="text-4xl font-bold text-gradient text-yellow-500">
+                <span className="text-4xl font-bold text-gradient text-yellow-400">
                   Nex
                 </span>
                 <span className="text-4xl font-bold text-gradient text-gray-800">
@@ -152,10 +152,10 @@ const Header: React.FC = () => {
                 >
                   <MapPin className="h-5 w-5 text-red-500" />
                   <div className="text-left min-w-0">
-                    <div className="text-xs text-gray-500 font-medium">
+                    <div className="text-s text-gray-500 font-medium">
                       Deliver to
                     </div>
-                    <div className="text-sm font-semibold truncate">
+                    <div className="text-m font-semibold truncate">
                       {selectedLocation
                         ? selectedLocation.name
                         : "Select Location"}
@@ -255,21 +255,13 @@ const Header: React.FC = () => {
                       <MapPin className="h-4 w-4" />
                       <span>Track Orders</span>
                     </Link>
-                    {user.role === "seller" ? (
+                    {user.role === "seller" && (
                       <Link
                         to="/vendor/dashboard"
                         className="flex items-center space-x-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors duration-200"
                       >
                         <Zap className="h-4 w-4" />
                         <span>Vendor Dashboard</span>
-                      </Link>
-                    ) : (
-                      <Link
-                        to="/vendor/dashboard"
-                        className="flex items-center space-x-3 px-4 py-3 text-sm text-amber-700 hover:bg-amber-50 transition-colors duration-200"
-                      >
-                        <Zap className="h-4 w-4" />
-                        <span>Become a Vendor</span>
                       </Link>
                     )}
                     {user.role === "admin" && (
@@ -291,12 +283,6 @@ const Header: React.FC = () => {
                 </div>
               ) : (
                 <div className="flex items-center space-x-3">
-                  <Link
-                    to="/vendor/dashboard"
-                    className="text-amber-600 hover:text-amber-700 font-medium"
-                  >
-                    Become a Vendor
-                  </Link>
                   <Link
                     to="/login"
                     className="text-gray-700 hover:text-blue-600 font-medium"

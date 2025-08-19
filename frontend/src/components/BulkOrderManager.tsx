@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import jsPDF from 'jspdf';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Package, 
@@ -168,6 +169,8 @@ const BulkOrderManager: React.FC<BulkOrderManagerProps> = ({
       
       toast.success('Bulk order quote submitted successfully!');
       setShowQuotation(true);
+      // Auto-generate and download PDF after successful submission
+      generateQuotationPDF();
     } catch (error) {
       toast.error('Failed to submit bulk order quote');
     } finally {
@@ -176,8 +179,112 @@ const BulkOrderManager: React.FC<BulkOrderManagerProps> = ({
   };
 
   const generateQuotationPDF = () => {
-    // In a real app, this would generate and download a PDF
-    toast.success('Quotation PDF generated successfully!');
+    try {
+      const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+      const pageWidth = doc.internal.pageSize.getWidth();
+      let y = 40;
+
+      // Header
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(18);
+      doc.text('Bulk Order Quotation', pageWidth / 2, y, { align: 'center' });
+      y += 24;
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+      const dateStr = new Date().toLocaleString();
+      doc.text(`Date: ${dateStr}`, 40, y);
+      y += 16;
+
+      // Customer Info
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(12);
+      doc.text('Customer Details', 40, y);
+      y += 14;
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+      const customerLines = [
+        `Company: ${customerInfo.companyName || '-'}`,
+        `Contact Person: ${customerInfo.contactPerson || '-'}`,
+        `Email: ${customerInfo.email || '-'}`,
+        `Phone: ${customerInfo.phone || '-'}`,
+        `Address: ${customerInfo.address || '-'}`,
+        customerInfo.gstNumber ? `GST: ${customerInfo.gstNumber}` : undefined,
+        deliveryDate ? `Preferred Delivery: ${deliveryDate}` : undefined,
+      ].filter(Boolean) as string[];
+      customerLines.forEach(line => { doc.text(line, 40, y); y += 14; });
+
+      y += 10;
+      // Items table header
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(11);
+      doc.text('Items', 40, y);
+      y += 12;
+
+      doc.setFont('helvetica', 'bold');
+      doc.text('Product', 40, y);
+      doc.text('Qty', pageWidth - 260, y);
+      doc.text('Unit Price', pageWidth - 200, y);
+      doc.text('Discount', pageWidth - 120, y);
+      doc.text('Total', pageWidth - 60, y);
+      y += 10;
+      doc.setLineWidth(0.5);
+      doc.line(40, y, pageWidth - 40, y);
+      y += 12;
+
+      // Items rows
+      doc.setFont('helvetica', 'normal');
+      bulkItems.forEach(item => {
+        const name = String(item.product.name || 'Item');
+        const qty = String(item.quantity);
+        const unit = `₹${item.unitPrice?.toLocaleString() || item.product.price?.toLocaleString?.() || '-'}`;
+        const disc = `${item.bulkDiscount}%`;
+        const tot = `₹${item.totalPrice.toLocaleString()}`;
+
+        // Wrap product name if long
+        const nameLines: string[] = doc.splitTextToSize(name, pageWidth - 320) as string[];
+        nameLines.forEach((line: string, idx: number) => {
+          if (y > 780) { // simple page break
+            doc.addPage();
+            y = 40;
+          }
+          if (idx === 0) {
+            doc.text(line, 40, y);
+            doc.text(qty, pageWidth - 260, y, { align: 'left' });
+            doc.text(unit, pageWidth - 200, y, { align: 'left' });
+            doc.text(disc, pageWidth - 120, y, { align: 'left' });
+            doc.text(tot, pageWidth - 60, y, { align: 'left' });
+          } else {
+            doc.text(line, 40, y);
+          }
+          y += 14;
+        });
+        y += 4;
+      });
+
+      // Summary
+      if (y > 740) { doc.addPage(); y = 40; }
+      doc.setLineWidth(0.5);
+      doc.line(40, y, pageWidth - 40, y);
+      y += 12;
+      doc.setFont('helvetica', 'bold');
+      doc.text(`Total Items: ${getTotalItems()}`, 40, y); y += 16;
+      doc.text(`Total Savings: ₹${getTotalDiscount().toLocaleString()}`, 40, y); y += 16;
+      doc.text(`Grand Total: ₹${getTotalAmount().toLocaleString()}`, 40, y);
+
+      // Footer
+      y += 24;
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      doc.text('This is a system-generated quotation request summary.', 40, y);
+
+      const filename = `Quotation_${customerInfo.companyName || 'Customer'}_${Date.now()}.pdf`;
+      doc.save(filename);
+      toast.success('Quotation PDF downloaded');
+    } catch (e) {
+      console.error(e);
+      toast.error('Failed to generate PDF');
+    }
   };
 
   if (!isOpen) return null;

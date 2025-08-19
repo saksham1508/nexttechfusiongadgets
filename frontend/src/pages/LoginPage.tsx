@@ -207,6 +207,16 @@ const LoginPage: React.FC = () => {
 
         {/* Auth Card */}
         <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8">
+          {/* Quick role shortcuts */}
+          <div className="grid grid-cols-2 gap-3 mb-6">
+            <Link to="/admin/inventory" className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-gray-700 hover:bg-gray-50 text-center font-medium">
+              Admin Login
+            </Link>
+            <Link to="/vendor/dashboard" className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-gray-700 hover:bg-gray-50 text-center font-medium">
+              Vendor Login
+            </Link>
+          </div>
+
           <SocialAuth
             onEmailAuth={handleEmailAuth}
             onGoogleAuth={handleGoogleAuth}
