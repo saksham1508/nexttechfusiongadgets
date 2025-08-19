@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Link, useNavigate } from 'react-router-dom';
 import { RootState, AppDispatch } from '../store/store';
@@ -12,6 +12,7 @@ const LoginPage: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
   const { user, isLoading, error } = useSelector((state: RootState) => state.auth);
+  const [isVendorLogin, setIsVendorLogin] = useState(false);
 
   useEffect(() => {
     // Check if user is already logged in on component mount
@@ -39,6 +40,12 @@ const LoginPage: React.FC = () => {
     checkAuthStatus();
 
     if (user) {
+      // Check if user is a vendor and redirect accordingly
+      if (user.role === 'seller' || isVendorLogin) {
+        navigate('/vendor/dashboard');
+        return;
+      }
+      
       // Migrate temporary cart items to authenticated cart
       const migrateTempCart = async () => {
         const tempCart = localStorage.getItem('tempCart');
@@ -192,17 +199,49 @@ const LoginPage: React.FC = () => {
       <div className="max-w-md w-full">
         {/* Header */}
         <div className="text-center mb-8">
-          <div className="mx-auto h-16 w-16 bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl flex items-center justify-center mb-4">
-            <svg className="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-            </svg>
+          <div className={`mx-auto h-16 w-16 ${isVendorLogin ? 'bg-gradient-to-r from-amber-600 to-orange-600' : 'bg-gradient-to-r from-blue-600 to-purple-600'} rounded-2xl flex items-center justify-center mb-4`}>
+            {isVendorLogin ? (
+              <svg className="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+              </svg>
+            ) : (
+              <svg className="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              </svg>
+            )}
           </div>
           <h2 className="text-3xl font-bold text-gray-900 mb-2">
-            Welcome back!
+            {isVendorLogin ? 'Vendor Login' : 'Welcome back!'}
           </h2>
           <p className="text-gray-600">
-            Sign in to your account to continue shopping
+            {isVendorLogin ? 'Sign in to your vendor account to manage your store' : 'Sign in to your account to continue shopping'}
           </p>
+          
+          {/* Login Type Toggle */}
+          <div className="mt-6 flex justify-center">
+            <div className="bg-gray-100 p-1 rounded-xl flex">
+              <button
+                onClick={() => setIsVendorLogin(false)}
+                className={`px-6 py-2 rounded-lg font-medium transition-all ${
+                  !isVendorLogin 
+                    ? 'bg-white text-blue-600 shadow-sm' 
+                    : 'text-gray-600 hover:text-gray-800'
+                }`}
+              >
+                Customer Login
+              </button>
+              <button
+                onClick={() => setIsVendorLogin(true)}
+                className={`px-6 py-2 rounded-lg font-medium transition-all ${
+                  isVendorLogin 
+                    ? 'bg-white text-amber-600 shadow-sm' 
+                    : 'text-gray-600 hover:text-gray-800'
+                }`}
+              >
+                Become a Vendor
+              </button>
+            </div>
+          </div>
         </div>
 
         {/* Auth Card */}
@@ -228,18 +267,34 @@ const LoginPage: React.FC = () => {
 
           {/* Additional Options */}
           <div className="mt-6 space-y-4">
+            {isVendorLogin && (
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-4">
+                <div className="flex items-start">
+                  <svg className="h-5 w-5 text-amber-600 mt-0.5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <div>
+                    <h4 className="text-sm font-medium text-amber-800 mb-1">Vendor Account Required</h4>
+                    <p className="text-sm text-amber-700">
+                      Use your vendor credentials to access the dashboard. Don't have a vendor account? Contact support to get started.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+            
             <div className="flex items-center justify-between text-sm">
               <Link
                 to="/forgot-password"
-                className="text-blue-600 hover:text-blue-700 font-medium"
+                className={`${isVendorLogin ? 'text-amber-600 hover:text-amber-700' : 'text-blue-600 hover:text-blue-700'} font-medium`}
               >
                 Forgot password?
               </Link>
               <Link
                 to="/register"
-                className="text-blue-600 hover:text-blue-700 font-medium"
+                className={`${isVendorLogin ? 'text-amber-600 hover:text-amber-700' : 'text-blue-600 hover:text-blue-700'} font-medium`}
               >
-                Create account
+                {isVendorLogin ? 'Apply as Vendor' : 'Create account'}
               </Link>
             </div>
           </div>
