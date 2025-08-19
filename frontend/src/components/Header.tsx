@@ -170,10 +170,6 @@ const Header: React.FC = () => {
                       10-15 min Delivery
                     </span>
                   </div>
-                  {/* <div className="flex items-center space-x-2 bg-blue-50 text-blue-700 px-3 py-1 rounded-full">
-                    <Zap className="h-4 w-4" />
-                    <span className="font-semibold">Express</span>
-                  </div> */}
                 </div>
               </div>
 
@@ -259,13 +255,21 @@ const Header: React.FC = () => {
                       <MapPin className="h-4 w-4" />
                       <span>Track Orders</span>
                     </Link>
-                    {user.role === "seller" && (
+                    {user.role === "seller" ? (
                       <Link
                         to="/vendor/dashboard"
                         className="flex items-center space-x-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors duration-200"
                       >
                         <Zap className="h-4 w-4" />
                         <span>Vendor Dashboard</span>
+                      </Link>
+                    ) : (
+                      <Link
+                        to="/vendor/dashboard"
+                        className="flex items-center space-x-3 px-4 py-3 text-sm text-amber-700 hover:bg-amber-50 transition-colors duration-200"
+                      >
+                        <Zap className="h-4 w-4" />
+                        <span>Become a Vendor</span>
                       </Link>
                     )}
                     {user.role === "admin" && (
@@ -287,6 +291,12 @@ const Header: React.FC = () => {
                 </div>
               ) : (
                 <div className="flex items-center space-x-3">
+                  <Link
+                    to="/vendor/dashboard"
+                    className="text-amber-600 hover:text-amber-700 font-medium"
+                  >
+                    Become a Vendor
+                  </Link>
                   <Link
                     to="/login"
                     className="text-gray-700 hover:text-blue-600 font-medium"
