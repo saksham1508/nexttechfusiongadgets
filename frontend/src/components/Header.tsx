@@ -174,6 +174,13 @@ const Header: React.FC = () => {
                     <Zap className="h-4 w-4" />
                     <span className="font-semibold">Express</span>
                   </div>
+                  <Link
+                    to="/vendor/dashboard"
+                    className="flex items-center space-x-2 bg-amber-50 text-amber-700 px-3 py-1 rounded-full hover:bg-amber-100 transition"
+                  >
+                    <Zap className="h-4 w-4" />
+                    <span className="font-semibold">Become a Vendor</span>
+                  </Link>
                 </div>
               </div>
 
@@ -261,11 +268,11 @@ const Header: React.FC = () => {
                     </Link>
                     {user.role === "seller" && (
                       <Link
-                        to="/seller/dashboard"
+                        to="/vendor/dashboard"
                         className="flex items-center space-x-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors duration-200"
                       >
                         <Zap className="h-4 w-4" />
-                        <span>Seller Dashboard</span>
+                        <span>Vendor Dashboard</span>
                       </Link>
                     )}
                     {user.role === "admin" && (

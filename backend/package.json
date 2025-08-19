@@ -11,6 +11,7 @@
     "dev": "nodemon server.js",
     "seed": "node seeder.js",
     "seed:categories": "node seeders/categorySeeder.js",
+    "seed:vendors": "node seeders/vendorSeeder.js", 
     "test": "jest --detectOpenHandles --forceExit",
     "test:watch": "jest --watch --detectOpenHandles",
     "test:coverage": "jest --coverage --detectOpenHandles --forceExit",

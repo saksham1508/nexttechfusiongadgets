@@ -34,6 +34,7 @@ import CookieConsent from './components/CookieConsent';
 import EnvironmentBadge from './components/EnvironmentBadge';
 import EnvironmentInfo from './components/EnvironmentInfo';
 import CartDebugger from './components/CartDebugger';
+import VendorDashboardPage from './pages/VendorDashboardPage';
 // Debug components removed for production
 
 // Optional: Use ApiStatusIndicator for enhanced connection feedback
@@ -165,6 +166,14 @@ function App() {
                   element={
                     <ProtectedRoute requiredRole="admin">
                       <AdminInventoryPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/vendor/dashboard"
+                  element={
+                    <ProtectedRoute requiredRole="seller">
+                      <VendorDashboardPage />
                     </ProtectedRoute>
                   }
                 />
