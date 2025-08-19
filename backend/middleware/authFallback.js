@@ -1,37 +1,58 @@
 const jwt = require('jsonwebtoken');
 
-// Import mock users for fallback
-const { mockUsers } = require('../controllers/mockAuthController');
-
-// Check if MongoDB is available
-const isMongoAvailable = () => {
-  try {
-    const mongoose = require('mongoose');
-    return mongoose.connection.readyState === 1; // 1 = connected
-  } catch (error) {
-    return false;
+// Mock users database (same as in authRoutesFallback.js)
+const mockUsers = [
+  {
+    _id: 'user_1',
+    name: 'Test User',
+    email: 'test@example.com',
+    password: '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', // password
+    role: 'customer',
+    isVerified: true,
+    phone: '9876543210',
+    createdAt: new Date('2024-01-01')
+  },
+  {
+    _id: 'admin_1',
+    name: 'Admin User',
+    email: 'admin@example.com',
+    password: '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', // adminpassword
+    role: 'admin',
+    isVerified: true,
+    phone: '9876543211',
+    createdAt: new Date('2024-01-01')
+  },
+  {
+    _id: 'vendor_1',
+    name: 'Acme Supplies',
+    email: 'vendor1@example.com',
+    password: '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', // Vendor@123
+    role: 'seller',
+    isVerified: true,
+    phone: '9000000001',
+    createdAt: new Date('2024-01-01')
+  },
+  {
+    _id: 'vendor_2',
+    name: 'TechBazaar',
+    email: 'vendor2@example.com',
+    password: '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', // Vendor@123
+    role: 'seller',
+    isVerified: true,
+    phone: '9000000002',
+    createdAt: new Date('2024-01-01')
+  },
+  {
+    _id: 'vendor_3',
+    name: 'GadgetHub',
+    email: 'vendor3@example.com',
+    password: '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', // Vendor@123
+    role: 'seller',
+    isVerified: true,
+    phone: '9000000003',
+    createdAt: new Date('2024-01-01')
   }
-};
-
-// Get user from real database
-const getUserFromDB = async (userId) => {
-  try {
-    const User = require('../models/User');
-    return await User.findById(userId).select('-password');
-  } catch (error) {
-    return null;
-  }
-};
-
-// Get user from mock database
-const getUserFromMock = (userId) => {
-  const user = mockUsers.find(u => u._id === userId);
-  if (user) {
-    const { password, ...userWithoutPassword } = user;
-    return userWithoutPassword;
-  }
-  return null;
-};
+];
 
 const auth = async (req, res, next) => {
   let token;
@@ -41,49 +62,22 @@ const auth = async (req, res, next) => {
       token = req.headers.authorization.split(' ')[1];
       const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret_key');
       
-      let user = null;
-      
-      // Try to get user from real database first
-      if (isMongoAvailable()) {
-        try {
-          user = await getUserFromDB(decoded.id);
-          console.log('🔄 Auth: Using real user from MongoDB');
-        } catch (error) {
-          console.log('⚠️ Auth: MongoDB failed, falling back to mock');
-        }
-      }
-      
-      // Fallback to mock user if real database is not available or user not found
+      // Find user in mock database
+      const user = mockUsers.find(u => u._id === decoded.id);
       if (!user) {
-        user = getUserFromMock(decoded.id);
-        console.log('🔄 Auth: Using mock user');
+        return res.status(401).json({ message: 'Not authorized, user not found' });
       }
       
-      if (!user) {
-        return res.status(401).json({ 
-          success: false,
-          message: 'Not authorized, user not found',
-          timestamp: new Date().toISOString()
-        });
-      }
-      
-      req.user = user;
+      // Remove password from user object
+      const { password, ...userWithoutPassword } = user;
+      req.user = userWithoutPassword;
       next();
     } catch (error) {
-      console.error('❌ Auth Error:', error.message);
-      return res.status(401).json({ 
-        success: false,
-        message: 'Not authorized, token failed',
-        error: error.message,
-        timestamp: new Date().toISOString()
-      });
+      console.error('Auth error:', error.message);
+      return res.status(401).json({ message: 'Not authorized, token failed' });
     }
   } else {
-    return res.status(401).json({ 
-      success: false,
-      message: 'Not authorized, no token provided',
-      timestamp: new Date().toISOString()
-    });
+    return res.status(401).json({ message: 'Not authorized, no token' });
   }
 };
 
@@ -91,11 +85,7 @@ const adminAuth = (req, res, next) => {
   if (req.user && req.user.role === 'admin') {
     next();
   } else {
-    res.status(403).json({ 
-      success: false,
-      message: 'Not authorized as admin',
-      timestamp: new Date().toISOString()
-    });
+    res.status(401).json({ message: 'Not authorized as admin' });
   }
 };
 
@@ -103,11 +93,7 @@ const seller = (req, res, next) => {
   if (req.user && (req.user.role === 'seller' || req.user.role === 'admin')) {
     next();
   } else {
-    res.status(403).json({ 
-      success: false,
-      message: 'Not authorized as seller',
-      timestamp: new Date().toISOString()
-    });
+    res.status(401).json({ message: 'Not authorized as seller' });
   }
 };
 
@@ -119,29 +105,22 @@ const optional = async (req, res, next) => {
       token = req.headers.authorization.split(' ')[1];
       const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret_key');
       
-      let user = null;
-      
-      // Try to get user from real database first
-      if (isMongoAvailable()) {
-        try {
-          user = await getUserFromDB(decoded.id);
-        } catch (error) {
-          // Ignore error, will fallback to mock
-        }
+      // Find user in mock database
+      const user = mockUsers.find(u => u._id === decoded.id);
+      if (user) {
+        const { password, ...userWithoutPassword } = user;
+        req.user = userWithoutPassword;
+      } else {
+        req.user = null;
       }
-      
-      // Fallback to mock user
-      if (!user) {
-        user = getUserFromMock(decoded.id);
-      }
-      
-      req.user = user;
     } catch (error) {
       // Token is invalid, but we continue without user
       req.user = null;
     }
+  } else {
+    req.user = null;
   }
-
+  
   next();
 };
 

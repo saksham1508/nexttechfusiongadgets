@@ -34,6 +34,8 @@ import CookieConsent from './components/CookieConsent';
 import EnvironmentBadge from './components/EnvironmentBadge';
 import EnvironmentInfo from './components/EnvironmentInfo';
 import VendorDashboardPage from './pages/VendorDashboardPage';
+import VendorLoginPage from './pages/VendorLoginPage';
+import ApiDebug from './components/ApiDebug';
 // Debug components removed for production
 
 // Optional: Use ApiStatusIndicator for enhanced connection feedback
@@ -119,6 +121,7 @@ function App() {
                 <Route path="/virtual-try-on/:productId" element={<VirtualTryOnPage />} />
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/register" element={<RegisterPage />} />
+                <Route path="/vendor/login" element={<VendorLoginPage />} />
                 <Route path="/cart" element={<CartPage />} />
                 <Route
                   path="/checkout"
@@ -194,6 +197,7 @@ function App() {
           <ErrorBoundary>
             <CookieConsent />
           </ErrorBoundary>
+          <ApiDebug />
           <ErrorBoundary>
             <EnvironmentBadge />
           </ErrorBoundary>

@@ -63,6 +63,58 @@ const mockUsers = [
     isVerified: true,
     authProvider: 'google',
     createdAt: new Date()
+  },
+  // Vendor users
+  {
+    _id: 'vendor_1',
+    name: 'Acme Supplies',
+    email: 'vendor1@example.com',
+    password: 'Vendor@123',
+    role: 'seller',
+    isVerified: true,
+    phone: '9000000001',
+    createdAt: new Date(),
+    preferences: {
+      notifications: {
+        email: true,
+        sms: true,
+        push: true
+      }
+    }
+  },
+  {
+    _id: 'vendor_2',
+    name: 'TechBazaar',
+    email: 'vendor2@example.com',
+    password: 'Vendor@123',
+    role: 'seller',
+    isVerified: true,
+    phone: '9000000002',
+    createdAt: new Date(),
+    preferences: {
+      notifications: {
+        email: true,
+        sms: true,
+        push: true
+      }
+    }
+  },
+  {
+    _id: 'vendor_3',
+    name: 'GadgetHub',
+    email: 'vendor3@example.com',
+    password: 'Vendor@123',
+    role: 'seller',
+    isVerified: true,
+    phone: '9000000003',
+    createdAt: new Date(),
+    preferences: {
+      notifications: {
+        email: true,
+        sms: true,
+        push: true
+      }
+    }
   }
 ];
 

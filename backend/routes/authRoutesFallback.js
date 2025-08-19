@@ -138,10 +138,19 @@ router.get('/status', (req, res) => {
       : 'Using mock authentication (MongoDB not available)',
     timestamp: new Date().toISOString(),
     testCredentials: mongoAvailable ? null : {
-      email: 'test@example.com',
-      password: 'testpassword',
-      adminEmail: 'admin@example.com',
-      adminPassword: 'adminpassword'
+      customer: {
+        email: 'test@example.com',
+        password: 'testpassword'
+      },
+      admin: {
+        email: 'admin@example.com',
+        password: 'adminpassword'
+      },
+      vendors: [
+        { email: 'vendor1@example.com', password: 'Vendor@123', name: 'Acme Supplies' },
+        { email: 'vendor2@example.com', password: 'Vendor@123', name: 'TechBazaar' },
+        { email: 'vendor3@example.com', password: 'Vendor@123', name: 'GadgetHub' }
+      ]
     }
   });
 });

@@ -9,24 +9,31 @@ import WishlistButton from './WishlistButton';
 import CartRecommendationsModal from './CartRecommendationsModal';
 import { checkAuthentication, clearAuthData } from '../utils/authHelpers';
 import toast from 'react-hot-toast';
+import { Product as MainProduct } from '../types';
 
+// Extended Product interface to handle different incoming shapes (does not extend MainProduct)
 interface Product {
   _id: string;
   name: string;
+  description?: string;
   price: number;
   originalPrice?: number;
-  images: { url: string; alt: string }[];
+  images: (string | { url: string; alt: string })[];
   rating: number;
   numReviews: number;
-  stock: number;
+  stock?: number;
+  countInStock?: number;
+  stockQuantity?: number;
   brand: string;
   category?: string;
+  seller?: string | { _id: string; name: string };
+  isActive?: boolean;
 }
 
 interface ProductCardProps {
   product: Product;
   showQuickCommerce?: boolean;
-  onAddToComparison?: (product: Product) => void;
+  onAddToComparison?: (product: MainProduct) => void;
 }
 
 const ProductCard: React.FC<ProductCardProps> = ({ product, showQuickCommerce = true, onAddToComparison }) => {
@@ -36,6 +43,42 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, showQuickCommerce = 
   const { user } = useSelector((state: RootState) => state.auth);
   const [cartQuantity, setCartQuantity] = useState(0);
   const [showRecommendationsModal, setShowRecommendationsModal] = useState(false);
+
+  // Helper function to normalize product data
+  const normalizeProduct = (prod: Product): MainProduct => {
+    return {
+      ...prod,
+      // Ensure required MainProduct fields are present
+      description: prod.description ?? 'No description provided',
+      category: prod.category ?? 'General',
+      rating: typeof prod.rating === 'number' ? prod.rating : 0,
+      numReviews: typeof prod.numReviews === 'number' ? prod.numReviews : 0,
+      images: Array.isArray(prod.images) 
+        ? prod.images.map((img, index) => 
+            typeof img === 'string' 
+              ? { url: img, alt: prod.name, isPrimary: index === 0 }
+              : { ...img, isPrimary: index === 0 }
+          )
+        : [{ url: '/placeholder-image.jpg', alt: prod.name, isPrimary: true }],
+      seller: typeof prod.seller === 'string' ? prod.seller : prod.seller?._id || '',
+      stockQuantity: prod.stock ?? prod.countInStock ?? prod.stockQuantity ?? 0,
+      inStock: (prod.stock ?? prod.countInStock ?? prod.stockQuantity ?? 0) > 0,
+      specifications: {},
+      features: [],
+      reviews: [],
+      tags: [],
+      lowStockThreshold: 5,
+      deliveryInfo: {
+        estimatedTime: '2-3 days',
+        freeDelivery: true,
+        deliveryCharge: 0
+      },
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      isActive: prod.isActive ?? true,
+      isFeatured: false
+    };
+  };
 
   // Load cart quantity for authenticated users only
   useEffect(() => {
@@ -72,7 +115,8 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, showQuickCommerce = 
     
     console.log('🛒 Add to cart clicked for product:', product._id);
     
-    if (product.stock === 0) {
+    const stockCount = product.stock ?? product.countInStock ?? product.stockQuantity ?? 0;
+    if (stockCount === 0) {
       toast.error('Product is out of stock');
       return;
     }
@@ -176,8 +220,20 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, showQuickCommerce = 
       <div className="relative overflow-hidden">
         <Link to={`/products/${product._id}`}>
           <img
-            src={product.images[0]?.url || '/placeholder-image.jpg'}
-            alt={product.images[0]?.alt || product.name}
+            src={
+              Array.isArray(product.images) && product.images.length > 0
+                ? typeof product.images[0] === 'string' 
+                  ? product.images[0] 
+                  : product.images[0]?.url || '/placeholder-image.jpg'
+                : '/placeholder-image.jpg'
+            }
+            alt={
+              Array.isArray(product.images) && product.images.length > 0
+                ? typeof product.images[0] === 'string' 
+                  ? product.name 
+                  : product.images[0]?.alt || product.name
+                : product.name
+            }
             className="w-full h-56 object-cover group-hover:scale-110 transition-transform duration-500"
           />
         </Link>
@@ -213,7 +269,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, showQuickCommerce = 
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                onAddToComparison(product);
+                onAddToComparison(normalizeProduct(product));
               }}
               className="bg-white/90 backdrop-blur-sm p-2 rounded-full hover:bg-white hover:shadow-lg transition-all duration-300 hover-scale"
               title="Add to comparison"
@@ -230,7 +286,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, showQuickCommerce = 
         </div>
 
         {/* Stock Status Overlay */}
-        {product.stock === 0 && (
+        {(product.stock ?? product.countInStock ?? 0) === 0 && (
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center">
             <div className="bg-white/90 px-4 py-2 rounded-xl">
               <span className="text-gray-900 font-semibold">Out of Stock</span>
@@ -239,10 +295,10 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, showQuickCommerce = 
         )}
 
         {/* Low Stock Warning */}
-        {product.stock > 0 && product.stock <= 5 && (
+        {(product.stock ?? product.countInStock ?? 0) > 0 && (product.stock ?? product.countInStock ?? 0) <= 5 && (
           <div className="absolute bottom-3 left-3">
             <span className="bg-orange-500 text-white text-xs px-2 py-1 rounded-full font-semibold">
-              Only {product.stock} left!
+              Only {product.stock ?? product.countInStock} left!
             </span>
           </div>
         )}
@@ -320,8 +376,12 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, showQuickCommerce = 
               _id: product._id,
               name: product.name,
               price: product.price,
-              image: product.images[0]?.url || '/placeholder-image.jpg',
-              stock: product.stock
+              image: Array.isArray(product.images) && product.images.length > 0
+                ? typeof product.images[0] === 'string' 
+                  ? product.images[0] 
+                  : product.images[0]?.url || '/placeholder-image.jpg'
+                : '/placeholder-image.jpg',
+              stock: product.stock ?? product.countInStock ?? product.stockQuantity ?? 0
             }}
             cartQuantity={cartQuantity}
             size="sm"
@@ -330,10 +390,10 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, showQuickCommerce = 
         ) : (
           <div className="space-y-3">
             {/* Stock Status */}
-            {product.stock <= 5 && product.stock > 0 && (
+            {(product.stock ?? product.countInStock ?? product.stockQuantity ?? 0) <= 5 && (product.stock ?? product.countInStock ?? product.stockQuantity ?? 0) > 0 && (
               <div className="flex items-center space-x-2 text-orange-600 bg-orange-50 px-3 py-2 rounded-xl">
                 <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse"></div>
-                <span className="text-sm font-semibold">Only {product.stock} left!</span>
+                <span className="text-sm font-semibold">Only {product.stock ?? product.countInStock ?? product.stockQuantity} left!</span>
               </div>
             )}
             
@@ -358,10 +418,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, showQuickCommerce = 
       <CartRecommendationsModal
         isOpen={showRecommendationsModal}
         onClose={() => setShowRecommendationsModal(false)}
-        addedProduct={{
-          ...product,
-          category: product.category || 'Electronics'
-        }}
+        addedProduct={normalizeProduct(product)}
       />
     </div>
   );

@@ -61,10 +61,21 @@ axiosInstance.interceptors.request.use(
 // Response interceptor to handle errors
 axiosInstance.interceptors.response.use(
   (response) => {
+    console.log('✅ API Success:', response.config.url, response.status);
     return response;
   },
   (error) => {
-    console.error('❌ API error:', error.response?.status, error.response?.data?.message || error.response?.data, error.config?.url);
+    console.error('❌ API error details:', {
+      url: error.config?.url,
+      method: error.config?.method,
+      baseURL: error.config?.baseURL,
+      fullURL: error.config?.baseURL + error.config?.url,
+      status: error.response?.status,
+      message: error.response?.data?.message || error.response?.data,
+      networkError: !error.response,
+      errorCode: error.code,
+      errorMessage: error.message
+    });
     
     // Handle 401 errors by clearing auth data
     if (error.response?.status === 401) {

@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom';
 import LoadingSpinner from '../components/LoadingSpinner';
 import ProductCard from '../components/ProductCard';
 import { Filter, Grid, List, ShoppingBag } from '../components/Icons';
+import axiosInstance from '../utils/axiosConfig';
+import toast from 'react-hot-toast';
 
 interface ProductImage {
   url: string;
@@ -15,11 +17,13 @@ interface Product {
   price: number;
   originalPrice?: number;
   category: string;
-  images: { url: string; alt: string }[];
+  images: string[];
   rating: number;
   numReviews: number;
-  stock: number;
+  countInStock: number;
   brand: string;
+  seller: string;
+  isActive: boolean;
 }
 
 const ProductsPage: React.FC = () => {
@@ -43,18 +47,18 @@ const ProductsPage: React.FC = () => {
   });
 
   const allMockProducts: Product[] = [
-    { _id: 'prod1', name: 'Smartphone X', description: 'Latest model with advanced camera.', price: 799.99, category: 'smartphones', images: [{ url: 'https://placehold.co/400x300/1E40AF/FFFFFF?text=Smartphone+X', alt: 'Smartphone X' }], rating: 4.5, numReviews: 120, stock: 25, brand: 'TechCorp' },
-    { _id: 'prod2', name: 'UltraBook Pro', description: 'Thin and powerful laptop for professionals.', price: 1299.00, category: 'laptops', images: [{ url: 'https://placehold.co/400x300/3B82F6/FFFFFF?text=UltraBook+Pro', alt: 'UltraBook Pro' }], rating: 4.8, numReviews: 85, stock: 15, brand: 'ProTech' },
-    { _id: 'prod3', name: 'Tablet Air 5', description: 'Lightweight tablet with stunning display.', price: 499.50, category: 'tablets', images: [{ url: 'https://placehold.co/400x300/60A5FA/FFFFFF?text=Tablet+Air+5', alt: 'Tablet Air 5' }], rating: 4.2, numReviews: 200, stock: 30, brand: 'AirTech' },
-    { _id: 'prod4', name: 'Noise Cancelling Headphones', description: 'Immersive audio experience.', price: 199.99, category: 'audio', images: [{ url: 'https://placehold.co/400x300/93C5FD/FFFFFF?text=Headphones', alt: 'Noise Cancelling Headphones' }], rating: 4.7, numReviews: 310, stock: 50, brand: 'AudioMax' },
-    { _id: 'prod5', name: 'Smartwatch Sport', description: 'Track your fitness and stay connected.', price: 249.00, category: 'wearables', images: [{ url: 'https://placehold.co/400x300/BFDBFE/000000?text=Smartwatch+Sport', alt: 'Smartwatch Sport' }], rating: 4.1, numReviews: 150, stock: 40, brand: 'FitTech' },
-    { _id: 'prod6', name: 'Gaming Console Z', description: 'Next-gen gaming with stunning graphics.', price: 499.00, category: 'gaming', images: [{ url: 'https://placehold.co/400x300/A78BFA/FFFFFF?text=Gaming+Console', alt: 'Gaming Console Z' }], rating: 4.9, numReviews: 450, stock: 10, brand: 'GameTech' },
-    { _id: 'prod7', name: 'Wireless Keyboard', description: 'Ergonomic and responsive keyboard.', price: 75.00, category: 'accessories', images: [{ url: 'https://placehold.co/400x300/C4B5FD/FFFFFF?text=Wireless+Keyboard', alt: 'Wireless Keyboard' }], rating: 4.0, numReviews: 90, stock: 60, brand: 'KeyTech' },
-    { _id: 'prod8', name: 'Portable Bluetooth Speaker', description: 'Powerful sound on the go.', price: 89.99, category: 'audio', images: [{ url: 'https://placehold.co/400x300/818CF8/FFFFFF?text=Bluetooth+Speaker', alt: 'Portable Bluetooth Speaker' }], rating: 4.3, numReviews: 180, stock: 35, brand: 'SoundWave' },
-    { _id: 'prod9', name: 'Curved Gaming Monitor', description: 'Immersive visuals for gaming.', price: 349.00, category: 'gaming', images: [{ url: 'https://placehold.co/400x300/6366F1/FFFFFF?text=Gaming+Monitor', alt: 'Curved Gaming Monitor' }], rating: 4.6, numReviews: 220, stock: 20, brand: 'ViewTech' },
-    { _id: 'prod10', name: 'External SSD 1TB', description: 'Fast and reliable external storage.', price: 120.00, category: 'accessories', images: [{ url: 'https://placehold.co/400x300/4F46E5/FFFFFF?text=External+SSD', alt: 'External SSD 1TB' }], rating: 4.4, numReviews: 100, stock: 45, brand: 'StoragePro' },
-    { _id: 'prod11', name: 'Budget Smartphone', description: 'Affordable smartphone with good features.', price: 299.00, category: 'smartphones', images: [{ url: 'https://placehold.co/400x300/4338CA/FFFFFF?text=Budget+Phone', alt: 'Budget Smartphone' }], rating: 3.9, numReviews: 70, stock: 55, brand: 'ValueTech' },
-    { _id: 'prod12', name: 'Convertible Laptop', description: 'Laptop that converts to a tablet.', price: 999.00, category: 'laptops', images: [{ url: 'https://placehold.co/400x300/3730A3/FFFFFF?text=Convertible+Laptop', alt: 'Convertible Laptop' }], rating: 4.5, numReviews: 110, stock: 18, brand: 'FlexTech' },
+    { _id: 'prod1', name: 'Smartphone X', description: 'Latest model with advanced camera.', price: 799.99, category: 'smartphones', images: ['https://placehold.co/400x300/1E40AF/FFFFFF?text=Smartphone+X'], rating: 4.5, numReviews: 120, countInStock: 25, brand: 'TechCorp', seller: 'vendor_1', isActive: true },
+    { _id: 'prod2', name: 'UltraBook Pro', description: 'Thin and powerful laptop for professionals.', price: 1299.00, category: 'laptops', images: ['https://placehold.co/400x300/3B82F6/FFFFFF?text=UltraBook+Pro'], rating: 4.8, numReviews: 85, countInStock: 15, brand: 'ProTech', seller: 'vendor_2', isActive: true },
+    { _id: 'prod3', name: 'Tablet Air 5', description: 'Lightweight tablet with stunning display.', price: 499.50, category: 'tablets', images: ['https://placehold.co/400x300/60A5FA/FFFFFF?text=Tablet+Air+5'], rating: 4.2, numReviews: 200, countInStock: 30, brand: 'AirTech', seller: 'vendor_3', isActive: true },
+    { _id: 'prod4', name: 'Noise Cancelling Headphones', description: 'Immersive audio experience.', price: 199.99, category: 'audio', images: ['https://placehold.co/400x300/93C5FD/FFFFFF?text=Headphones'], rating: 4.7, numReviews: 310, countInStock: 50, brand: 'AudioMax', seller: 'vendor_1', isActive: true },
+    { _id: 'prod5', name: 'Smartwatch Sport', description: 'Track your fitness and stay connected.', price: 249.00, category: 'wearables', images: ['https://placehold.co/400x300/BFDBFE/000000?text=Smartwatch+Sport'], rating: 4.1, numReviews: 150, countInStock: 40, brand: 'FitTech', seller: 'vendor_2', isActive: true },
+    { _id: 'prod6', name: 'Gaming Console Z', description: 'Next-gen gaming with stunning graphics.', price: 499.00, category: 'gaming', images: ['https://placehold.co/400x300/A78BFA/FFFFFF?text=Gaming+Console'], rating: 4.9, numReviews: 450, countInStock: 10, brand: 'GameTech', seller: 'vendor_3', isActive: true },
+    { _id: 'prod7', name: 'Wireless Keyboard', description: 'Ergonomic and responsive keyboard.', price: 75.00, category: 'accessories', images: ['https://placehold.co/400x300/C4B5FD/FFFFFF?text=Wireless+Keyboard'], rating: 4.0, numReviews: 90, countInStock: 60, brand: 'KeyTech', seller: 'vendor_1', isActive: true },
+    { _id: 'prod8', name: 'Portable Bluetooth Speaker', description: 'Powerful sound on the go.', price: 89.99, category: 'audio', images: ['https://placehold.co/400x300/818CF8/FFFFFF?text=Bluetooth+Speaker'], rating: 4.3, numReviews: 180, countInStock: 35, brand: 'SoundWave', seller: 'vendor_2', isActive: true },
+    { _id: 'prod9', name: 'Curved Gaming Monitor', description: 'Immersive visuals for gaming.', price: 349.00, category: 'gaming', images: ['https://placehold.co/400x300/6366F1/FFFFFF?text=Gaming+Monitor'], rating: 4.6, numReviews: 220, countInStock: 20, brand: 'ViewTech', seller: 'vendor_3', isActive: true },
+    { _id: 'prod10', name: 'External SSD 1TB', description: 'Fast and reliable external storage.', price: 120.00, category: 'accessories', images: ['https://placehold.co/400x300/4F46E5/FFFFFF?text=External+SSD'], rating: 4.4, numReviews: 100, countInStock: 45, brand: 'StoragePro', seller: 'vendor_1', isActive: true },
+    { _id: 'prod11', name: 'Budget Smartphone', description: 'Affordable smartphone with good features.', price: 299.00, category: 'smartphones', images: ['https://placehold.co/400x300/4338CA/FFFFFF?text=Budget+Phone'], rating: 3.9, numReviews: 70, countInStock: 55, brand: 'ValueTech', seller: 'vendor_2', isActive: true },
+    { _id: 'prod12', name: 'Convertible Laptop', description: 'Laptop that converts to a tablet.', price: 999.00, category: 'laptops', images: ['https://placehold.co/400x300/3730A3/FFFFFF?text=Convertible+Laptop'], rating: 4.5, numReviews: 110, countInStock: 18, brand: 'FlexTech', seller: 'vendor_3', isActive: true },
   ];
 
   useEffect(() => {

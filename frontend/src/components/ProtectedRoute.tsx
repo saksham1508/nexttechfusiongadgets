@@ -17,7 +17,12 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requiredRole 
   }
 
   if (requiredRole && user.role !== requiredRole) {
-    return <Navigate to="/" replace />;
+    // Special case: Allow non-sellers to access vendor dashboard for onboarding
+    if (requiredRole === 'seller' && location.pathname === '/vendor/dashboard') {
+      // Let them through - the dashboard will handle showing onboarding vs actual dashboard
+    } else {
+      return <Navigate to="/" replace />;
+    }
   }
 
   return <>{children}</>;
