@@ -33,7 +33,6 @@ import DevelopmentBanner from './components/DevelopmentBanner';
 import CookieConsent from './components/CookieConsent';
 import EnvironmentBadge from './components/EnvironmentBadge';
 import EnvironmentInfo from './components/EnvironmentInfo';
-import CartDebugger from './components/CartDebugger';
 // Debug components removed for production
 
 // Optional: Use ApiStatusIndicator for enhanced connection feedback
@@ -191,9 +190,6 @@ function App() {
           </ErrorBoundary>
           <ErrorBoundary>
             <EnvironmentInfo />
-          </ErrorBoundary>
-          <ErrorBoundary>
-            <CartDebugger />
           </ErrorBoundary>
           {/* Debug components removed for cleaner UI */}
           <Toaster

@@ -16,7 +16,7 @@ import DealOfTheDay from '../components/DealOfTheDay';
 import SmartRecommendations from '../components/SmartRecommendations';
 import ProductComparison from '../components/ProductComparison';
 import BulkOrderManager from '../components/BulkOrderManager';
-import AuthTestComponent from '../components/AuthTestComponent';
+import HomeSlider from '../components/HomeSlider';
 import { ArrowRight, Smartphone, Laptop, Headphones, Watch, MapPin, Clock, Zap, Scale, Package } from 'lucide-react';
 import { Location } from '../services/locationService';
 
@@ -100,7 +100,7 @@ const HomePage: React.FC = () => {
         <div className="container-modern py-4">
           <div className="flex items-center space-x-6">
             {/* Location Selector */}
-            <button
+            {/* <button
               onClick={() => setShowLocationSelector(true)}
               className="flex items-center space-x-3 text-gray-700 hover:text-gray-900 bg-gray-50 hover:bg-gray-100 px-4 py-3 rounded-xl transition-all duration-300 hover-lift min-w-0"
             >
@@ -111,7 +111,7 @@ const HomePage: React.FC = () => {
                   {selectedLocation ? selectedLocation.name : 'Select Location'}
                 </div>
               </div>
-            </button>
+            </button> */}
 
             {/* Search Bar */}
             <div className="flex-1 max-w-3xl">
@@ -157,71 +157,16 @@ const HomePage: React.FC = () => {
         </div>
       </div>
 
-      {/* Hero Section */}
+      {/* Hero Section replaced with slider */}
+      {/*
       <section className="bg-gradient-to-r from-orange-600 via-orange-400 to-white text-white section-padding relative overflow-hidden">
+        ... previous hero content ...
+      </section>
+      */}
 
-        {/* Background Effects */}
-        <div className="absolute inset-0">
-          <div className="absolute top-10 left-10 w-32 h-32 bg-#F4A300 rounded-full blur-2xl animate-pulse-slow"></div>
-          <div className="absolute bottom-10 right-10 w-40 h-40 bg-#2E2E2E rounded-full blur-3xl animate-bounce-gentle"></div>
-          <div className="absolute top-1/2 left-1/3 w-24 h-24 bg-white/10 rounded-full blur-xl animate-pulse"></div>
-        </div>
-        
-        <div className="container-modern relative z-10">
-          <div className="text-center animate-fade-in">
-            <div className="flex items-center justify-center space-x-4 mb-8">
-              <div className="relative">
-                <Zap className="h-16 w-16 text-yellow-300 animate-bounce-gentle" />
-                <div className="absolute inset-0 h-16 w-16 animate-ping">
-                  <Zap className="h-16 w-16 text-yellow-300/50" />
-                </div>
-              </div>
-              <h1 className="flex text-5xl md:text-7xl font-black tracking-tight">
-                <span className="block text-yellow-300">Nex</span>
-                <span className="block text-gray-800">Fuga</span>
-
-                {/* <span className="block text-gradient bg-gradient-to-r from-yellow-300 to-orange-300 bg-clip-text text-transparent">
-                  FusionGadgets
-                </span> */}
-              </h1>
-              <div className="relative">
-                <Zap className="h-16 w-16 text-yellow-300 animate-bounce-gentle" />
-                <div className="absolute inset-0 h-16 w-16 animate-ping">
-                  <Zap className="h-16 w-16 text-yellow-300/50" />
-                </div>
-              </div>
-            </div>
-            <p className="text-2xl md:text-3xl mb-8 text-white/90 font-medium">
-              🚀 Tech gadgets delivered in <span className="text-yellow-300 font-bold">10-15 minutes</span> ⚡
-            </p>
-            <p className="text-xl mb-12 text-white/80 font-medium max-w-2xl mx-auto">
-              🌟 Experience India's fastest tech delivery service with premium gadgets at your doorstep
-            </p>
-            <div className="flex flex-col sm:flex-row items-center justify-center space-y-6 sm:space-y-0 sm:space-x-8">
-              <Link
-                to="/products"
-                className="flex btn-secondary text-lg px-10 py-4 hover-glow"
-              >
-                <span>🛍️ Shop Now</span>
-                <ArrowRight className="h-6 w-6 ml-2" />
-              </Link>
-              <div className="flex items-center space-x-8 text-white/90">
-                <div className="flex items-center space-x-2 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-xl">
-                  <Clock className="h-5 w-5 text-green-300" />
-                  <span className="font-semibold">10-15 min delivery</span>
-                </div>
-                <div className="flex items-center space-x-2 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-xl">
-                  <MapPin className="h-5 w-5 text-blue-300" />
-                  <span className="font-semibold">25+ cities</span>
-                </div>
-                <div className="flex items-center space-x-2 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-xl">
-                  <Zap className="h-5 w-5 text-yellow-300" />
-                  <span className="font-semibold">24/7 service</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+      {/* Slider */}
+      <section className="section-padding">
+        <HomeSlider />
       </section>
 
       {/* Quick Commerce Features */}
@@ -346,8 +291,7 @@ const HomePage: React.FC = () => {
         initialProducts={featuredProducts.slice(0, 2)}
       />
 
-      {/* Debug Component - Remove in production */}
-      <AuthTestComponent />
+      {/* Debug Component removed for production */}
     </div>
   );
 };

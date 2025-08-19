@@ -167,13 +167,13 @@ const Header: React.FC = () => {
                   <div className="flex items-center space-x-2 bg-green-50 text-green-700 px-3 py-1 rounded-full">
                     <Clock className=" h-4 w-4" />
                     <span className="flex items-center space-x-2 font-semibold">
-                      10-15 min
+                      10-15 min Delivery
                     </span>
                   </div>
-                  <div className="flex items-center space-x-2 bg-blue-50 text-blue-700 px-3 py-1 rounded-full">
+                  {/* <div className="flex items-center space-x-2 bg-blue-50 text-blue-700 px-3 py-1 rounded-full">
                     <Zap className="h-4 w-4" />
                     <span className="font-semibold">Express</span>
-                  </div>
+                  </div> */}
                 </div>
               </div>
 
