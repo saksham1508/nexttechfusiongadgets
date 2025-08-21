@@ -11,6 +11,7 @@ import PayPalPayment from '../components/PayPalPayment';
 import UPIPayment from '../components/UPIPayment';
 import GooglePayPayment from '../components/GooglePayPayment';
 import CouponApplication from '../components/CouponApplication';
+
 import { CreditCard, Truck, MapPin, ArrowLeft } from 'lucide-react';
 import { PaymentMethod, PaymentProvider } from '../types';
 import { CouponValidationResponse } from '../services/couponService';
@@ -41,15 +42,11 @@ const CheckoutPage: React.FC = () => {
   const [finalAmount, setFinalAmount] = useState<number>(totalAmount);
 
   useEffect(() => {
-    if (!user) {
-      navigate('/login');
-      return;
-    }
-    
+    // Fetch cart if empty
     if (items.length === 0) {
       dispatch(fetchCart());
     }
-  }, [dispatch, user, items.length, navigate]);
+  }, [dispatch, items.length]);
 
   // Update final amount when total amount or coupon changes
   useEffect(() => {
@@ -70,11 +67,17 @@ const CheckoutPage: React.FC = () => {
 
   const handlePaymentMethodSelect = (method: PaymentMethod | null) => {
     setSelectedPaymentMethod(method);
+    if (method) {
+      setSelectedProvider(method.provider);
+      setPaymentStep('process');
+  
+    }
   };
 
   const handleProviderSelect = (provider: PaymentProvider) => {
     setSelectedProvider(provider);
     setPaymentStep('process');
+
   };
 
   const handleCouponApplied = (couponData: CouponValidationResponse | null) => {
@@ -151,9 +154,7 @@ const CheckoutPage: React.FC = () => {
     }
   };
 
-  if (!user) {
-    return null;
-  }
+
 
   if (items.length === 0) {
     return (

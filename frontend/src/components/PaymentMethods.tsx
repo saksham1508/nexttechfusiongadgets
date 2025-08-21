@@ -68,7 +68,11 @@ const PaymentMethods: React.FC<PaymentMethodsProps> = ({
   };
 
   const handleProviderSelect = async (provider: PaymentProvider) => {
-    if (!user) {
+    // If Redux user missing, try to derive basic details from localStorage
+    const stored = localStorage.getItem('user');
+    const parsed = stored ? JSON.parse(stored) : null;
+    const effectiveUser = user || parsed?.user || parsed;
+    if (!effectiveUser) {
       setError('Please login to continue');
       return;
     }
@@ -78,17 +82,28 @@ const PaymentMethods: React.FC<PaymentMethodsProps> = ({
       setError(null);
 
       const userDetails = {
-        name: user.name,
-        email: user.email,
-        contact: user.phone || '9999999999'
+        name: (effectiveUser as any).name,
+        email: (effectiveUser as any).email,
+        contact: (effectiveUser as any).phone || '9999999999'
       };
 
       let result;
 
       switch (provider) {
         case 'stripe':
-          // For Stripe, we need to collect card details first
-          setShowAddMethod(true);
+          // Create a mock payment method for Stripe to trigger the payment component
+          const stripeMethod: PaymentMethod = {
+            _id: 'stripe_temp',
+            provider: 'stripe',
+            type: 'card',
+            nickname: 'Credit/Debit Card',
+            isDefault: false,
+            isActive: true,
+            user: effectiveUser._id || effectiveUser.id,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          };
+          handleMethodSelect(stripeMethod);
           break;
 
         case 'razorpay':
@@ -101,12 +116,19 @@ const PaymentMethods: React.FC<PaymentMethodsProps> = ({
           break;
 
         case 'paypal':
-          result = await paymentService.processPayPalPayment(
-            selectedAmount,
-            'USD',
-            []
-          );
-          handlePaymentSuccess(result);
+          // Create a mock payment method for PayPal to trigger the payment component
+          const paypalMethod: PaymentMethod = {
+            _id: 'paypal_temp',
+            provider: 'paypal',
+            type: 'digital_wallet',
+            nickname: 'PayPal',
+            isDefault: false,
+            isActive: true,
+            user: effectiveUser._id || effectiveUser.id,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          };
+          handleMethodSelect(paypalMethod);
           break;
 
         case 'googlepay':

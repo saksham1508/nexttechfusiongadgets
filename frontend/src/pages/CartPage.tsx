@@ -84,13 +84,20 @@ const CartPage: React.FC = () => {
   useEffect(() => {
     if (!useApiCart) {
       const loadCart = () => {
-        const tempCart = localStorage.getItem('tempCart');
-        if (tempCart) {
+        const mock = localStorage.getItem('mockCart');
+        if (mock) {
           try {
-            const cartItems = JSON.parse(tempCart);
-            setItems(cartItems);
+            const mockItems = JSON.parse(mock);
+            const transformed = mockItems.map((m: any) => ({
+              productId: m.product?._id || m.productId,
+              name: m.product?.name || m.name,
+              price: m.product?.price || m.price || 0,
+              image: m.product?.images?.[0]?.url || m.image || '/placeholder-image.jpg',
+              quantity: m.quantity || 1,
+            }));
+            setItems(transformed);
           } catch (error) {
-            console.error('Error parsing cart data:', error);
+            console.error('Error parsing mock cart data:', error);
             setItems([]);
           }
         } else {
@@ -136,8 +143,23 @@ const CartPage: React.FC = () => {
   }, [useApiCart, reduxItems]);
 
   const updateLocalStorage = (updatedItems: CartItem[]) => {
-    localStorage.setItem('tempCart', JSON.stringify(updatedItems));
+    // Use single source of truth for guest cart to match mockApiService
+    localStorage.setItem('mockCart', JSON.stringify(
+      updatedItems.map(i => ({
+        product: {
+          _id: i.productId,
+          name: i.name,
+          price: i.price,
+          images: [{ url: i.image, alt: i.name }],
+          stock: 999
+        },
+        quantity: i.quantity
+      }))
+    ));
+
+    // Keep page state in simple format
     setItems(updatedItems);
+
     // Dispatch custom event to notify other components
     window.dispatchEvent(new Event('cartUpdated'));
   };

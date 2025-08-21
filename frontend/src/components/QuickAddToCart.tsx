@@ -131,6 +131,20 @@ const QuickAddToCart: React.FC<QuickAddToCartProps> = ({
     try {
       console.log('🚀 QuickAdd: Adding to authenticated cart:', { productId: product._id, quantity: 1 });
       
+      // Save a product snapshot so mock cart uses the correct name/price/images
+      try {
+        localStorage.setItem(
+          `productSnapshot:${product._id}`,
+          JSON.stringify({
+            _id: product._id,
+            name: product.name,
+            price: product.price,
+            images: [{ url: product.image, alt: product.name }],
+            stock: product.stock
+          })
+        );
+      } catch {}
+
       const result = await dispatch(addToCart({ productId: product._id, quantity: 1 })).unwrap();
       console.log('✅ QuickAdd: Cart operation successful', result);
       

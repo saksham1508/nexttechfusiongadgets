@@ -30,6 +30,25 @@ axiosInstance.interceptors.request.use(
       console.log('🔑 Axios: Token found directly in localStorage:', token.substring(0, 20) + '...');
     }
     
+    // Development fallback: synthesize mock vendor token if user is a seller
+    if (!token) {
+      try {
+        const raw = localStorage.getItem('user');
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          const userObj = parsed.user || parsed; // support wrapped or direct
+          if (userObj?.role === 'seller') {
+            const vendorId = userObj._id || 'vendor_1';
+            token = `mock_vendor_token_${vendorId}`;
+            localStorage.setItem('token', token);
+            console.log('🔧 Axios: Generated mock vendor token for seller:', vendorId);
+          }
+        }
+      } catch (e) {
+        console.warn('Axios: Failed to parse user for fallback token');
+      }
+    }
+
     // Add token to headers if available
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
@@ -77,14 +96,10 @@ axiosInstance.interceptors.response.use(
       errorMessage: error.message
     });
     
-    // Handle 401 errors by clearing auth data
+    // Do not clear auth on generic 401s; let UI handle and prompt gracefully
+    // Some dev/mock endpoints may return 401 even when user is logged in
     if (error.response?.status === 401) {
-      localStorage.removeItem('user');
-      localStorage.removeItem('token');
-      
-      // Don't redirect automatically - let the component handle it
-      // This prevents unwanted page refreshes when cart operations fail
-      console.log('Authentication failed - token cleared');
+      console.warn('401 Unauthorized from API: leaving stored auth intact; UI will handle re-auth if needed');
     }
     
     return Promise.reject(error);

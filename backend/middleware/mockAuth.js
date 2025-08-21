@@ -77,9 +77,9 @@ const auth = async (req, res, next) => {
       token = req.headers.authorization.split(' ')[1];
       
       // Handle demo tokens (fallback for frontend demo login)
-      if (token.startsWith('demo_token_')) {
-        console.log('🔄 Using demo token fallback');
-        // Use the default test user for demo tokens
+      if (token.startsWith('demo_token_') || token.startsWith('mock_')) {
+        console.log('🔄 Using demo/mock token fallback');
+        // Use the default test user for demo/mock tokens
         const user = mockUsers.find(u => u.email === 'test@example.com');
         if (user) {
           const { password, ...userWithoutPassword } = user;

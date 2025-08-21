@@ -5,6 +5,7 @@ import { RootState, AppDispatch } from '../store/store';
 import { register, reset } from '../store/slices/authSlice';
 import LoadingSpinner from '../components/LoadingSpinner';
 import toast from 'react-hot-toast';
+import { Store } from 'lucide-react';
 
 const RegisterPage: React.FC = () => {
   const [formData, setFormData] = useState({

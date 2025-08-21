@@ -45,8 +45,28 @@ const ProductDetailPage: React.FC = () => {
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
-        const data = await response.json();
-        setProduct(data);
+        const json = await response.json();
+        // Backend may wrap payload: { success, data: { product } }
+        const apiProduct = json.data?.product || json.data || json.product || json;
+        // Normalize to ensure required fields exist for vendor-created items
+        const normalized: Product = {
+          _id: apiProduct._id,
+          name: apiProduct.name || 'Unnamed Product',
+          description: apiProduct.description || '',
+          price: Number(apiProduct.price) || 0,
+          originalPrice: apiProduct.originalPrice ? Number(apiProduct.originalPrice) : undefined,
+          category: apiProduct.category || 'General',
+          brand: apiProduct.brand || '',
+          images: Array.isArray(apiProduct.images) ? apiProduct.images : (apiProduct.image ? [apiProduct.image] : []),
+          inStock: typeof apiProduct.inStock === 'boolean' ? apiProduct.inStock : (typeof apiProduct.countInStock === 'number' ? apiProduct.countInStock > 0 : true),
+          stockQuantity: typeof apiProduct.stockQuantity === 'number' ? apiProduct.stockQuantity : (typeof apiProduct.countInStock === 'number' ? apiProduct.countInStock : 0),
+          rating: typeof apiProduct.rating === 'number' ? apiProduct.rating : 0,
+          numReviews: typeof apiProduct.numReviews === 'number' ? apiProduct.numReviews : 0,
+          specifications: apiProduct.specifications && typeof apiProduct.specifications === 'object' ? apiProduct.specifications : {},
+          features: Array.isArray(apiProduct.features) ? apiProduct.features : [],
+          warranty: apiProduct.warranty || ''
+        };
+        setProduct(normalized);
       } catch (err) {
         console.error('Failed to fetch product:', err);
         toast.error('Failed to load product details');
@@ -147,12 +167,12 @@ const ProductDetailPage: React.FC = () => {
         {/* Image */}
         <div>
           <img
-            src={product.images[selectedImage]}
+            src={(product.images && product.images.length > 0 ? product.images[selectedImage] : 'https://via.placeholder.com/600x400?text=No+Image')}
             alt={product.name}
             className="w-full h-96 object-cover rounded shadow"
           />
           <div className="flex space-x-2 mt-4">
-            {product.images.map((img, i) => (
+            {(product.images || []).map((img, i) => (
               <img
                 key={i}
                 src={img}
@@ -197,15 +217,10 @@ const ProductDetailPage: React.FC = () => {
 
           <button
             type="button"
-            onClick={handleAddToCart}
-            disabled={!product.inStock || product.stockQuantity === 0}
-            className={`px-6 py-3 rounded-lg font-semibold transition-all duration-300 ${
-              !product.inStock || product.stockQuantity === 0
-                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                : 'bg-blue-600 text-white hover:bg-blue-700 hover:shadow-lg'
-            }`}
+            onClick={() => navigate(`/products`)}
+            className="px-6 py-3 rounded-lg font-semibold transition-all duration-300 bg-gray-100 text-gray-700 hover:bg-gray-200"
           >
-            {!product.inStock || product.stockQuantity === 0 ? 'Out of Stock' : 'Add to Cart'}
+            View More Products
           </button>
         </div>
       </div>
@@ -214,7 +229,7 @@ const ProductDetailPage: React.FC = () => {
       <div className="mt-10">
         <h2 className="text-xl font-semibold mb-2">Features</h2>
         <ul className="list-disc list-inside text-gray-700 mb-6">
-          {product.features.map((f, i) => (
+          {(product.features || []).map((f, i) => (
             <li key={i}>{f}</li>
           ))}
         </ul>
@@ -222,7 +237,7 @@ const ProductDetailPage: React.FC = () => {
         <h2 className="text-xl font-semibold mb-2">Specifications</h2>
         <table className="w-full text-sm text-left text-gray-700">
           <tbody>
-            {Object.entries(product.specifications).map(([key, val], i) => (
+            {Object.entries(product.specifications || {}).map(([key, val], i) => (
               <tr key={i} className="border-b">
                 <th className="py-2 pr-4 capitalize">{key}</th>
                 <td className="py-2">{val}</td>
@@ -241,7 +256,7 @@ const ProductDetailPage: React.FC = () => {
             _id: product._id,
             name: product.name,
             price: product.price,
-            images: product.images.map(img => ({ url: img, alt: product.name })),
+            images: (product.images || []).map(img => ({ url: img, alt: product.name })),
             rating: product.rating,
             numReviews: product.numReviews,
             category: product.category,

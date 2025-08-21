@@ -66,14 +66,30 @@ class MockApiService {
 
     const cartItems = this.getCartItems();
 
-    // Mock product data - in real app this would come from product service
-    const mockProduct = {
+    // Prefer a product snapshot saved by UI to keep name/price/images accurate
+    let mockProduct = {
       _id: productId,
       name: `Product ${productId.slice(-4)}`,
-      price: Math.floor(Math.random() * 1000) + 100,
+      price: 0,
       images: [{ url: '/placeholder-image.jpg', alt: 'Product Image' }],
       stock: 10
-    };
+    } as { _id: string; name: string; price: number; images: { url: string; alt: string }[]; stock: number };
+
+    try {
+      const snapshotRaw = localStorage.getItem(`productSnapshot:${productId}`);
+      if (snapshotRaw) {
+        const snap = JSON.parse(snapshotRaw);
+        mockProduct = {
+          _id: snap._id || productId,
+          name: snap.name || mockProduct.name,
+          price: typeof snap.price === 'number' ? snap.price : mockProduct.price,
+          images: Array.isArray(snap.images) && snap.images.length ? snap.images : mockProduct.images,
+          stock: typeof snap.stock === 'number' ? snap.stock : mockProduct.stock
+        };
+      }
+    } catch (e) {
+      // ignore snapshot errors, fallback to defaults
+    }
 
     const existingItemIndex = cartItems.findIndex(
       item => item.product._id === productId

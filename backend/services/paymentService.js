@@ -227,7 +227,7 @@ class PaymentService {
           brand_name: 'NextTechFusionGadgets',
           locale: 'en-US',
           landing_page: 'BILLING',
-          shipping_preference: 'SET_PROVIDED_ADDRESS',
+          shipping_preference: 'GET_FROM_FILE',
           user_action: 'PAY_NOW'
         },
         purchase_units: [{

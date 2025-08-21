@@ -141,6 +141,24 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, showQuickCommerce = 
         console.log('📦 User data:', authResult.user);
         console.log('🔑 Token:', authResult.token?.substring(0, 20) + '...');
         
+        // Save a snapshot so mock cart uses the correct name/price/images
+        try {
+          localStorage.setItem(
+            `productSnapshot:${product._id}`,
+            JSON.stringify({
+              _id: product._id,
+              name: product.name,
+              price: product.price,
+              images: Array.isArray(product.images) && product.images.length
+                ? (typeof product.images[0] === 'string'
+                    ? [{ url: product.images[0], alt: product.name }]
+                    : [{ url: product.images[0].url, alt: product.images[0].alt || product.name }])
+                : [{ url: '/placeholder-image.jpg', alt: product.name }],
+              stock: product.stock ?? product.countInStock ?? 10
+            })
+          );
+        } catch {}
+
         const result = await dispatch(addToCart({ productId: product._id, quantity: 1 })).unwrap();
         console.log('✅ Cart add result:', result);
         toast.success('Added to cart successfully!', {
@@ -182,10 +200,18 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, showQuickCommerce = 
           }
         }
         
-        toast.error(errorMessage, {
-          duration: 4000,
-          icon: '❌',
-        });
+        // Soft offline fallback: add to local mock cart to keep UX working
+        try {
+          const existing = localStorage.getItem('mockCart');
+          const cart = existing ? JSON.parse(existing) : [];
+          const idx = cart.findIndex((i: any) => i.product?._id === product._id);
+          if (idx >= 0) cart[idx].quantity += 1; else cart.push({ product: { _id: product._id, name: product.name, price: product.price, images: [{ url: Array.isArray(product.images) && product.images.length ? (typeof product.images[0] === 'string' ? product.images[0] : product.images[0].url) : '/placeholder-image.jpg', alt: product.name }], stock: product.stock ?? product.countInStock ?? product.stockQuantity ?? 0 }, quantity: 1 });
+          localStorage.setItem('mockCart', JSON.stringify(cart));
+          window.dispatchEvent(new CustomEvent('cartUpdated', { detail: { productId: product._id, action: 'add-offline' } }));
+          toast.success('Added to cart (offline mode)', { duration: 2500, icon: '🛒' });
+        } catch (e) {
+          toast.error(errorMessage, { duration: 4000, icon: '❌' });
+        }
       }
     } else {
       // User not logged in - show login prompt
@@ -214,11 +240,13 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, showQuickCommerce = 
     ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
     : 0;
 
+  const isVendor = user?.role === 'seller';
+
   return (
     <div className="card-product group">
       {/* Product Image */}
       <div className="relative overflow-hidden">
-        <Link to={`/products/${product._id}`}>
+        <Link to={isVendor ? `/vendor/products/${product._id}` : `/products/${product._id}`}>
           <img
             src={
               Array.isArray(product.images) && product.images.length > 0
@@ -278,7 +306,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, showQuickCommerce = 
             </button>
           )}
           <Link
-            to={`/products/${product._id}`}
+            to={isVendor ? `/vendor/products/${product._id}` : `/products/${product._id}`}
             className="bg-white/90 backdrop-blur-sm p-2 rounded-full hover:bg-white hover:shadow-lg transition-all duration-300 hover-scale"
           >
             <Eye className="h-4 w-4 text-gray-700" />
@@ -353,7 +381,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, showQuickCommerce = 
         </div>
 
         {/* Authentication Notice */}
-        {!checkAuthentication(user).isAuthenticated && (
+        {!isVendor && !checkAuthentication(user).isAuthenticated && (
           <div className="flex items-center space-x-2 mb-4 bg-orange-50 px-3 py-2 rounded-xl">
             <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
             <span className="text-sm font-semibold text-orange-700">Login required to add to cart</span>
@@ -370,7 +398,15 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, showQuickCommerce = 
         )}
 
         {/* Add to Cart */}
-        {showQuickCommerce ? (
+        {isVendor ? (
+          <Link
+            to={`/vendor/products/${product._id}`}
+            className="w-full inline-flex items-center justify-center space-x-3 py-4 px-6 rounded-xl font-semibold transition-all duration-300 transform bg-gray-100 text-gray-700 hover:bg-gray-200"
+          >
+            <Eye className="h-5 w-5" />
+            <span>View Details</span>
+          </Link>
+        ) : showQuickCommerce ? (
           <QuickAddToCart
             product={{
               _id: product._id,

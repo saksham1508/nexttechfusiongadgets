@@ -41,10 +41,13 @@ const PayPalPayment: React.FC<PayPalPaymentProps> = ({
     try {
       setLoading(true);
       setError(null);
+      console.log('💳 PayPal: Creating order for amount:', amount, currency);
       
       const order = await paymentService.createPayPalOrder(amount, currency, items);
+      console.log('✅ PayPal: Order created successfully:', order.orderId);
       return order.orderId;
     } catch (error: any) {
+      console.error('❌ PayPal: Order creation failed:', error);
       setError(error.message);
       onError(error.message);
       throw error;
@@ -56,9 +59,12 @@ const PayPalPayment: React.FC<PayPalPaymentProps> = ({
   const onApprove = async (data: any) => {
     try {
       setLoading(true);
+      console.log('✅ PayPal: Payment approved, capturing order:', data.orderID);
       const result = await paymentService.capturePayPalOrder(data.orderID);
+      console.log('✅ PayPal: Payment captured successfully:', result);
       onSuccess(result);
     } catch (error: any) {
+      console.error('❌ PayPal: Payment capture failed:', error);
       setError(error.message);
       onError(error.message);
     } finally {

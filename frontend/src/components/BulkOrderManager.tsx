@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import jsPDF from 'jspdf';
+// Using dynamic import for jsPDF to avoid build errors
+// import jsPDF from 'jspdf';
+const jsPDF = () => import('jspdf').then(module => module.default);
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Package, 
@@ -170,7 +172,7 @@ const BulkOrderManager: React.FC<BulkOrderManagerProps> = ({
       toast.success('Bulk order quote submitted successfully!');
       setShowQuotation(true);
       // Auto-generate and download PDF after successful submission
-      generateQuotationPDF();
+      await generateQuotationPDF();
     } catch (error) {
       toast.error('Failed to submit bulk order quote');
     } finally {
@@ -178,9 +180,11 @@ const BulkOrderManager: React.FC<BulkOrderManagerProps> = ({
     }
   };
 
-  const generateQuotationPDF = () => {
+  const generateQuotationPDF = async () => {
     try {
-      const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+      // Dynamically import jsPDF
+      const jsPDFModule = await jsPDF();
+      const doc = new jsPDFModule({ unit: 'pt', format: 'a4' });
       const pageWidth = doc.internal.pageSize.getWidth();
       let y = 40;
 

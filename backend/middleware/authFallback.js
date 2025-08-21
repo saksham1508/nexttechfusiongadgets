@@ -60,6 +60,22 @@ const auth = async (req, res, next) => {
   if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
     try {
       token = req.headers.authorization.split(' ')[1];
+
+      // Demo/mock vendor token fallback (non-JWT)
+      if (token.startsWith('mock_vendor_token_')) {
+        // Token format: mock_vendor_token_<vendorId>
+        const vendorId = token.replace('mock_vendor_token_', '');
+        let user = mockUsers.find(u => u._id === vendorId);
+        if (!user) {
+          // Default to first seller if specific not found
+          user = mockUsers.find(u => u.role === 'seller') || mockUsers[0];
+        }
+        const { password, ...userWithoutPassword } = user;
+        req.user = userWithoutPassword;
+        return next();
+      }
+
+      // Try to verify as JWT
       const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret_key');
       
       // Find user in mock database

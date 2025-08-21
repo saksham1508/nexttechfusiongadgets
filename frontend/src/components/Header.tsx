@@ -19,8 +19,10 @@ import {
 } from "lucide-react";
 import SearchWithSuggestions from "./SearchWithSuggestions";
 import LocationSelector from "./LocationSelector";
+import VendorNavLink from "./VendorNavLink";
 import { Location } from "../services/locationService";
 
+// Added cache-busting comment to force reload - v1.0.1
 const Header: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -241,13 +243,15 @@ const Header: React.FC = () => {
                       <User className="h-4 w-4" />
                       <span>Profile</span>
                     </Link>
-                    <Link
-                      to="/orders"
-                      className="flex items-center space-x-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors duration-200"
-                    >
-                      <ShoppingCart className="h-4 w-4" />
-                      <span>My Orders</span>
-                    </Link>
+                    {user.role !== 'seller' && (
+                      <Link
+                        to="/orders"
+                        className="flex items-center space-x-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors duration-200"
+                      >
+                        <ShoppingCart className="h-4 w-4" />
+                        <span>My Orders</span>
+                      </Link>
+                    )}
                     <Link
                       to="/order-tracking"
                       className="flex items-center space-x-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors duration-200"
@@ -294,6 +298,12 @@ const Header: React.FC = () => {
                     className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-4 py-2 rounded-lg font-medium hover:from-blue-700 hover:to-purple-700 transition-all"
                   >
                     Sign Up
+                  </Link>
+                  <Link
+                    to="/vendor/login"
+                    className="bg-gradient-to-r from-red-500 to-orange-500 text-white px-4 py-2 rounded-lg font-medium hover:from-red-600 hover:to-orange-600 transition-all"
+                  >
+                    Become a Vendor
                   </Link>
                 </div>
               )}
@@ -363,6 +373,12 @@ const Header: React.FC = () => {
                       className="text-gray-700 hover:text-primary-600"
                     >
                       Sign Up
+                    </Link>
+                    <Link
+                      to="/vendor/login"
+                      className="bg-gradient-to-r from-red-500 to-orange-500 text-white px-3 py-2 rounded-lg font-medium inline-block mt-2"
+                    >
+                      Become a Vendor
                     </Link>
                   </>
                 )}

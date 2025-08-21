@@ -101,6 +101,11 @@ const buildFilterQuery = (filters) => {
   if (filters.rating) {
     query.rating = { $gte: Number(filters.rating) };
   }
+
+  // Restrict by seller when provided (enables vendor dashboards to request only own products)
+  if (filters.seller) {
+    query.seller = filters.seller;
+  }
   
   return query;
 };

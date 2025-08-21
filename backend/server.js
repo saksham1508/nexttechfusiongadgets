@@ -83,13 +83,13 @@ app.use(
 // Request parsing with size limits (Lean: prevent resource waste)
 app.use(
   express.json({
-    limit: '10mb',
+    limit: '25mb',
     verify: (req, res, buf) => {
       req.rawBody = buf;
     }
   })
 );
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '25mb' }));
 
 // Input sanitization
 app.use(sanitizeInput);
