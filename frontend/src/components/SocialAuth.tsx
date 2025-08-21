@@ -151,7 +151,7 @@ const SocialAuth: React.FC<SocialAuthProps> = ({
     if (formData.email === 'test@example.com' && formData.password === 'testpassword') {
       try {
         // Use the backend mock auth endpoint to get a proper JWT token
-        const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5001/api'}/auth/login`, {
+        const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000/api'}/auth/login`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

@@ -104,13 +104,13 @@ app.use(
 // Request parsing with size limits (Lean: prevent resource waste)
 app.use(
   express.json({
-    limit: '10mb',
+    limit: '25mb',
     verify: (req, res, buf) => {
       req.rawBody = buf;
     }
   })
 );
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '25mb' }));
 
 // Input sanitization
 app.use(sanitizeInput);
@@ -121,7 +121,7 @@ app.use(passport.initialize());
 // Six Sigma: Control - Apply rate limiting to different route groups
 // Use fallback auth routes that work with or without MongoDB
 app.use('/api/auth', rateLimits.auth, require('./routes/authRoutesFallback'));
-app.use('/api/products', rateLimits.api, require('./routes/productRoutes'));
+app.use('/api/products', rateLimits.api, require('./routes/productRoutesFallback'));
 app.use('/api/categories', rateLimits.api, require('./routes/categoryRoutes'));
 app.use('/api/cart', rateLimits.api, require('./routes/cartRoutes'));
 app.use('/api/wishlist', rateLimits.api, require('./routes/wishlistRoutes'));

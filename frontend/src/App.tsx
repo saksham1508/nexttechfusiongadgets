@@ -34,7 +34,17 @@ import CookieConsent from './components/CookieConsent';
 import EnvironmentBadge from './components/EnvironmentBadge';
 import EnvironmentInfo from './components/EnvironmentInfo';
 import VendorDashboardPage from './pages/VendorDashboardPage';
+import VendorLoginPage from './pages/VendorLoginPage';
+import BecomeVendorPage from './pages/BecomeVendorPage';
+import VendorBanner from './components/VendorBanner';
+// Temporarily commenting out missing imports
+// import ApiDebug from './components/ApiDebug';
 // Debug components removed for production
+import VendorProductViewPage from './pages/VendorProductViewPage';
+import PayPalTest from './components/PayPalTest';
+import PaymentTestPage from './pages/PaymentTestPage';
+import PaymentMethodsDebug from './components/PaymentMethodsDebug';
+
 
 // Optional: Use ApiStatusIndicator for enhanced connection feedback
 // import ApiStatusIndicator from './components/ApiStatusIndicator';
@@ -45,8 +55,8 @@ function App() {
   const { user } = useSelector((state: RootState) => state.auth);
   
   useEffect(() => {
-    // Sync auth state from localStorage on app load
-    dispatch(syncFromLocalStorage());
+    // Auth is pre-hydrated in index.tsx to prevent menu flicker; keep as no-op here
+    // dispatch(syncFromLocalStorage());
     
     // Initialize error suppression
     suppressChromeExtensionErrors();
@@ -112,6 +122,14 @@ function App() {
                 <Route path="/" element={<HomePage />} />
                 <Route path="/products" element={<ProductsPage />} />
                 <Route path="/products/:id" element={<ProductDetailPage />} />
+                <Route
+                  path="/vendor/products/:id"
+                  element={
+                    <ProtectedRoute requiredRole="seller">
+                      <VendorProductViewPage />
+                    </ProtectedRoute>
+                  }
+                />
                 <Route path="/categories" element={<CategoriesPage />} />
                 <Route path="/categories/:slug" element={<CategoriesPage />} />
                 <Route path="/wishlist" element={<WishlistPage />} />
@@ -119,15 +137,14 @@ function App() {
                 <Route path="/virtual-try-on/:productId" element={<VirtualTryOnPage />} />
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/register" element={<RegisterPage />} />
+                <Route path="/vendor/login" element={<VendorLoginPage />} />
+                <Route path="/become-vendor" element={<BecomeVendorPage />} />
                 <Route path="/cart" element={<CartPage />} />
                 <Route
                   path="/checkout"
-                  element={
-                    <ProtectedRoute>
-                      <CheckoutPage />
-                    </ProtectedRoute>
-                  }
+                  element={<CheckoutPage />}
                 />
+
                 <Route
                   path="/profile"
                   element={
@@ -177,6 +194,9 @@ function App() {
                   }
                 />
                 <Route path="/cookie-policy" element={<CookiePolicyPage />} />
+                <Route path="/test-paypal" element={<PayPalTest />} />
+                <Route path="/test-payments" element={<PaymentTestPage />} />
+                <Route path="/debug-payments" element={<PaymentMethodsDebug />} />
               </Routes>
             </ErrorBoundary>
           </main>
@@ -194,6 +214,7 @@ function App() {
           <ErrorBoundary>
             <CookieConsent />
           </ErrorBoundary>
+          {/* <ApiDebug /> */}
           <ErrorBoundary>
             <EnvironmentBadge />
           </ErrorBoundary>

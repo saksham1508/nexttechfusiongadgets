@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom';
 import LoadingSpinner from '../components/LoadingSpinner';
 import ProductCard from '../components/ProductCard';
 import { Filter, Grid, List, ShoppingBag } from '../components/Icons';
+import axiosInstance from '../utils/axiosConfig';
+import toast from 'react-hot-toast';
 
 interface ProductImage {
   url: string;
@@ -15,11 +17,13 @@ interface Product {
   price: number;
   originalPrice?: number;
   category: string;
-  images: { url: string; alt: string }[];
+  images: string[];
   rating: number;
   numReviews: number;
-  stock: number;
+  countInStock: number;
   brand: string;
+  seller: string;
+  isActive: boolean;
 }
 
 const ProductsPage: React.FC = () => {
@@ -42,67 +46,57 @@ const ProductsPage: React.FC = () => {
     pageNumber: parseInt(urlSearchParams.get('page') || '1'),
   });
 
-  const allMockProducts: Product[] = [
-    { _id: 'prod1', name: 'Smartphone X', description: 'Latest model with advanced camera.', price: 799.99, category: 'smartphones', images: [{ url: 'https://placehold.co/400x300/1E40AF/FFFFFF?text=Smartphone+X', alt: 'Smartphone X' }], rating: 4.5, numReviews: 120, stock: 25, brand: 'TechCorp' },
-    { _id: 'prod2', name: 'UltraBook Pro', description: 'Thin and powerful laptop for professionals.', price: 1299.00, category: 'laptops', images: [{ url: 'https://placehold.co/400x300/3B82F6/FFFFFF?text=UltraBook+Pro', alt: 'UltraBook Pro' }], rating: 4.8, numReviews: 85, stock: 15, brand: 'ProTech' },
-    { _id: 'prod3', name: 'Tablet Air 5', description: 'Lightweight tablet with stunning display.', price: 499.50, category: 'tablets', images: [{ url: 'https://placehold.co/400x300/60A5FA/FFFFFF?text=Tablet+Air+5', alt: 'Tablet Air 5' }], rating: 4.2, numReviews: 200, stock: 30, brand: 'AirTech' },
-    { _id: 'prod4', name: 'Noise Cancelling Headphones', description: 'Immersive audio experience.', price: 199.99, category: 'audio', images: [{ url: 'https://placehold.co/400x300/93C5FD/FFFFFF?text=Headphones', alt: 'Noise Cancelling Headphones' }], rating: 4.7, numReviews: 310, stock: 50, brand: 'AudioMax' },
-    { _id: 'prod5', name: 'Smartwatch Sport', description: 'Track your fitness and stay connected.', price: 249.00, category: 'wearables', images: [{ url: 'https://placehold.co/400x300/BFDBFE/000000?text=Smartwatch+Sport', alt: 'Smartwatch Sport' }], rating: 4.1, numReviews: 150, stock: 40, brand: 'FitTech' },
-    { _id: 'prod6', name: 'Gaming Console Z', description: 'Next-gen gaming with stunning graphics.', price: 499.00, category: 'gaming', images: [{ url: 'https://placehold.co/400x300/A78BFA/FFFFFF?text=Gaming+Console', alt: 'Gaming Console Z' }], rating: 4.9, numReviews: 450, stock: 10, brand: 'GameTech' },
-    { _id: 'prod7', name: 'Wireless Keyboard', description: 'Ergonomic and responsive keyboard.', price: 75.00, category: 'accessories', images: [{ url: 'https://placehold.co/400x300/C4B5FD/FFFFFF?text=Wireless+Keyboard', alt: 'Wireless Keyboard' }], rating: 4.0, numReviews: 90, stock: 60, brand: 'KeyTech' },
-    { _id: 'prod8', name: 'Portable Bluetooth Speaker', description: 'Powerful sound on the go.', price: 89.99, category: 'audio', images: [{ url: 'https://placehold.co/400x300/818CF8/FFFFFF?text=Bluetooth+Speaker', alt: 'Portable Bluetooth Speaker' }], rating: 4.3, numReviews: 180, stock: 35, brand: 'SoundWave' },
-    { _id: 'prod9', name: 'Curved Gaming Monitor', description: 'Immersive visuals for gaming.', price: 349.00, category: 'gaming', images: [{ url: 'https://placehold.co/400x300/6366F1/FFFFFF?text=Gaming+Monitor', alt: 'Curved Gaming Monitor' }], rating: 4.6, numReviews: 220, stock: 20, brand: 'ViewTech' },
-    { _id: 'prod10', name: 'External SSD 1TB', description: 'Fast and reliable external storage.', price: 120.00, category: 'accessories', images: [{ url: 'https://placehold.co/400x300/4F46E5/FFFFFF?text=External+SSD', alt: 'External SSD 1TB' }], rating: 4.4, numReviews: 100, stock: 45, brand: 'StoragePro' },
-    { _id: 'prod11', name: 'Budget Smartphone', description: 'Affordable smartphone with good features.', price: 299.00, category: 'smartphones', images: [{ url: 'https://placehold.co/400x300/4338CA/FFFFFF?text=Budget+Phone', alt: 'Budget Smartphone' }], rating: 3.9, numReviews: 70, stock: 55, brand: 'ValueTech' },
-    { _id: 'prod12', name: 'Convertible Laptop', description: 'Laptop that converts to a tablet.', price: 999.00, category: 'laptops', images: [{ url: 'https://placehold.co/400x300/3730A3/FFFFFF?text=Convertible+Laptop', alt: 'Convertible Laptop' }], rating: 4.5, numReviews: 110, stock: 18, brand: 'FlexTech' },
-  ];
+  // Removed static mock products: now fetching from API
+  const allMockProducts: Product[] = [];
 
   useEffect(() => {
-    setIsLoading(true);
-    const applyFilters = () => {
-      let filtered = [...allMockProducts];
+    const fetchProducts = async () => {
+      try {
+        setIsLoading(true);
+        const params = new URLSearchParams();
+        if (filters.keyword) params.set('keyword', filters.keyword);
+        if (filters.category) params.set('category', filters.category);
+        if (filters.minPrice) params.set('minPrice', filters.minPrice);
+        if (filters.maxPrice) params.set('maxPrice', filters.maxPrice);
+        params.set('page', String(filters.pageNumber));
+        params.set('limit', '12');
 
-      if (filters.keyword) {
-        const lowerKeyword = filters.keyword.toLowerCase();
-        filtered = filtered.filter(
-          (p) =>
-            p.name.toLowerCase().includes(lowerKeyword) ||
-            p.description.toLowerCase().includes(lowerKeyword)
-        );
+        const res = await axiosInstance.get(`/products?${params.toString()}`);
+        // Backend returns { success, data: { products, pagination } } in fallback and real modes
+        const apiProducts = res.data.data?.products || res.data.products || [];
+        const pagination = res.data.data?.pagination || res.data.pagination || { currentPage: 1, totalPages: 1, totalProducts: apiProducts.length };
+
+        // Normalize to local type if needed
+        const normalized: Product[] = apiProducts.map((p: any) => ({
+          _id: p._id,
+          name: p.name,
+          description: p.description || '',
+          price: p.price,
+          originalPrice: p.originalPrice,
+          category: p.category,
+          images: Array.isArray(p.images) ? p.images : [],
+          rating: p.rating || 0,
+          numReviews: p.numReviews || 0,
+          countInStock: p.countInStock ?? p.stockQuantity ?? 0,
+          brand: p.brand || 'Unknown',
+          seller: typeof p.seller === 'object' ? p.seller?._id : p.seller,
+          isActive: p.isActive !== false,
+        }));
+
+        setProducts(normalized);
+        setTotal(pagination.totalProducts || normalized.length);
+        setPages(pagination.totalPages || 1);
+        setPage(pagination.currentPage || 1);
+      } catch (err) {
+        console.error('Failed to fetch products:', err);
+        toast.error('Failed to load products');
+      } finally {
+        setIsLoading(false);
       }
-
-      if (filters.category) {
-        filtered = filtered.filter((p) => p.category === filters.category);
-      }
-
-      if (filters.minPrice) {
-        filtered = filtered.filter((p) => p.price >= parseFloat(filters.minPrice));
-      }
-      if (filters.maxPrice) {
-        filtered = filtered.filter((p) => p.price <= parseFloat(filters.maxPrice));
-      }
-
-      const productsPerPage = 6;
-      const totalFiltered = filtered.length;
-      const totalPages = Math.ceil(totalFiltered / productsPerPage);
-      const currentPage = Math.max(1, Math.min(filters.pageNumber, totalPages || 1));
-
-      const startIndex = (currentPage - 1) * productsPerPage;
-      const endIndex = startIndex + productsPerPage;
-      const paginatedProducts = filtered.slice(startIndex, endIndex);
-
-      setProducts(paginatedProducts);
-      setTotal(totalFiltered);
-      setPages(totalPages);
-      setPage(currentPage);
-      setIsLoading(false);
     };
 
-    const timer = setTimeout(() => {
-      applyFilters();
-    }, 800);
-
-    return () => clearTimeout(timer);
+    const debounce = setTimeout(fetchProducts, 400);
+    return () => clearTimeout(debounce);
   }, [filters]);
 
   const handleFilterChange = (key: string, value: string) => {
