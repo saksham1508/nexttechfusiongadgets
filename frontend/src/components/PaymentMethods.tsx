@@ -132,12 +132,31 @@ const PaymentMethods: React.FC<PaymentMethodsProps> = ({
           break;
 
         case 'googlepay':
-          result = await paymentService.processGooglePayPayment(
+          // Step 1: Open Google Pay sheet and get a payment token
+          const paymentData = await paymentService.processGooglePayPayment(
             selectedAmount,
             'INR',
-            orderId
+            orderId,
+            undefined,
+            { testMode: true } // use TEST env for development
           );
-          handlePaymentSuccess(result);
+
+          // Step 2: Extract token and send to backend for processing
+          try {
+            const tokenString = paymentData?.paymentMethodData?.tokenizationData?.token;
+            if (!tokenString) throw new Error('Google Pay token not found');
+
+            const backendResult = await paymentService.processGooglePayPayment(
+              selectedAmount,
+              'INR',
+              orderId,
+              tokenString,
+              { testMode: true }
+            );
+            handlePaymentSuccess(backendResult);
+          } catch (err: any) {
+            setError(err.message || 'Failed to process Google Pay token');
+          }
           break;
 
         case 'upi':

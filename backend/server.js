@@ -44,8 +44,8 @@ app.use(
         styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
         fontSrc: ["'self'", 'https://fonts.gstatic.com'],
         imgSrc: ["'self'", 'data:', 'https://res.cloudinary.com'],
-        scriptSrc: ["'self'"],
-        connectSrc: ["'self'", 'https://api.stripe.com']
+        scriptSrc: ["'self'", 'https://pay.google.com', 'https://www.gstatic.com'],
+        connectSrc: ["'self'", 'https://api.stripe.com', 'https://pay.google.com']
       }
     },
     crossOriginEmbedderPolicy: false
