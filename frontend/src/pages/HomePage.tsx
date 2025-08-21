@@ -124,13 +124,12 @@ const HomePage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setShowComparison(true)}
-                className="relative bg-purple-50 text-purple-700 px-4 py-3 rounded-xl hover:bg-purple-100 transition-colors flex items-center space-x-2"
-                disabled={comparisonProducts.length === 0}
+                className={`relative px-4 py-3 rounded-xl transition-colors flex items-center space-x-2 ${comparisonProducts.length === 0 ? 'bg-gray-100 text-gray-500 hover:bg-gray-100 cursor-pointer' : 'bg-purple-50 text-purple-700 hover:bg-purple-100'}`}
               >
                 <Scale className="h-5 w-5" />
                 <span className="text-sm font-semibold">Compare</span>
                 {comparisonProducts.length > 0 && (
-                  <span className="absolute -top-2 -right-2 bg-purple-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                  <span className="absolute -top-2 -right-2 bg-purple-700 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
                     {comparisonProducts.length}
                   </span>
                 )}

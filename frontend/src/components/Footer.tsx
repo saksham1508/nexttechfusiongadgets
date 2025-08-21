@@ -4,13 +4,14 @@ import {
   Facebook,
   Twitter,
   Instagram,
+  Youtube,
   Mail,
   Phone,
   MapPin,
 } from "lucide-react";
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faApple } from '@fortawesome/free-brands-svg-icons';
-import { faGooglePlay } from '@fortawesome/free-brands-svg-icons';
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faApple } from "@fortawesome/free-brands-svg-icons";
+import { faGooglePlay } from "@fortawesome/free-brands-svg-icons";
 
 const Footer: React.FC = () => {
   return (
@@ -23,7 +24,9 @@ const Footer: React.FC = () => {
               <div className="w-8 h-8 bg-gradient-to-r from-[#F4A300] to-[#1F1F1F] rounded-lg flex items-center justify-center">
                 <span className="text-white font-bold text-sm">N</span>
               </div>
-              <span className="text-xl font-bold">NextTechFusionGadgets Pvt. Ltd.</span>
+              <span className="text-xl font-bold">
+                NextTechFusionGadgets Pvt. Ltd.
+              </span>
             </div>
             <p className="text-gray-400 mb-4">
               Your one-stop destination for the latest tech gadgets and
@@ -33,8 +36,25 @@ const Footer: React.FC = () => {
               <Facebook className="h-5 w-5 text-gray-400 hover:text-white cursor-pointer" />
               <Twitter className="h-5 w-5 text-gray-400 hover:text-white cursor-pointer" />
               <Instagram className="h-5 w-5 text-gray-400 hover:text-white cursor-pointer" />
-              <FontAwesomeIcon icon={faGooglePlay} className="h-5 w-5 text-gray-400 hover:text-white cursor-pointer" />
-              <FontAwesomeIcon icon={faApple} className="h-5 w-5 text-gray-400 hover:text-white cursor-pointer" />
+              <a
+                href="https://www.youtube.com/channel/UCws8nhyYzZjWFzctc2msVyg"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="YouTube"
+                title="YouTube"
+              >
+                <Youtube
+                  className="h-5 w-5 text-gray-400 hover:text-white cursor-pointer"
+                />
+              </a>              
+              <FontAwesomeIcon
+                icon={faGooglePlay}
+                className="h-5 w-5 text-gray-400 hover:text-white cursor-pointer"
+              />
+              <FontAwesomeIcon
+                icon={faApple}
+                className="h-5 w-5 text-gray-400 hover:text-white cursor-pointer"
+              />
             </div>
           </div>
 

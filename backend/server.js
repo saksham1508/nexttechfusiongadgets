@@ -44,8 +44,29 @@ app.use(
         styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
         fontSrc: ["'self'", 'https://fonts.gstatic.com'],
         imgSrc: ["'self'", 'data:', 'https://res.cloudinary.com'],
-        scriptSrc: ["'self'"],
-        connectSrc: ["'self'", 'https://api.stripe.com']
+        scriptSrc: [
+          "'self'", 
+          "'unsafe-inline'",
+          'https://checkout.razorpay.com',
+          'https://js.stripe.com',
+          'https://www.paypal.com',
+          'https://pay.google.com'
+        ],
+        connectSrc: [
+          "'self'", 
+          'https://api.stripe.com',
+          'http://localhost:3000',
+          'http://localhost:3001',
+          'http://localhost:5000',
+          'http://localhost:5001',
+          'https://api.nexttechfusiongadgets.com',
+          'https://accounts.google.com',
+          'https://checkout.razorpay.com',
+          'https://api.razorpay.com',
+          'https://www.paypal.com',
+          'https://api.paypal.com',
+          'https://pay.google.com'
+        ]
       }
     },
     crossOriginEmbedderPolicy: false

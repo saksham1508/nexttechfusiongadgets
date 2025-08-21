@@ -163,7 +163,7 @@ const Header: React.FC = () => {
                   </div>
                 </button>
 
-                <div className="hidden md:flex items-center space-x-6 text-sm">
+                <div className="hidden md:flex items-center space-x-6 text-xs">
                   <div className="flex items-center space-x-2 bg-green-50 text-green-700 px-3 py-1 rounded-full">
                     <Clock className=" h-4 w-4" />
                     <span className="flex items-center space-x-2 font-semibold">

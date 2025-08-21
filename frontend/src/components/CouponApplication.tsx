@@ -68,11 +68,28 @@ const CouponApplication: React.FC<CouponApplicationProps> = ({
     setError('');
 
     try {
+      // Normalize payment method to backend-expected values
+      const normalizePaymentMethod = (method?: string) => {
+        switch (method) {
+          case 'stripe':
+          case 'paypal':
+            return 'card';
+          case 'googlepay':
+          case 'razorpay':
+          case 'phonepe':
+            return 'upi';
+          case 'paytm':
+            return 'wallet';
+          default:
+            return method;
+        }
+      };
+
       const validationData = {
         code: code.trim().toUpperCase(),
         orderValue,
         products,
-        paymentMethod
+        paymentMethod: normalizePaymentMethod(paymentMethod)
       };
 
       const response = await couponService.validateCoupon(validationData);
@@ -178,7 +195,7 @@ const CouponApplication: React.FC<CouponApplicationProps> = ({
 
       {/* Coupon Input Form */}
       {!appliedCoupon && (
-        <form onSubmit={handleSubmit} className="mb-4">
+        <div className="mb-4" role="group" aria-label="Apply coupon">
           <div className="flex space-x-2">
             <div className="flex-1">
               <input
@@ -194,21 +211,22 @@ const CouponApplication: React.FC<CouponApplicationProps> = ({
               />
             </div>
             <button
-              type="submit"
+              type="button"
+              onClick={() => validateAndApplyCoupon(couponCode)}
               disabled={isValidating || !couponCode.trim()}
               className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
             >
               {isValidating ? 'Validating...' : 'Apply'}
             </button>
           </div>
-          
+
           {error && (
             <div className="mt-2 flex items-center space-x-2 text-red-600">
               <AlertCircle className="w-4 h-4" />
               <span className="text-sm">{error}</span>
             </div>
           )}
-        </form>
+        </div>
       )}
 
       {/* Available Coupons List */}

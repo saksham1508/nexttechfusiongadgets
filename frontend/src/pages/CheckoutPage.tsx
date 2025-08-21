@@ -274,6 +274,8 @@ const CheckoutPage: React.FC = () => {
                   onPaymentMethodSelect={handlePaymentMethodSelect}
                   selectedAmount={finalTotal}
                   orderId={orderId}
+                  onPaymentSuccess={handlePaymentSuccess}
+                  onPaymentError={handlePaymentError}
                 />
               ) : (
                 <div className="space-y-4">

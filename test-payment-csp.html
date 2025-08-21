@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment CSP Test</title>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+</head>
+<body>
+    <h1>Payment CSP Test</h1>
+    <button onclick="testPaymentAPI()">Test Payment API</button>
+    <div id="result"></div>
+
+    <script>
+        async function testPaymentAPI() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = 'Testing...';
+            
+            try {
+                // Test API connection
+                const response = await axios.get('http://localhost:5001/api/payment-methods');
+                resultDiv.innerHTML = `<p style="color: green;">✅ API connection successful! Status: ${response.status}</p>`;
+            } catch (error) {
+                if (error.response && error.response.status === 401) {
+                    resultDiv.innerHTML = `<p style="color: orange;">⚠️ API accessible but requires authentication (Status: 401)</p>`;
+                } else {
+                    resultDiv.innerHTML = `<p style="color: red;">❌ API connection failed: ${error.message}</p>`;
+                }
+            }
+        }
+    </script>
+</body>
+</html>

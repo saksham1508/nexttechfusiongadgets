@@ -205,8 +205,8 @@ const ProductComparison: React.FC<ProductComparisonProps> = ({
                     {/* Product Image */}
                     <div className="aspect-square bg-gray-100 rounded-lg mb-4 overflow-hidden">
                       <img
-                        src={product.images[0]?.url || '/placeholder-product.jpg'}
-                        alt={product.name}
+                        src={product.images?.[0]?.url || product.image || '/placeholder-product.jpg'}
+                        alt={product.name || 'Product'}
                         className="w-full h-full object-cover"
                       />
                     </div>
