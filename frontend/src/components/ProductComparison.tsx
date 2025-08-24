@@ -38,10 +38,76 @@ const ProductComparison: React.FC<ProductComparisonProps> = ({
   const wishlistItems = wishlist?.items || [];
   const [selectedFeature, setSelectedFeature] = useState<string | null>(null);
 
-  // Get all unique features from all products
+  // Demo products fallback when no products are passed
+  const isDemo = products.length === 0;
+  const demoProducts = [
+    {
+      _id: 'demo1',
+      name: 'NextTech X1 Pro Smartphone',
+      price: 29999,
+      originalPrice: 34999,
+      rating: 4.5,
+      numReviews: 1243,
+      stock: 25,
+      images: [{ url: '/Icon.png' }],
+      features: ['5G', 'AMOLED Display', 'Fast Charging', 'Dual SIM'],
+      specifications: {
+        Display: '6.5" AMOLED 120Hz',
+        Processor: 'Snapdragon 778G',
+        RAM: '8GB',
+        Storage: '128GB',
+        Battery: '5000mAh',
+        Camera: '64MP + 12MP + 5MP',
+        OS: 'Android 14',
+        Weight: '180g'
+      }
+    },
+    {
+      _id: 'demo2',
+      name: 'FusionBuds ANC Headphones',
+      price: 7999,
+      originalPrice: 9999,
+      rating: 4.2,
+      numReviews: 876,
+      stock: 40,
+      images: [{ url: '/Icon.png' }],
+      features: ['Active Noise Cancellation', 'Bluetooth 5.3', 'Fast Charging'],
+      specifications: {
+        Driver: '40mm Dynamic',
+        Battery: '35 hours',
+        Weight: '220g',
+        Charging: 'USB-C, 10min=5h',
+        Latency: 'Low-latency mode'
+      }
+    },
+    {
+      _id: 'demo3',
+      name: 'VisionMax 4K Smart TV 55"',
+      price: 44999,
+      originalPrice: 52999,
+      rating: 4.7,
+      numReviews: 432,
+      stock: 10,
+      images: [{ url: '/Icon.png' }],
+      features: ['4K HDR', 'Dolby Vision', 'Dolby Atmos', 'Voice Assistant'],
+      specifications: {
+        Panel: 'VA, 60Hz',
+        HDR: 'HDR10+, Dolby Vision',
+        Speakers: '30W Dolby Atmos',
+        OS: 'Google TV',
+        Ports: '3x HDMI, 2x USB',
+      }
+    }
+  ];
+  const displayProducts = isDemo ? demoProducts : products;
+
+  // Base comparison fields to always show
+  const baseFeatures = ['Price', 'Brand', 'Rating', 'In Stock'];
+
+  // Get all unique features from products plus base fields
   const getAllFeatures = () => {
-    const allFeatures = new Set<string>();
-    products.forEach(product => {
+    const allFeatures = new Set<string>(baseFeatures);
+    displayProducts.forEach(product => {
       product.features?.forEach((feature: string) => allFeatures.add(feature));
       Object.keys(product.specifications || {}).forEach(spec => allFeatures.add(spec));
     });
@@ -90,8 +156,22 @@ const ProductComparison: React.FC<ProductComparisonProps> = ({
   };
 
   const getFeatureValue = (product: any, feature: string) => {
+    // Handle base features
+    switch (feature) {
+      case 'Price':
+        return `₹${(product.price || 0).toLocaleString()}`;
+      case 'Brand':
+        return product.brand || '-';
+      case 'Rating':
+        return typeof product.rating === 'number' ? `${product.rating}⭐` : '-';
+      case 'In Stock':
+        return (product.inStock ?? (product.countInStock ?? product.stock ?? 0) > 0);
+      default:
+        break;
+    }
+    // Dynamic features/specs
     if (product.features?.includes(feature)) return true;
-    if (product.specifications?.[feature]) return product.specifications[feature];
+    if (product.specifications && (feature in product.specifications)) return product.specifications[feature];
     return false;
   };
 
@@ -103,7 +183,10 @@ const ProductComparison: React.FC<ProductComparisonProps> = ({
         <Minus className="h-5 w-5 text-gray-400 mx-auto" />
       );
     }
-    return <span className="text-sm text-gray-700">{value}</span>;
+    if (value === null || value === undefined || value === '') {
+      return <span className="text-sm text-gray-400">-</span>;
+    }
+    return <span className="text-sm text-gray-700">{String(value)}</span>;
   };
 
   const getBestValue = () => {
@@ -145,22 +228,43 @@ const ProductComparison: React.FC<ProductComparisonProps> = ({
               <Scale className="h-6 w-6 text-blue-600" />
               <h2 className="text-2xl font-bold text-gray-900">Product Comparison</h2>
               <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
-                {products.length} Products
+                {displayProducts.length} Products
               </span>
             </div>
-            <button
-              type="button"
-              onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 transition-colors"
-              aria-label="Close comparison"
-            >
-              <X className="h-6 w-6" />
-            </button>
+            <div className="flex items-center space-x-2">
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  try {
+                    // enable multi-select mode and back up current pending list
+                    localStorage.setItem('compareSelectMode', '1');
+                    const existing = localStorage.getItem('comparePending');
+                    localStorage.setItem('comparePendingBackup', existing ?? '[]');
+                  } catch {}
+                  navigate('/products?compare=1');
+                  toast.success('Select products to compare, then click Done');
+                }}
+                className="btn-outline flex items-center space-x-2"
+                aria-label="Add products to comparison"
+              >
+                <Scale className="h-5 w-5" />
+                <span>Add products</span>
+              </button>
+              <button
+                type="button"
+                onClick={onClose}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+                aria-label="Close comparison"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
           </div>
         </div>
 
         <div className="overflow-auto max-h-[calc(90vh-100px)]">
-          {products.length === 0 ? (
+          {displayProducts.length === 0 ? (
             <div className="text-center py-12">
               <Scale className="h-16 w-16 text-gray-300 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">No Products to Compare</h3>
@@ -170,7 +274,7 @@ const ProductComparison: React.FC<ProductComparisonProps> = ({
             <div className="p-6">
               {/* Product Cards */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8">
-                {products.map((product) => (
+                {displayProducts.map((product) => (
                   <motion.div
                     key={product._id}
                     layout
@@ -202,14 +306,7 @@ const ProductComparison: React.FC<ProductComparisonProps> = ({
                       <X className="h-4 w-4" />
                     </button>
 
-                    {/* Product Image */}
-                    <div className="aspect-square bg-gray-100 rounded-lg mb-4 overflow-hidden">
-                      <img
-                        src={product.images[0]?.url || '/placeholder-product.jpg'}
-                        alt={product.name}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
+
 
                     {/* Product Info */}
                     <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2">
@@ -281,7 +378,7 @@ const ProductComparison: React.FC<ProductComparisonProps> = ({
                     <thead>
                       <tr className="border-b border-gray-200">
                         <th className="text-left py-3 px-4 font-medium text-gray-900">Feature</th>
-                        {products.map((product) => (
+                        {displayProducts.map((product) => (
                           <th key={product._id} className="text-center py-3 px-4 font-medium text-gray-900 min-w-[150px]">
                             {product.name.length > 20 ? `${product.name.substring(0, 20)}...` : product.name}
                           </th>
@@ -301,7 +398,7 @@ const ProductComparison: React.FC<ProductComparisonProps> = ({
                           <td className="py-3 px-4 font-medium text-gray-700">
                             {feature}
                           </td>
-                          {products.map((product) => (
+                          {displayProducts.map((product) => (
                             <td key={`${product._id}-${feature}`} className="py-3 px-4 text-center">
                               {renderFeatureValue(getFeatureValue(product, feature))}
                             </td>

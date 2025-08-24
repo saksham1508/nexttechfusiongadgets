@@ -13,6 +13,12 @@ const { rateLimits, sanitizeInput, addCorrelationId } = require('./middleware/va
 // Load env vars
 dotenv.config();
 
+// Paytm configuration
+const MID = process.env.PAYTM_MID;
+const MKEY = process.env.PAYTM_KEY;
+const WEBSITE = process.env.PAYTM_WEBSITE;
+const CALLBACK = process.env.PAYTM_CALLBACK;
+
 // Connect to database
 connectDB();
 
@@ -44,8 +50,34 @@ app.use(
         styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
         fontSrc: ["'self'", 'https://fonts.gstatic.com'],
         imgSrc: ["'self'", 'data:', 'https://res.cloudinary.com'],
-        scriptSrc: ["'self'", 'https://pay.google.com', 'https://www.gstatic.com'],
-        connectSrc: ["'self'", 'https://api.stripe.com', 'https://pay.google.com']
+        scriptSrc: [
+          "'self'", 
+          "'unsafe-inline'",
+          'https://checkout.razorpay.com',
+          'https://js.stripe.com',
+          'https://www.paypal.com',
+          'https://pay.google.com',
+          'https://www.gstatic.com',
+          'https://securegw-stage.paytm.in',
+          'https://securegw.paytm.in'
+        ],
+        connectSrc: [
+          "'self'", 
+          'https://api.stripe.com',
+          'http://localhost:3000',
+          'http://localhost:3001',
+          'http://localhost:5000',
+          'http://localhost:5001',
+          'https://api.nexttechfusiongadgets.com',
+          'https://accounts.google.com',
+          'https://checkout.razorpay.com',
+          'https://api.razorpay.com',
+          'https://www.paypal.com',
+          'https://api.paypal.com',
+          'https://pay.google.com',
+          'https://securegw-stage.paytm.in',
+          'https://securegw.paytm.in'
+        ]
       }
     },
     crossOriginEmbedderPolicy: false

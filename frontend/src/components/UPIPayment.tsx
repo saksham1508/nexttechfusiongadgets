@@ -54,24 +54,27 @@ const UPIPayment: React.FC<UPIPaymentProps> = ({
   };
 
   const startPaymentStatusCheck = (paymentId: string) => {
-    // In a real implementation, you would poll your backend for payment status
-    // For demo purposes, we'll simulate a status check
-    const checkInterval = setInterval(() => {
-      // Simulate random success/failure after 10 seconds
-      setTimeout(() => {
-        const isSuccess = Math.random() > 0.3; // 70% success rate for demo
-        if (isSuccess) {
-          setPaymentStatus('success');
-          if (paymentData) {
-            onSuccess({ ...paymentData, status: 'success' });
-          }
-        } else {
-          setPaymentStatus('failed');
-          onError('Payment failed or was cancelled');
-        }
-        clearInterval(checkInterval);
-      }, 10000);
-    }, 1000);
+    // Demo: deterministic outcome for presentations (always succeed after 3s)
+    setPaymentStatus('checking');
+    setTimeout(() => {
+      setPaymentStatus('success');
+      if (paymentData) {
+        onSuccess({ ...paymentData, status: 'success' });
+      } else {
+        // Fallback shape if paymentData is missing (shouldn't happen normally)
+        onSuccess({
+          paymentId,
+          amount,
+          currency: 'INR',
+          upiId,
+          merchantId: 'demo_merchant',
+          transactionId: orderId,
+          status: 'success',
+          qrCode: '',
+          deepLink: ''
+        } as any);
+      }
+    }, 3000);
   };
 
   const copyToClipboard = async (text: string) => {

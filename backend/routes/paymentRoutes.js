@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const asyncHandler = require('express-async-handler');
-const { auth } = require('../middleware/auth');
+const { auth, optional } = require('../middleware/auth');
 const PaymentMethod = require('../models/PaymentMethod');
 const paymentService = require('../services/paymentService');
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
@@ -581,8 +581,33 @@ router.post('/razorpay/verify', auth, verifyRazorpayPayment);
 router.post('/paypal/create-order', auth, createPayPalOrder);
 router.post('/paypal/capture/:orderId', auth, capturePayPalOrder);
 
-// UPI routes
-router.post('/upi/create', auth, createUPIPayment);
+// Paytm routes
+router.post('/paytm/initiate', optional, asyncHandler(async (req, res) => {
+  const { amount, orderId, customerId, email, mobile, testMode } = req.body;
+  if (!amount || !orderId) {
+    res.status(400);
+    throw new Error('amount and orderId are required');
+  }
+  const result = await paymentService.createPaytmTransaction({ amount, orderId, customerId, email, mobile, testMode });
+  if (result.success) {
+    return res.json({ success: true, data: result.data });
+  }
+  res.status(400);
+  throw new Error(result.error);
+}));
+
+router.post('/paytm/callback', asyncHandler(async (req, res) => {
+  const result = await paymentService.verifyPaytmCallback(req.body);
+  if (!result.success) {
+    res.status(400);
+    throw new Error(result.error);
+  }
+  // You can update order status here based on result.data.STATUS
+  return res.json({ success: true, data: result.data });
+}));
+
+// UPI routes (public for demo)
+router.post('/upi/create', optional, createUPIPayment);
 
 // Google Pay routes
 router.post('/googlepay/create', auth, createGooglePayPayment);

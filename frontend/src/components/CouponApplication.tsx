@@ -34,21 +34,21 @@ const CouponApplication: React.FC<CouponApplicationProps> = ({
 
   const loadAvailableCoupons = async () => {
     try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        // Not logged in; skip calling protected endpoint to avoid 401 spam
+        setAvailableCoupons([]);
+        return;
+      }
       const coupons = await couponService.getUserAvailableCoupons();
-      // Filter coupons based on order value and environment
       const validCoupons = coupons.filter(coupon => {
         const isValidForOrder = orderValue >= coupon.minOrderValue;
         const isValidNow = couponService.isValidNow(coupon);
-        
-        // Environment-specific filtering
         if (envInfo.isDevelopment || envInfo.isTest) {
-          // In dev/test, show all coupons for testing
           return isValidNow;
         }
-        
         return isValidForOrder && isValidNow;
       });
-      
       setAvailableCoupons(validCoupons);
     } catch (error) {
       console.error('Error loading available coupons:', error);
@@ -68,11 +68,51 @@ const CouponApplication: React.FC<CouponApplicationProps> = ({
     setError('');
 
     try {
+      // Require auth for validation/apply endpoints
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setError('Please sign in to apply coupons');
+        return;
+      }
+
+      // Normalize payment method to backend-expected values
+      const normalizePaymentMethod = (method?: string) => {
+        switch (method) {
+          case 'stripe':
+          case 'paypal':
+            return 'card';
+          case 'googlepay':
+          case 'razorpay':
+          case 'phonepe':
+            return 'upi';
+          case 'paytm':
+            return 'wallet';
+          default:
+            return method;
+        }
+      };
+
+      // Pre-checks for clearer messages before hitting API
+      const selectedNormalized = normalizePaymentMethod(paymentMethod);
+      const matchedCoupon = availableCoupons.find(c => c.code.toUpperCase() === code.trim().toUpperCase());
+      if (matchedCoupon) {
+        if (orderValue < matchedCoupon.minOrderValue) {
+          setError(`Minimum order value should be ₹${matchedCoupon.minOrderValue}`);
+          setIsValidating(false);
+          return;
+        }
+        if (matchedCoupon.paymentMethods?.length && selectedNormalized && !matchedCoupon.paymentMethods.includes(selectedNormalized)) {
+          setError(`This coupon is only valid for ${matchedCoupon.paymentMethods.join(', ')} payments`);
+          setIsValidating(false);
+          return;
+        }
+      }
+
       const validationData = {
         code: code.trim().toUpperCase(),
         orderValue,
         products,
-        paymentMethod
+        paymentMethod: selectedNormalized
       };
 
       const response = await couponService.validateCoupon(validationData);
@@ -178,7 +218,7 @@ const CouponApplication: React.FC<CouponApplicationProps> = ({
 
       {/* Coupon Input Form */}
       {!appliedCoupon && (
-        <form onSubmit={handleSubmit} className="mb-4">
+        <div className="mb-4" role="group" aria-label="Apply coupon">
           <div className="flex space-x-2">
             <div className="flex-1">
               <input
@@ -194,21 +234,22 @@ const CouponApplication: React.FC<CouponApplicationProps> = ({
               />
             </div>
             <button
-              type="submit"
+              type="button"
+              onClick={() => validateAndApplyCoupon(couponCode)}
               disabled={isValidating || !couponCode.trim()}
               className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
             >
               {isValidating ? 'Validating...' : 'Apply'}
             </button>
           </div>
-          
+
           {error && (
             <div className="mt-2 flex items-center space-x-2 text-red-600">
               <AlertCircle className="w-4 h-4" />
               <span className="text-sm">{error}</span>
             </div>
           )}
-        </form>
+        </div>
       )}
 
       {/* Available Coupons List */}

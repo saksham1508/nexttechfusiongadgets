@@ -1,5 +1,5 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import axios from 'axios';
+import axiosInstance from '../../utils/axiosConfig';
 
 declare const process: { env: { NODE_ENV: string; REACT_APP_API_URL: string } };
 
@@ -10,15 +10,16 @@ const getApiUrl = (): string => {
     case 'production':
       return process.env.REACT_APP_API_URL || 'https://api.nexttechfusiongadgets.com';
     case 'development':
-      return process.env.REACT_APP_API_URL || 'http://localhost:3000/api';
+      return process.env.REACT_APP_API_URL || 'http://localhost:5001/api';
     case 'test':
       return 'http://localhost:3001/api';
     default:
-      return 'http://localhost:3000/api';
+      return 'http://localhost:5001/api';
   }
 };
 
-const API_URL = getApiUrl();
+// Base URL is already embedded in the shared axios instance (services/api)
+const API_URL = getApiUrl(); // Kept for possible non-shared uses, but not needed for order calls
 
 interface Order {
   _id: string;
@@ -57,11 +58,23 @@ const getAuthHeaders = () => {
 
 export const createOrder = createAsyncThunk(
   'orders/createOrder',
-  async (orderData: any, { rejectWithValue }) => {
+  async (orderData: any, { getState, rejectWithValue }) => {
     try {
-      const response = await axios.post(`${API_URL}/orders`, orderData, {
-        headers: getAuthHeaders(),
-      });
+      const state: any = getState();
+      const token = state?.auth?.token
+        || state?.auth?.user?.token
+        || localStorage.getItem('token')
+        || sessionStorage.getItem('token')
+        || (() => {
+             try {
+               const u = localStorage.getItem('user') || sessionStorage.getItem('user');
+               return u ? JSON.parse(u)?.token : null;
+             } catch { return null; }
+           })();
+
+      const headers = token ? { Authorization: `Bearer ${token}` } : undefined;
+
+      const response = await axiosInstance.post(`/orders`, orderData, { headers });
       return response.data;
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Failed to create order');
@@ -73,9 +86,7 @@ export const fetchMyOrders = createAsyncThunk(
   'orders/fetchMyOrders',
   async (_, { rejectWithValue }) => {
     try {
-      const response = await axios.get(`${API_URL}/orders/myorders`, {
-        headers: getAuthHeaders(),
-      });
+      const response = await axiosInstance.get(`/orders/myorders`);
       return response.data;
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Failed to fetch orders');
@@ -89,9 +100,7 @@ export const fetchOrderById = createAsyncThunk(
   'orders/fetchOrderById',
   async (id: string, { rejectWithValue }) => {
     try {
-      const response = await axios.get(`${API_URL}/orders/${id}`, {
-        headers: getAuthHeaders(),
-      });
+      const response = await axiosInstance.get(`/orders/${id}`);
       return response.data;
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Failed to fetch order');

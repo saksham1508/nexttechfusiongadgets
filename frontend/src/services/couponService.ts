@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axiosInstance from '../utils/axiosConfig';
 import { API_URL, getAuthHeaders } from '../config/api';
 
 export interface Coupon {
@@ -52,12 +52,12 @@ export interface CouponValidationRequest {
 }
 
 class CouponService {
-  private baseURL = `${API_URL}/coupons`;
+  private baseURL = `/coupons`;
 
   // Get all active coupons
   async getActiveCoupons(): Promise<Coupon[]> {
     try {
-      const response = await axios.get(this.baseURL);
+      const response = await axiosInstance.get(this.baseURL);
       return response.data;
     } catch (error) {
       console.error('Error fetching active coupons:', error);
@@ -68,9 +68,7 @@ class CouponService {
   // Get user's available coupons
   async getUserAvailableCoupons(): Promise<Coupon[]> {
     try {
-      const response = await axios.get(`${this.baseURL}/user/available`, {
-        headers: getAuthHeaders()
-      });
+      const response = await axiosInstance.get(`${this.baseURL}/user/available`);
       return response.data;
     } catch (error) {
       console.error('Error fetching user coupons:', error);
@@ -81,9 +79,7 @@ class CouponService {
   // Validate coupon
   async validateCoupon(data: CouponValidationRequest): Promise<CouponValidationResponse> {
     try {
-      const response = await axios.post(`${this.baseURL}/validate`, data, {
-        headers: getAuthHeaders()
-      });
+      const response = await axiosInstance.post(`${this.baseURL}/validate`, data);
       return response.data;
     } catch (error: any) {
       if (error.response?.data) {
@@ -97,12 +93,10 @@ class CouponService {
   // Apply coupon (when order is placed)
   async applyCoupon(code: string, orderValue: number, discountApplied: number): Promise<void> {
     try {
-      await axios.post(`${this.baseURL}/apply`, {
+      await axiosInstance.post(`${this.baseURL}/apply`, {
         code,
         orderValue,
         discountApplied
-      }, {
-        headers: getAuthHeaders()
       });
     } catch (error) {
       console.error('Error applying coupon:', error);

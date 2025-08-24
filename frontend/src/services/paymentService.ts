@@ -212,6 +212,22 @@ class PaymentService {
       });
       return response.data.data;
     } catch (error: any) {
+      // Fallback to local mock when enabled for demos
+      if (process.env.REACT_APP_MOCK_PAYMENTS === 'true') {
+        const txn = transactionId || `txn_${Date.now()}`;
+        const upiString = `upi://pay?pa=${upiId}&pn=NextTechFusionGadgets&mc=5411&tid=${txn}&tr=${txn}&tn=Payment%20for%20order&am=${amount}&cu=INR`;
+        return {
+          paymentId: `upi_${Date.now()}`,
+          amount,
+          currency: 'INR',
+          upiId,
+          merchantId: 'demo_merchant',
+          transactionId: txn,
+          status: 'pending',
+          qrCode: upiString,
+          deepLink: upiString
+        } as UPIPayment;
+      }
       throw new Error(error.response?.data?.message || 'Failed to create UPI payment');
     }
   }

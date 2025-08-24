@@ -1,19 +1,115 @@
 const express = require('express');
 const router = express.Router();
 const Coupon = require('../models/Coupon');
-const { auth } = require('../middleware/auth');
+// Use fallback auth to work in both real and mock modes
+const { auth } = require('../middleware/authFallback');
+
+// Check if MongoDB is available (fallback to mock data when not)
+const isMongoAvailable = () => {
+  try {
+    const mongoose = require('mongoose');
+    return mongoose.connection.readyState === 1; // 1 = connected
+  } catch (error) {
+    return false;
+  }
+};
+
+// Mock coupons for development/testing when MongoDB is unavailable
+const mockCoupons = [
+  {
+    _id: 'mock_coupon_welcome10',
+    code: 'WELCOME10',
+    title: 'Welcome Offer 10% OFF',
+    description: 'Get 10% off on your first order',
+    type: 'welcome',
+    discountType: 'percentage',
+    discountValue: 10,
+    maxDiscount: 200,
+    minOrderValue: 500,
+    validFrom: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+    validUntil: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+    usageLimit: null,
+    usageCount: 0,
+    userUsageLimit: 1,
+    applicableCategories: [],
+    applicableProducts: [],
+    excludedProducts: [],
+    userRestrictions: { newUsersOnly: false, premiumUsersOnly: false, specificUsers: [] },
+    paymentMethods: [],
+    isActive: true,
+    priority: 10,
+  },
+  {
+    _id: 'mock_coupon_upi50',
+    code: 'UPI50',
+    title: 'UPI Flat ₹50 OFF',
+    description: 'Flat ₹50 off on UPI payments',
+    type: 'bank',
+    discountType: 'fixed',
+    discountValue: 50,
+    minOrderValue: 300,
+    validFrom: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+    validUntil: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+    usageLimit: null,
+    usageCount: 0,
+    userUsageLimit: 3,
+    applicableCategories: [],
+    applicableProducts: [],
+    excludedProducts: [],
+    userRestrictions: { newUsersOnly: false, premiumUsersOnly: false, specificUsers: [] },
+    paymentMethods: ['upi'],
+    isActive: true,
+    priority: 8,
+  },
+  {
+    _id: 'mock_coupon_loyalty100',
+    code: 'LOYALTY100',
+    title: 'Loyalty Flat ₹100 OFF',
+    description: 'Flat ₹100 off for loyal customers',
+    type: 'loyalty',
+    discountType: 'fixed',
+    discountValue: 100,
+    minOrderValue: 800,
+    validFrom: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+    validUntil: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+    usageLimit: null,
+    usageCount: 0,
+    userUsageLimit: 2,
+    applicableCategories: [],
+    applicableProducts: [],
+    excludedProducts: [],
+    userRestrictions: { newUsersOnly: false, premiumUsersOnly: false, specificUsers: [] },
+    paymentMethods: [],
+    isActive: true,
+    priority: 9,
+  },
+];
+
+// In-memory user usage tracker for mock mode (per-process)
+const mockUserUsage = new Map(); // key: `${userId}:${code}`, value: count
 
 // Get all active coupons
 router.get('/', async (req, res) => {
   try {
     const now = new Date();
 
-    const coupons = await Coupon.find({
-      isActive: true,
-      validFrom: { $lte: now },
-      validUntil: { $gte: now },
-      $or: [{ usageLimit: null }, { $expr: { $lt: ['$usageCount', '$usageLimit'] } }]
-    }).sort({ priority: -1, createdAt: -1 });
+    let coupons = [];
+    if (isMongoAvailable()) {
+      coupons = await Coupon.find({
+        isActive: true,
+        validFrom: { $lte: now },
+        validUntil: { $gte: now },
+        $or: [{ usageLimit: null }, { $expr: { $lt: ['$usageCount', '$usageLimit'] } }]
+      }).sort({ priority: -1, createdAt: -1 });
+    } else {
+      // Use mock data when MongoDB is not available
+      coupons = mockCoupons.filter(c => {
+        const validFrom = new Date(c.validFrom);
+        const validUntil = new Date(c.validUntil);
+        return c.isActive && validFrom <= now && validUntil >= now &&
+               (c.usageLimit == null || c.usageCount < c.usageLimit);
+      }).sort((a, b) => b.priority - a.priority);
+    }
 
     res.json(coupons);
   } catch (error) {
@@ -28,10 +124,15 @@ router.post('/validate', auth, async (req, res) => {
     const { code, orderValue, products, paymentMethod } = req.body;
     const userId = req.user._id;
 
-    const coupon = await Coupon.findOne({
-      code: code.toUpperCase(),
-      isActive: true
-    });
+    const now = new Date();
+
+    // Pick data source based on Mongo availability
+    let coupon = null;
+    if (isMongoAvailable()) {
+      coupon = await Coupon.findOne({ code: code.toUpperCase(), isActive: true });
+    } else {
+      coupon = mockCoupons.find(c => c.isActive && c.code === code.toUpperCase());
+    }
 
     if (!coupon) {
       return res.status(404).json({
@@ -40,10 +141,20 @@ router.post('/validate', auth, async (req, res) => {
       });
     }
 
-    const now = new Date();
+    // Normalize access to fields for mock objects
+    const couponValidFrom = new Date(coupon.validFrom);
+    const couponValidUntil = new Date(coupon.validUntil);
+    const couponUsageLimit = coupon.usageLimit;
+    const couponUsageCount = coupon.usageCount || 0;
+    const couponMinOrderValue = coupon.minOrderValue || 0;
+    const couponUserUsageLimit = coupon.userUsageLimit || 1;
+    const couponPaymentMethods = coupon.paymentMethods || [];
+    const couponDiscountType = coupon.discountType;
+    const couponDiscountValue = coupon.discountValue;
+    const couponMaxDiscount = coupon.maxDiscount;
 
     // Check validity period
-    if (coupon.validFrom > now || coupon.validUntil < now) {
+    if (couponValidFrom > now || couponValidUntil < now) {
       return res.status(400).json({
         valid: false,
         message: 'Coupon has expired or not yet valid'
@@ -51,7 +162,7 @@ router.post('/validate', auth, async (req, res) => {
     }
 
     // Check usage limit
-    if (coupon.usageLimit && coupon.usageCount >= coupon.usageLimit) {
+    if (couponUsageLimit && couponUsageCount >= couponUsageLimit) {
       return res.status(400).json({
         valid: false,
         message: 'Coupon usage limit exceeded'
@@ -59,71 +170,61 @@ router.post('/validate', auth, async (req, res) => {
     }
 
     // Check minimum order value
-    if (orderValue < coupon.minOrderValue) {
+    if (orderValue < couponMinOrderValue) {
       return res.status(400).json({
         valid: false,
-        message: `Minimum order value should be ₹${coupon.minOrderValue}`
+        message: `Minimum order value should be ₹${couponMinOrderValue}`
       });
     }
 
     // Check user usage limit
-    const userUsage = coupon.usedBy.filter(
-      usage => usage.user.toString() === userId.toString()
-    ).length;
+    let userUsage = 0;
+    if (isMongoAvailable()) {
+      userUsage = (coupon.usedBy || []).filter(usage => usage.user.toString() === userId.toString()).length;
+    } else {
+      const key = `${userId}:${coupon.code}`;
+      userUsage = mockUserUsage.get(key) || 0;
+    }
 
-    if (userUsage >= coupon.userUsageLimit) {
+    if (userUsage >= couponUserUsageLimit) {
       return res.status(400).json({
         valid: false,
         message: 'You have already used this coupon'
       });
     }
 
-    // Check user restrictions
-    if (coupon.userRestrictions.newUsersOnly) {
-      // Check if user is new (you can implement this logic)
-    }
-
-    if (coupon.userRestrictions.specificUsers.length > 0) {
-      if (!coupon.userRestrictions.specificUsers.includes(userId)) {
-        return res.status(400).json({
-          valid: false,
-          message: 'This coupon is not available for your account'
-        });
-      }
-    }
-
     // Check payment method restrictions
-    if (coupon.paymentMethods.length > 0 && paymentMethod) {
-      if (!coupon.paymentMethods.includes(paymentMethod)) {
+    if (couponPaymentMethods.length > 0 && paymentMethod) {
+      if (!couponPaymentMethods.includes(paymentMethod)) {
         return res.status(400).json({
           valid: false,
-          message: `This coupon is only valid for ${coupon.paymentMethods.join(', ')} payments`
+          message: `This coupon is only valid for ${couponPaymentMethods.join(', ')} payments`
         });
       }
     }
 
     // Calculate discount
     let discountAmount = 0;
-    if (coupon.discountType === 'percentage') {
-      discountAmount = (orderValue * coupon.discountValue) / 100;
-      if (coupon.maxDiscount) {
-        discountAmount = Math.min(discountAmount, coupon.maxDiscount);
+    if (couponDiscountType === 'percentage') {
+      discountAmount = (orderValue * couponDiscountValue) / 100;
+      if (couponMaxDiscount) {
+        discountAmount = Math.min(discountAmount, couponMaxDiscount);
       }
     } else {
-      discountAmount = coupon.discountValue;
+      discountAmount = couponDiscountValue;
     }
 
     // Ensure discount doesn't exceed order value
     discountAmount = Math.min(discountAmount, orderValue);
 
-    res.json({
+    return res.json({
       valid: true,
       coupon: {
         id: coupon._id,
         code: coupon.code,
         title: coupon.title,
-        discountType: coupon.discountType,
-        discountValue: coupon.discountValue
+        discountType: couponDiscountType,
+        discountValue: couponDiscountValue
       },
       discountAmount,
       finalAmount: orderValue - discountAmount
@@ -140,29 +241,32 @@ router.post('/apply', auth, async (req, res) => {
     const { code, orderValue, discountApplied } = req.body;
     const userId = req.user._id;
 
-    const coupon = await Coupon.findOne({
-      code: code.toUpperCase(),
-      isActive: true
-    });
+    if (isMongoAvailable()) {
+      const coupon = await Coupon.findOne({ code: code.toUpperCase(), isActive: true });
+      if (!coupon) {
+        return res.status(404).json({ message: 'Coupon not found' });
+      }
 
-    if (!coupon) {
-      return res.status(404).json({ message: 'Coupon not found' });
+      // Add usage record
+      coupon.usedBy.push({
+        user: userId,
+        usedAt: new Date(),
+        orderValue,
+        discountApplied
+      });
+
+      // Increment usage count
+      coupon.usageCount += 1;
+
+      await coupon.save();
+      return res.json({ message: 'Coupon applied successfully' });
+    } else {
+      // Mock mode: track usage in-memory
+      const key = `${userId}:${code.toUpperCase()}`;
+      const current = mockUserUsage.get(key) || 0;
+      mockUserUsage.set(key, current + 1);
+      return res.json({ message: 'Coupon applied successfully (mock)' });
     }
-
-    // Add usage record
-    coupon.usedBy.push({
-      user: userId,
-      usedAt: new Date(),
-      orderValue,
-      discountApplied
-    });
-
-    // Increment usage count
-    coupon.usageCount += 1;
-
-    await coupon.save();
-
-    res.json({ message: 'Coupon applied successfully' });
   } catch (error) {
     console.error('Apply coupon error:', error);
     res.status(500).json({ message: 'Server error' });
@@ -175,26 +279,37 @@ router.get('/user/available', auth, async (req, res) => {
     const userId = req.user._id;
     const now = new Date();
 
-    const coupons = await Coupon.find({
-      isActive: true,
-      validFrom: { $lte: now },
-      validUntil: { $gte: now },
-      $or: [{ usageLimit: null }, { $expr: { $lt: ['$usageCount', '$usageLimit'] } }]
-    });
+    let coupons = [];
+    if (isMongoAvailable()) {
+      coupons = await Coupon.find({
+        isActive: true,
+        validFrom: { $lte: now },
+        validUntil: { $gte: now },
+        $or: [{ usageLimit: null }, { $expr: { $lt: ['$usageCount', '$usageLimit'] } }]
+      });
+    } else {
+      coupons = mockCoupons.filter(c => c.isActive && new Date(c.validFrom) <= now && new Date(c.validUntil) >= now);
+    }
 
     // Filter coupons based on user restrictions and usage
     const availableCoupons = coupons.filter(coupon => {
       // Check user usage limit
-      const userUsage = coupon.usedBy.filter(
-        usage => usage.user.toString() === userId.toString()
-      ).length;
+      let userUsage = 0;
+      if (isMongoAvailable()) {
+        userUsage = (coupon.usedBy || []).filter(
+          usage => usage.user.toString() === userId.toString()
+        ).length;
+      } else {
+        const key = `${userId}:${coupon.code}`;
+        userUsage = mockUserUsage.get(key) || 0;
+      }
 
-      if (userUsage >= coupon.userUsageLimit) {
+      if (userUsage >= (coupon.userUsageLimit || 1)) {
         return false;
       }
 
       // Check specific user restrictions
-      if (coupon.userRestrictions.specificUsers.length > 0) {
+      if (coupon.userRestrictions && coupon.userRestrictions.specificUsers && coupon.userRestrictions.specificUsers.length > 0) {
         return coupon.userRestrictions.specificUsers.includes(userId);
       }
 

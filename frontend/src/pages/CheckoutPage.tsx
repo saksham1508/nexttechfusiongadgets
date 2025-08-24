@@ -10,7 +10,9 @@ import StripePayment from '../components/StripePayment';
 import PayPalPayment from '../components/PayPalPayment';
 import UPIPayment from '../components/UPIPayment';
 import GooglePayPayment from '../components/GooglePayPayment';
+
 import CouponApplication from '../components/CouponApplication';
+import { countries } from '../utils/countries';
 
 import { CreditCard, Truck, MapPin, ArrowLeft } from 'lucide-react';
 import { PaymentMethod, PaymentProvider } from '../types';
@@ -30,7 +32,7 @@ const CheckoutPage: React.FC = () => {
     city: '',
     state: '',
     zipCode: '',
-    country: 'USA',
+    country: 'United States',
   });
 
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethod | null>(null);
@@ -40,6 +42,13 @@ const CheckoutPage: React.FC = () => {
   const [appliedCoupon, setAppliedCoupon] = useState<CouponValidationResponse | null>(null);
   const [discountAmount, setDiscountAmount] = useState<number>(0);
   const [finalAmount, setFinalAmount] = useState<number>(totalAmount);
+  const [couponAppKey, setCouponAppKey] = useState(0);
+  const handleRemoveCoupon = () => {
+    setAppliedCoupon(null);
+    setDiscountAmount(0);
+    setCouponAppKey((k) => k + 1);
+    toast.success('Coupon removed');
+  }
 
   useEffect(() => {
     // Fetch cart if empty
@@ -89,6 +98,8 @@ const CheckoutPage: React.FC = () => {
     }
   };
 
+  // Using CouponApplication for validation and apply/remove via handleCouponApplied
+
   const handlePaymentSuccess = async (paymentResult: any) => {
     if (items.length === 0) {
       toast.error('Your cart is empty');
@@ -114,7 +125,8 @@ const CheckoutPage: React.FC = () => {
         shippingAddress,
         paymentMethod: selectedProvider || 'card',
         paymentResult,
-        totalPrice: finalAmount,
+        // Use the same total shown in UI (subtotal - discount + shipping + tax)
+        totalPrice: finalTotal,
         originalPrice: totalAmount,
         discountAmount,
         couponCode: appliedCoupon?.coupon?.code || null,
@@ -174,12 +186,23 @@ const CheckoutPage: React.FC = () => {
 
   const subtotal = totalAmount;
   const shipping = totalAmount > 50 ? 0 : 9.99;
-  const tax = (totalAmount - discountAmount) * 0.08;
-  const finalTotal = subtotal - discountAmount + shipping + tax;
+  // Ensure discount never exceeds subtotal
+  const cappedDiscount = Math.min(discountAmount, subtotal);
+  // Tax should be computed on non-negative base after discount
+  const taxableBase = Math.max(subtotal - cappedDiscount, 0);
+  const tax = taxableBase * 0.08;
+  const finalTotal = taxableBase + shipping + tax;
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <h1 className="text-3xl font-bold text-gray-900 mb-8">Checkout</h1>
+      <h1 className="text-3xl font-bold text-gray-900 mb-8 flex items-center space-x-3">
+        <span>Checkout</span>
+        {discountAmount > 0 && appliedCoupon?.coupon?.code && (
+          <span className="text-xs font-medium text-green-700 bg-green-100 px-2 py-0.5 rounded">
+            {appliedCoupon.coupon.code}
+          </span>
+        )}
+      </h1>
 
       <form onSubmit={handleSubmit}>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -260,9 +283,12 @@ const CheckoutPage: React.FC = () => {
                     onChange={handleShippingChange}
                     className="input-field"
                   >
-                    <option value="USA">United States</option>
-                    <option value="Canada">Canada</option>
-                    <option value="UK">United Kingdom</option>
+                    {/* Dynamically render all countries */}
+                    {countries.map((c: { code: string; name: string }) => (
+                      <option key={c.code} value={c.name}>
+                        {c.name}
+                      </option>
+                    ))}
                   </select>
                 </div>
               </div>
@@ -275,6 +301,8 @@ const CheckoutPage: React.FC = () => {
                   onPaymentMethodSelect={handlePaymentMethodSelect}
                   selectedAmount={finalTotal}
                   orderId={orderId}
+                  onPaymentSuccess={handlePaymentSuccess}
+                  onPaymentError={handlePaymentError}
                 />
               ) : (
                 <div className="space-y-4">
@@ -367,11 +395,12 @@ const CheckoutPage: React.FC = () => {
                 ))}
               </div>
 
-              {/* Coupon Application */}
+              {/* Coupon */}
               <CouponApplication
+                key={couponAppKey}
                 orderValue={totalAmount}
                 paymentMethod={selectedProvider || undefined}
-                products={items.map(item => item.product._id)}
+                products={items.map((i: any) => i.product._id)}
                 onCouponApplied={handleCouponApplied}
                 className="mb-6"
               />
@@ -383,8 +412,24 @@ const CheckoutPage: React.FC = () => {
                   <span className="font-medium">${subtotal.toFixed(2)}</span>
                 </div>
                 {discountAmount > 0 && (
-                  <div className="flex justify-between text-green-600">
-                    <span>Discount {appliedCoupon?.coupon?.code && `(${appliedCoupon.coupon.code})`}</span>
+                  <div className="flex items-center justify-between text-green-600">
+                    <div className="flex items-center space-x-2">
+                      <span>
+                        Discount {appliedCoupon?.coupon?.code && `(${appliedCoupon.coupon.code})`}
+                      </span>
+                      {appliedCoupon?.coupon?.title && (
+                        <span className="text-xs text-green-700 bg-green-100 px-2 py-0.5 rounded">
+                          {appliedCoupon.coupon.title}
+                        </span>
+                      )}
+                      <button
+                        type="button"
+                        onClick={handleRemoveCoupon}
+                        className="text-xs text-green-700 hover:text-green-900 underline"
+                      >
+                        Remove
+                      </button>
+                    </div>
                     <span className="font-medium">-${discountAmount.toFixed(2)}</span>
                   </div>
                 )}
@@ -399,10 +444,22 @@ const CheckoutPage: React.FC = () => {
                   <span className="font-medium">${tax.toFixed(2)}</span>
                 </div>
                 <div className="border-t pt-3">
-                  <div className="flex justify-between">
-                    <span className="text-lg font-semibold">Total</span>
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center space-x-2">
+                      <span className="text-lg font-semibold">Total</span>
+                      {discountAmount > 0 && appliedCoupon?.coupon?.code && (
+                        <span className="text-xs font-medium text-green-700 bg-green-100 px-2 py-0.5 rounded">
+                          {appliedCoupon.coupon.code}
+                        </span>
+                      )}
+                    </div>
                     <span className="text-lg font-semibold">${finalTotal.toFixed(2)}</span>
                   </div>
+                  {discountAmount > 0 && (
+                    <div className="text-xs text-gray-500 mt-1">
+                      Includes discount of ${discountAmount.toFixed(2)}
+                    </div>
+                  )}
                 </div>
               </div>
 

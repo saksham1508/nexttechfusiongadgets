@@ -28,6 +28,31 @@ const HomePage: React.FC = () => {
   const [selectedLocation, setSelectedLocation] = useState<Location | null>(null);
   const [showComparison, setShowComparison] = useState(false);
   const [comparisonProducts, setComparisonProducts] = useState<any[]>([]);
+
+  // Pull any pending compare items from localStorage when coming back from product selection
+  useEffect(() => {
+    try {
+      const pendingRaw = localStorage.getItem('comparePending');
+      const reopen = localStorage.getItem('compareReopen') === '1';
+      if (pendingRaw) {
+        const pending = JSON.parse(pendingRaw);
+        if (Array.isArray(pending) && pending.length) {
+          setComparisonProducts((prev) => {
+            const merged = [...prev];
+            pending.forEach((p: any) => {
+              if (!merged.find((x) => x._id === p._id)) merged.push(p);
+            });
+            return merged;
+          });
+          localStorage.removeItem('comparePending');
+        }
+      }
+      if (reopen) {
+        setShowComparison(true);
+        localStorage.removeItem('compareReopen');
+      }
+    } catch {}
+  }, []);
   const [showBulkOrder, setShowBulkOrder] = useState(false);
   const [viewedProducts, setViewedProducts] = useState<any[]>([]);
 
@@ -73,17 +98,20 @@ const HomePage: React.FC = () => {
 
   // Handle product comparison
   const addToComparison = (product: any) => {
-    if (comparisonProducts.length >= 4) {
-      alert('You can compare up to 4 products at a time');
-      return;
-    }
-    if (!comparisonProducts.find(p => p._id === product._id)) {
-      setComparisonProducts([...comparisonProducts, product]);
-    }
+    setComparisonProducts((prev) => {
+      if (prev.length >= 4) {
+        alert('You can compare up to 4 products at a time');
+        return prev;
+      }
+      if (prev.find((p) => p._id === product._id)) {
+        return prev; // already added
+      }
+      return [...prev, product];
+    });
   };
 
   const removeFromComparison = (productId: string) => {
-    setComparisonProducts(comparisonProducts.filter(p => p._id !== productId));
+    setComparisonProducts((prev) => prev.filter((p) => p._id !== productId));
   };
 
   // Track viewed products (mock implementation)
@@ -124,13 +152,12 @@ const HomePage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setShowComparison(true)}
-                className="relative bg-purple-50 text-purple-700 px-4 py-3 rounded-xl hover:bg-purple-100 transition-colors flex items-center space-x-2"
-                disabled={comparisonProducts.length === 0}
+                className={`relative px-4 py-3 rounded-xl transition-colors flex items-center space-x-2 ${comparisonProducts.length === 0 ? 'bg-gray-100 text-gray-500 hover:bg-gray-100 cursor-pointer' : 'bg-purple-50 text-purple-700 hover:bg-purple-100'}`}
               >
                 <Scale className="h-5 w-5" />
                 <span className="text-sm font-semibold">Compare</span>
                 {comparisonProducts.length > 0 && (
-                  <span className="absolute -top-2 -right-2 bg-purple-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                  <span className="absolute -top-2 -right-2 bg-purple-700 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
                     {comparisonProducts.length}
                   </span>
                 )}

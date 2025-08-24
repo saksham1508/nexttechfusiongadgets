@@ -20,12 +20,16 @@ interface PaymentMethodsProps {
   onPaymentMethodSelect: (method: PaymentMethod | null) => void;
   selectedAmount: number;
   orderId?: string;
+  onPaymentSuccess?: (result: any) => void;
+  onPaymentError?: (error: string) => void;
 }
 
 const PaymentMethods: React.FC<PaymentMethodsProps> = ({
   onPaymentMethodSelect,
   selectedAmount,
-  orderId
+  orderId,
+  onPaymentSuccess,
+  onPaymentError
 }) => {
   const dispatch = useDispatch();
   const { user } = useSelector((state: RootState) => state.auth);
@@ -185,7 +189,11 @@ const PaymentMethods: React.FC<PaymentMethodsProps> = ({
           setError(`${provider} payment is not implemented yet`);
       }
     } catch (error: any) {
-      setError(error.message);
+      const errorMessage = error.message;
+      setError(errorMessage);
+      if (onPaymentError) {
+        onPaymentError(errorMessage);
+      }
     } finally {
       setProcessingPayment(false);
     }
@@ -193,8 +201,9 @@ const PaymentMethods: React.FC<PaymentMethodsProps> = ({
 
   const handlePaymentSuccess = (result: any) => {
     console.log('Payment successful:', result);
-    // Handle successful payment
-    // You can dispatch actions to update order status, show success message, etc.
+    if (onPaymentSuccess) {
+      onPaymentSuccess(result);
+    }
   };
 
   const handleDeleteMethod = async (methodId: string) => {
