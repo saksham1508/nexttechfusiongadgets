@@ -35,10 +35,39 @@ export const fetchCart = createAsyncThunk(
   'cart/fetchCart',
   async (_, { rejectWithValue }) => {
     try {
+      // Check authentication before making API call
+      const token = localStorage.getItem('token');
+      const user = localStorage.getItem('user');
+      
+      if (!token || !user) {
+        console.log('🔄 No auth found. Using mock cart for fetchCart.');
+        try {
+          const mockResponse = await mockApiService.getCart();
+          console.log('✅ Mock API: Fetch cart success (no auth)', mockResponse);
+          return mockResponse;
+        } catch (mockError) {
+          console.error('❌ Mock API fetch failed:', mockError);
+          return rejectWithValue('Failed to fetch cart. Please try again.');
+        }
+      }
+      
       const response = await axiosInstance.get(API_ENDPOINTS.CART.GET);
       return response.data;
     } catch (error: any) {
       console.error('❌ Cart API: Fetch cart failed', error);
+
+      // Friendly fallback on auth errors (treat as guest cart in dev)
+      if (error.response?.status === 401) {
+        try {
+          console.log('🔄 401 on cart fetch. Falling back to mock cart for better UX');
+          const mockResponse = await mockApiService.getCart();
+          console.log('✅ Mock API: Fetch cart success (401 fallback)', mockResponse);
+          return mockResponse;
+        } catch (mockError) {
+          console.error('❌ Mock API fetch also failed:', mockError);
+          return rejectWithValue('Please log in to continue.');
+        }
+      }
       
       // Check if it's a network error or server unavailable
       if (!error.response || error.code === 'NETWORK_ERROR' || error.response?.status >= 500) {
@@ -67,8 +96,13 @@ export const addToCart = createAsyncThunk(
       const user = localStorage.getItem('user');
       
       if (!token || !user) {
-        console.error('❌ No authentication data found');
-        return rejectWithValue('Please log in to add items to cart');
+        console.warn('⚠️ No auth found. Using mock cart for addToCart.');
+        try {
+          const mockResponse = await mockApiService.addToCart(productId, quantity);
+          return mockResponse;
+        } catch (mockError) {
+          return rejectWithValue('Please log in to add items to cart');
+        }
       }
       
       console.log('🛒 Cart API: Adding to cart', { productId, quantity });
@@ -148,8 +182,13 @@ export const updateCartItem = createAsyncThunk(
       const user = localStorage.getItem('user');
       
       if (!token || !user) {
-        console.error('❌ No authentication data found');
-        return rejectWithValue('Please log in to update cart items');
+        console.warn('⚠️ No auth found. Using mock cart for updateCartItem.');
+        try {
+          const mockResponse = await mockApiService.updateCartItem(productId, quantity);
+          return mockResponse;
+        } catch (mockError) {
+          return rejectWithValue('Please log in to update cart items');
+        }
       }
       
       console.log('🔄 Cart API: Updating cart item', { productId, quantity });

@@ -97,9 +97,12 @@ const PaymentMethods: React.FC<PaymentMethodsProps> = ({
             provider: 'stripe',
             type: 'card',
             nickname: 'Credit/Debit Card',
+            details: {
+              brand: 'visa',
+              last4: '4242'
+            },
             isDefault: false,
             isActive: true,
-            user: effectiveUser._id || effectiveUser.id,
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString()
           };
@@ -122,9 +125,11 @@ const PaymentMethods: React.FC<PaymentMethodsProps> = ({
             provider: 'paypal',
             type: 'digital_wallet',
             nickname: 'PayPal',
+            details: {
+              walletProvider: 'PayPal'
+            },
             isDefault: false,
             isActive: true,
-            user: effectiveUser._id || effectiveUser.id,
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString()
           };
@@ -169,10 +174,43 @@ const PaymentMethods: React.FC<PaymentMethodsProps> = ({
           break;
 
         case 'phonepe':
+          // Create a mock payment method for PhonePe to trigger the payment component
+          const phonepeMethod: PaymentMethod = {
+            _id: 'phonepe_temp',
+            provider: 'phonepe',
+            type: 'digital_wallet',
+            nickname: 'PhonePe',
+            details: {
+              walletProvider: 'PhonePe'
+            },
+            isDefault: false,
+            isActive: true,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          };
+          handleMethodSelect(phonepeMethod);
+          break;
+
         case 'paytm':
-          // These will use UPI flow
+          // Use UPI flow for Paytm
           result = await paymentService.processUPIPayment(selectedAmount, `user@${provider}`);
           handlePaymentSuccess(result);
+          break;
+
+        case 'cod':
+          // Cash on Delivery: no online payment, just select the method
+          const codMethod: PaymentMethod = {
+            _id: 'cod_temp',
+            provider: 'cod',
+            type: 'cash',
+            nickname: 'Cash on Delivery',
+            details: {},
+            isDefault: false,
+            isActive: true,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          };
+          handleMethodSelect(codMethod);
           break;
 
         case 'square':
@@ -231,6 +269,8 @@ const PaymentMethods: React.FC<PaymentMethodsProps> = ({
         return <Wallet className="h-6 w-6 text-blue-600" />;
       case 'upi':
         return <QrCode className="h-6 w-6 text-orange-600" />;
+      case 'cod':
+        return <Wallet className="h-6 w-6 text-green-700" />;
       case 'square':
         return <CreditCard className="h-6 w-6 text-gray-600" />;
       case 'bitcoin':
@@ -258,6 +298,8 @@ const PaymentMethods: React.FC<PaymentMethodsProps> = ({
         return 'border-blue-200 hover:border-blue-300 bg-blue-50';
       case 'upi':
         return 'border-orange-200 hover:border-orange-300 bg-orange-50';
+      case 'cod':
+        return 'border-green-200 hover:border-green-300 bg-green-50';
       case 'square':
         return 'border-gray-200 hover:border-gray-300 bg-gray-50';
       case 'bitcoin':
@@ -357,27 +399,88 @@ const PaymentMethods: React.FC<PaymentMethodsProps> = ({
       <div className="space-y-3">
         <h4 className="text-md font-medium text-gray-800">Quick Payment Options</h4>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {availableProviders.map((provider) => {
-            const providerInfo = paymentService.getPaymentMethodInfo(provider);
-            return (
-              <button
-                key={provider}
-                onClick={() => handleProviderSelect(provider)}
-                disabled={processingPayment}
-                className={`p-4 border rounded-lg transition-all ${getProviderColor(provider)} ${
-                  processingPayment ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-md'
-                }`}
-              >
-                <div className="flex items-center space-x-3">
-                  {getProviderIcon(provider)}
-                  <div className="text-left">
-                    <div className="font-medium text-gray-900">{providerInfo.name}</div>
-                    <div className="text-sm text-gray-600">{providerInfo.description}</div>
+          {/* Single UPI button grouping Google Pay, PhonePe, Paytm */}
+          <button
+            key="upi_group"
+            onClick={() => handleProviderSelect('upi')}
+            disabled={processingPayment}
+            className={`p-4 border rounded-lg transition-all ${getProviderColor('upi')} ${
+              processingPayment ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-md'
+            }`}
+          >
+            <div className="flex items-center space-x-3">
+              {getProviderIcon('upi')}
+              <div className="text-left flex-1">
+                <div className="font-medium text-gray-900">UPI Payment</div>
+                <div className="text-sm text-gray-600">Pay via any UPI app (Google Pay, PhonePe, Paytm, etc.)</div>
+              </div>
+              <span className="ml-auto text-gray-400">→</span>
+            </div>
+          </button>
+
+          {/* Razorpay button remains */}
+          <button
+            key="razorpay"
+            onClick={() => handleProviderSelect('razorpay')}
+            disabled={processingPayment}
+            className={`p-4 border rounded-lg transition-all ${getProviderColor('razorpay')} ${
+              processingPayment ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-md'
+            }`}
+          >
+            <div className="flex items-center space-x-3">
+              {getProviderIcon('razorpay')}
+              <div className="text-left flex-1">
+                <div className="font-medium text-gray-900">{paymentService.getPaymentMethodInfo('razorpay').name}</div>
+                <div className="text-sm text-gray-600">{paymentService.getPaymentMethodInfo('razorpay').description}</div>
+              </div>
+              <span className="ml-auto text-gray-400">→</span>
+            </div>
+          </button>
+
+          {/* Cash on Delivery button next to Razorpay */}
+          <button
+            key="cod"
+            onClick={() => handleProviderSelect('cod')}
+            disabled={processingPayment}
+            className={`p-4 border rounded-lg transition-all ${getProviderColor('cod')} ${
+              processingPayment ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-md'
+            }`}
+          >
+            <div className="flex items-center space-x-3">
+              {getProviderIcon('cod')}
+              <div className="text-left flex-1">
+                <div className="font-medium text-gray-900">Cash on Delivery</div>
+                <div className="text-sm text-gray-600">Place order and pay in cash upon delivery</div>
+              </div>
+              <span className="ml-auto text-gray-400">→</span>
+            </div>
+          </button>
+
+          {/* Render remaining providers except individual UPI apps and duplicates */}
+          {[...availableProviders]
+            .filter((p) => !['phonepe', 'googlepay', 'paytm', 'upi', 'razorpay', 'cod'].includes(p))
+            .map((provider) => {
+              const providerInfo = paymentService.getPaymentMethodInfo(provider);
+              return (
+                <button
+                  key={provider}
+                  onClick={() => handleProviderSelect(provider)}
+                  disabled={processingPayment}
+                  className={`p-4 border rounded-lg transition-all ${getProviderColor(provider)} ${
+                    processingPayment ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-md'
+                  }`}
+                >
+                  <div className="flex items-center space-x-3">
+                    {getProviderIcon(provider)}
+                    <div className="text-left flex-1">
+                      <div className="font-medium text-gray-900">{providerInfo.name}</div>
+                      <div className="text-sm text-gray-600">{providerInfo.description}</div>
+                    </div>
+                    <span className="ml-auto text-gray-400">→</span>
                   </div>
-                </div>
-              </button>
-            );
-          })}
+                </button>
+              );
+            })}
         </div>
       </div>
 

@@ -60,7 +60,7 @@ const CategoriesPage: React.FC = () => {
   };
 
   const handleFilterChange = (newFilters: Partial<ProductFilters>) => {
-    setFilters(prev => ({
+    setFilters((prev: ProductFilters) => ({
       ...prev,
       ...newFilters,
       page: 1 // Reset to first page when filters change
@@ -68,7 +68,7 @@ const CategoriesPage: React.FC = () => {
   };
 
   const handlePageChange = (page: number) => {
-    setFilters(prev => ({ ...prev, page }));
+    setFilters((prev: ProductFilters) => ({ ...prev, page }));
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -80,10 +80,28 @@ const CategoriesPage: React.FC = () => {
     
     while (current) {
       breadcrumbs.unshift(current);
-      current = current.parent;
+      // Find parent category by ID from categoryTree
+      if (current.parent) {
+        current = findCategoryById(categoryTree, current.parent);
+      } else {
+        current = undefined;
+      }
     }
     
     return breadcrumbs;
+  };
+
+  const findCategoryById = (categories: Category[], id: string): Category | undefined => {
+    for (const category of categories) {
+      if (category._id === id) {
+        return category;
+      }
+      if (category.children) {
+        const found = findCategoryById(category.children, id);
+        if (found) return found;
+      }
+    }
+    return undefined;
   };
 
   const breadcrumbs = getBreadcrumbs();

@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Razorpay Test</title>
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+</head>
+<body>
+    <h1>Razorpay Direct Test</h1>
+    <button onclick="testRazorpay()">Test Razorpay Payment</button>
+    <div id="result"></div>
+
+    <script>
+        async function testRazorpay() {
+            console.log('🔄 Starting direct Razorpay test...');
+            
+            try {
+                // Test 1: Check if Razorpay script is loaded
+                console.log('Razorpay object:', window.Razorpay);
+                if (!window.Razorpay) {
+                    throw new Error('Razorpay script not loaded');
+                }
+
+                // Test 2: Create order via backend
+                console.log('📝 Creating order...');
+                const response = await fetch('http://localhost:5000/api/payment-methods/razorpay/create-order', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        amount: 100,
+                        currency: 'INR',
+                        receipt: 'test_direct'
+                    })
+                });
+
+                const orderData = await response.json();
+                console.log('Order response:', orderData);
+
+                if (!orderData.success) {
+                    throw new Error('Order creation failed: ' + (orderData.error || 'Unknown error'));
+                }
+
+                const order = orderData.data;
+
+                // Test 3: Configure Razorpay
+                const options = {
+                    key: 'rzp_test_R8HpTMXjQKIR0K', // Direct key for testing
+                    amount: order.amount,
+                    currency: order.currency,
+                    name: 'Test Payment',
+                    description: 'Direct test payment',
+                    order_id: order.orderId,
+                    handler: function(response) {
+                        console.log('✅ Payment successful:', response);
+                        document.getElementById('result').innerHTML = 
+                            '<div style="color: green;">Payment successful! Payment ID: ' + response.razorpay_payment_id + '</div>';
+                    },
+                    prefill: {
+                        name: 'Test User',
+                        email: 'test@example.com',
+                        contact: '9999999999'
+                    },
+                    theme: {
+                        color: '#3B82F6'
+                    },
+                    modal: {
+                        ondismiss: function() {
+                            console.log('❌ Payment cancelled');
+                            document.getElementById('result').innerHTML = 
+                                '<div style="color: orange;">Payment cancelled by user</div>';
+                        }
+                    }
+                };
+
+                console.log('🚀 Opening Razorpay with options:', options);
+
+                // Test 4: Create and open Razorpay
+                const razorpay = new Razorpay(options);
+                
+                razorpay.on('payment.failed', function(response) {
+                    console.error('❌ Payment failed:', response.error);
+                    document.getElementById('result').innerHTML = 
+                        '<div style="color: red;">Payment failed: ' + (response.error.description || response.error.reason) + '</div>';
+                });
+
+                razorpay.open();
+
+            } catch (error) {
+                console.error('❌ Test error:', error);
+                document.getElementById('result').innerHTML = 
+                    '<div style="color: red;">Error: ' + error.message + '</div>';
+            }
+        }
+    </script>
+</body>
+</html>

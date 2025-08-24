@@ -7,10 +7,12 @@ import {
   Mail,
   Phone,
   MapPin,
+  Store,
 } from "lucide-react";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faApple } from '@fortawesome/free-brands-svg-icons';
 import { faGooglePlay } from '@fortawesome/free-brands-svg-icons';
+import VendorNavLink from "./VendorNavLink";
 
 const Footer: React.FC = () => {
   return (
@@ -61,6 +63,14 @@ const Footer: React.FC = () => {
                 <Link to="/faq" className="text-gray-400 hover:text-white">
                   FAQ
                 </Link>
+              </li>
+              <li className="mt-4">
+                <div className="bg-gradient-to-r from-red-500 to-orange-500 px-3 py-2 rounded-lg inline-block">
+                  <Link to="/become-vendor" className="text-white hover:text-white font-semibold flex items-center space-x-2">
+                    <Store className="h-4 w-4" />
+                    <span>Become a Vendor</span>
+                  </Link>
+                </div>
               </li>
             </ul>
           </div>

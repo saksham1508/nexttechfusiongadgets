@@ -1,3 +1,4 @@
+const Razorpay = require('razorpay');
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -44,8 +45,33 @@ app.use(
         styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
         fontSrc: ["'self'", 'https://fonts.gstatic.com'],
         imgSrc: ["'self'", 'data:', 'https://res.cloudinary.com'],
-        scriptSrc: ["'self'", 'https://pay.google.com', 'https://www.gstatic.com'],
-        connectSrc: ["'self'", 'https://api.stripe.com', 'https://pay.google.com']
+        scriptSrc: [
+          "'self'",
+          'https://pay.google.com',
+          'https://www.gstatic.com',
+          'https://checkout.razorpay.com',
+          'https://www.paypal.com',
+          'https://securegw-stage.paytm.in',
+          'https://securegw.paytm.in'
+        ],
+        connectSrc: [
+          "'self'",
+          'https://api.stripe.com',
+          'https://pay.google.com',
+          'https://api.razorpay.com',
+          'https://www.paypal.com',
+          'https://securegw-stage.paytm.in',
+          'https://securegw.paytm.in',
+          'https://api-preprod.phonepe.com'
+        ],
+        frameSrc: [
+          "'self'",
+          'https://api.razorpay.com',
+          'https://checkout.razorpay.com',
+          'https://www.paypal.com',
+          'https://securegw-stage.paytm.in',
+          'https://securegw.paytm.in'
+        ]
       }
     },
     crossOriginEmbedderPolicy: false

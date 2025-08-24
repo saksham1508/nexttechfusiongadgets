@@ -84,6 +84,14 @@ const PaymentConfig: React.FC = () => {
       supportedCurrencies: ['ETH'],
       supportedCountries: ['US', 'CA', 'GB', 'EU'],
       fees: { percentage: 1.0, fixed: 0 }
+    },
+    cod: {
+      provider: 'cod',
+      enabled: true,
+      testMode: false,
+      supportedCurrencies: ['INR', 'USD', 'EUR', 'GBP'],
+      supportedCountries: ['IN', 'US', 'GB', 'EU'],
+      fees: { percentage: 0, fixed: 0 }
     }
   });
 
@@ -109,6 +117,8 @@ const PaymentConfig: React.FC = () => {
         return <Wallet className="h-6 w-6 text-orange-500" />;
       case 'ethereum':
         return <Wallet className="h-6 w-6 text-blue-400" />;
+      case 'cod':
+        return <Wallet className="h-6 w-6 text-green-700" />;
       default:
         return <Wallet className="h-6 w-6" />;
     }

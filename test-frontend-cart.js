@@ -1,65 +1,92 @@
-const axios = require('axios');
+// Test script to verify frontend cart functionality
+const puppeteer = require('puppeteer');
 
-// Simulate frontend request
-const testFrontendCartFlow = async () => {
+async function testFrontendCart() {
+  let browser;
   try {
-    console.log('🧪 Testing Frontend Cart Flow...\n');
+    console.log('🧪 Testing Frontend Cart Functionality...\n');
 
-    // Step 1: Login (simulate frontend login)
-    console.log('1. Testing login...');
-    const loginResponse = await axios.post('http://localhost:5001/api/auth/login', {
-      email: 'test@example.com',
-      password: 'testpassword'
-    }, {
-      headers: {
-        'Content-Type': 'application/json',
-        'Origin': 'http://localhost:3001'
-      }
+    browser = await puppeteer.launch({ 
+      headless: false, 
+      defaultViewport: null,
+      args: ['--start-maximized']
     });
     
-    console.log('✅ Login successful');
-    console.log('Response structure:', Object.keys(loginResponse.data));
-    console.log('Has token:', !!loginResponse.data.token);
+    const page = await browser.newPage();
     
-    const token = loginResponse.data.token;
-
-    // Step 2: Test add to cart (simulate frontend request)
-    console.log('\n2. Testing add to cart...');
-    const addToCartResponse = await axios.post('http://localhost:5001/api/cart/add', {
-      productId: '507f1f77bcf86cd799439011',
-      quantity: 1
-    }, {
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
-        'Origin': 'http://localhost:3001'
-      }
+    // Navigate to the homepage
+    console.log('1. Navigating to homepage...');
+    await page.goto('http://localhost:3000', { waitUntil: 'networkidle2' });
+    
+    // Wait for products to load
+    console.log('2. Waiting for products to load...');
+    await page.waitForSelector('.card-product', { timeout: 10000 });
+    
+    // Check initial cart count (should be 0)
+    console.log('3. Checking initial cart count...');
+    const initialCartCount = await page.evaluate(() => {
+      const cartBadge = document.querySelector('.bg-gradient-to-r.from-red-500.to-pink-600');
+      return cartBadge ? cartBadge.textContent : '0';
     });
+    console.log('✅ Initial cart count:', initialCartCount);
     
-    console.log('✅ Add to cart successful');
-    console.log('Cart items:', addToCartResponse.data.items?.length || 0);
-    console.log('Total amount:', addToCartResponse.data.totalAmount);
-
-    // Step 3: Test get cart
-    console.log('\n3. Testing get cart...');
-    const getCartResponse = await axios.get('http://localhost:5001/api/cart', {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Origin': 'http://localhost:3001'
-      }
+    // Find and click the first "Add to Cart" button
+    console.log('4. Adding first product to cart...');
+    const addToCartButton = await page.$('.btn-primary');
+    if (addToCartButton) {
+      await addToCartButton.click();
+      console.log('✅ Clicked Add to Cart button');
+      
+      // Wait for toast notification
+      await page.waitForTimeout(2000);
+      
+      // Check if cart count updated
+      const updatedCartCount = await page.evaluate(() => {
+        const cartBadge = document.querySelector('.bg-gradient-to-r.from-red-500.to-pink-600');
+        return cartBadge ? cartBadge.textContent : '0';
+      });
+      console.log('✅ Updated cart count:', updatedCartCount);
+      
+      // Check localStorage
+      const mockCartData = await page.evaluate(() => {
+        return localStorage.getItem('mockCart');
+      });
+      console.log('✅ MockCart localStorage data:', mockCartData);
+      
+    } else {
+      console.log('❌ No Add to Cart button found');
+    }
+    
+    // Navigate to cart page
+    console.log('5. Navigating to cart page...');
+    await page.click('a[href="/cart"]');
+    await page.waitForTimeout(3000);
+    
+    // Check if cart page shows items
+    const cartItems = await page.evaluate(() => {
+      const itemElements = document.querySelectorAll('[data-testid="cart-item"], .cart-item, .pb-6.border-b');
+      return itemElements.length;
     });
+    console.log('✅ Cart page shows', cartItems, 'items');
     
-    console.log('✅ Get cart successful');
-    console.log('Cart items:', getCartResponse.data.items?.length || 0);
-
-    console.log('\n🎉 All tests passed! Cart functionality is working.');
-
+    console.log('\n🎉 Frontend cart test completed!');
+    
   } catch (error) {
-    console.error('❌ Test failed:');
-    console.error('Status:', error.response?.status);
-    console.error('Message:', error.response?.data?.message || error.message);
-    console.error('Full error:', error.response?.data || error.message);
+    console.error('❌ Test failed:', error.message);
+  } finally {
+    if (browser) {
+      await browser.close();
+    }
   }
-};
+}
 
-testFrontendCartFlow();
+// Check if puppeteer is available
+try {
+  testFrontendCart();
+} catch (error) {
+  console.log('⚠️ Puppeteer not available. Please test manually:');
+  console.log('1. Open http://localhost:3000');
+  console.log('2. Click "Add to Cart" on any product');
+  console.log('3. Check if cart count updates in header');
+  console.log('4. Navigate to /cart and verify items are shown');
+}

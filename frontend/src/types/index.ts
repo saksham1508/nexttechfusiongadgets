@@ -294,6 +294,143 @@ export interface ChatMessage {
   createdAt: string;
 }
 
+// Payment Types
+export type PaymentProvider = 'stripe' | 'paypal' | 'razorpay' | 'googlepay' | 'phonepe' | 'paytm' | 'upi' | 'square' | 'bitcoin' | 'ethereum' | 'cod';
+
+export interface PaymentMethod {
+  _id: string;
+  provider: PaymentProvider;
+  nickname: string;
+  type: 'card' | 'bank' | 'wallet' | 'upi' | 'digital_wallet' | 'bank_account' | 'crypto' | 'cash';
+  details: {
+    last4?: string;
+    brand?: string;
+    expiryMonth?: number;
+    expiryYear?: number;
+    bankName?: string;
+    accountType?: string;
+    upiId?: string;
+    walletProvider?: string;
+  };
+  // Additional properties for PaymentMethodCard compatibility
+  card?: {
+    brand?: string;
+    last4?: string;
+    expMonth?: number;
+    expYear?: number;
+  };
+  digitalWallet?: {
+    walletType?: string;
+    email?: string;
+  };
+  bankAccount?: {
+    bankName?: string;
+    last4?: string;
+    accountType?: string;
+  };
+  cryptoWallet?: {
+    currency?: string;
+    address?: string;
+  };
+  upi?: {
+    vpa: string;
+    name: string;
+    verified: boolean;
+  };
+  billingAddress?: {
+    city?: string;
+    state?: string;
+    country?: string;
+    zipCode?: string;
+  };
+  isDefault: boolean;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PaymentConfig {
+  provider: PaymentProvider;
+  enabled: boolean;
+  testMode: boolean;
+  supportedCurrencies: string[];
+  supportedCountries: string[];
+  fees: {
+    percentage: number;
+    fixed: number;
+  };
+  apiKeys?: {
+    publicKey?: string;
+    secretKey?: string;
+    webhookSecret?: string;
+  };
+  settings?: Record<string, any>;
+}
+
+export interface GooglePayPayment {
+  paymentData: {
+    apiVersion: number;
+    apiVersionMinor: number;
+    allowedPaymentMethods: Array<{
+      type: string;
+      parameters: {
+        allowedAuthMethods: string[];
+        allowedCardNetworks: string[];
+      };
+      tokenizationSpecification: {
+        type: string;
+        parameters: {
+          gateway: string;
+          gatewayMerchantId: string;
+        };
+      };
+    }>;
+    merchantInfo: {
+      merchantId: string;
+      merchantName: string;
+    };
+    transactionInfo: {
+      totalPriceStatus: string;
+      totalPrice: string;
+      currencyCode: string;
+      countryCode: string;
+    };
+  };
+  orderId: string;
+  amount: number;
+  currency: string;
+}
+
+export interface RazorpayOrder {
+  orderId: string;
+  amount: number;
+  currency: string;
+  receipt: string;
+  status: string;
+}
+
+export interface PayPalOrder {
+  orderId: string;
+  amount: number;
+  currency: string;
+  status: string;
+  links: Array<{
+    href: string;
+    rel: string;
+    method: string;
+  }>;
+}
+
+export interface UPIPayment {
+  transactionId: string;
+  amount: number;
+  currency: string;
+  upiId: string;
+  deepLink: string;
+  qrCode: string;
+  status: 'pending' | 'success' | 'failed';
+}
+
 // API Response Types
 export interface ApiResponse<T = any> {
   success: boolean;
@@ -433,8 +570,8 @@ export interface Wishlist {
   updatedAt: string;
 }
 
-// Payment Method Types
-export interface PaymentMethod {
+// Legacy Payment Method Types (kept for backward compatibility)
+export interface LegacyPaymentMethod {
   _id: string;
   user: string;
   type: 'card' | 'bank_account' | 'digital_wallet' | 'upi' | 'crypto';
@@ -619,27 +756,13 @@ export interface UPIPayment {
   deepLink: string;
 }
 
-// Google Pay Types
-export interface GooglePayPayment {
-  paymentData: any;
-  orderId: string;
-  amount: number;
-  currency: string;
-}
-
-// Payment Provider Types
-export type PaymentProvider = 'stripe' | 'razorpay' | 'paypal' | 'googlepay' | 'phonepe' | 'paytm' | 'upi' | 'square' | 'bitcoin' | 'ethereum';
-
-export interface PaymentConfig {
-  provider: PaymentProvider;
-  enabled: boolean;
-  testMode: boolean;
-  supportedCurrencies: string[];
-  supportedCountries: string[];
-  fees: {
-    percentage: number;
-    fixed: number;
-  };
+// Additional Google Pay Types (extending the main one)
+export interface GooglePayConfig {
+  merchantId: string;
+  merchantName: string;
+  environment: 'TEST' | 'PRODUCTION';
+  gateway: string;
+  gatewayMerchantId: string;
 }
 
 // Search and Filter Types
@@ -740,6 +863,14 @@ export interface ProductFormData {
   digitalProduct: DigitalProduct;
   subscription: ProductSubscription;
   lowStockThreshold: number;
+}
+
+// Window Type Declarations
+declare global {
+  interface Window {
+    Razorpay: any;
+    google: any;
+  }
 }
 
 // API Service Types

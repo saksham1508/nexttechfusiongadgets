@@ -206,6 +206,10 @@ const OrderTrackingPage: React.FC = () => {
                   <span className="text-gray-600">Payment</span>
                   <span className="text-green-600 font-medium">Paid</span>
                 </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Payment Mode</span>
+                  <span className="text-gray-900">{order.status === 'delivered' ? 'Online / Prepaid' : 'Cash on Delivery (if selected at checkout)'}</span>
+                </div>
               </div>
             </div>
 

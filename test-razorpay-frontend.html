@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Razorpay Frontend Test</title>
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+</head>
+<body>
+    <h1>Razorpay Frontend Integration Test</h1>
+    <button onclick="testRazorpay()">Test Razorpay Payment</button>
+    <div id="output"></div>
+
+    <script>
+        const RAZORPAY_KEY_ID = 'rzp_test_R8HpTMXjQKIR0K';
+        const API_BASE = 'http://localhost:5000/api';
+
+        async function testRazorpay() {
+            try {
+                document.getElementById('output').innerHTML = '<p>🔄 Creating Razorpay order...</p>';
+                
+                // Step 1: Create order on backend
+                const orderResponse = await fetch(`${API_BASE}/payment-methods/razorpay/create-order`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        amount: 100,
+                        currency: 'INR',
+                        receipt: `test_${Date.now()}`,
+                        notes: {
+                            orderId: `order_${Date.now()}`
+                        }
+                    })
+                });
+
+                if (!orderResponse.ok) {
+                    throw new Error('Failed to create order');
+                }
+
+                const orderData = await orderResponse.json();
+                console.log('Order created:', orderData);
+
+                document.getElementById('output').innerHTML = '<p>✅ Order created successfully! Opening Razorpay checkout...</p>';
+
+                // Step 2: Open Razorpay checkout
+                const options = {
+                    key: RAZORPAY_KEY_ID,
+                    amount: orderData.data.amount,
+                    currency: orderData.data.currency,
+                    name: 'NextTechFusionGadgets',
+                    description: 'Test Payment',
+                    order_id: orderData.data.orderId,
+                    handler: function(response) {
+                        console.log('Payment successful:', response);
+                        document.getElementById('output').innerHTML = `
+                            <div style="color: green;">
+                                <h3>✅ Payment Successful!</h3>
+                                <p><strong>Payment ID:</strong> ${response.razorpay_payment_id}</p>
+                                <p><strong>Order ID:</strong> ${response.razorpay_order_id}</p>
+                                <p><strong>Signature:</strong> ${response.razorpay_signature}</p>
+                            </div>
+                        `;
+                    },
+                    prefill: {
+                        name: 'Test User',
+                        email: 'test@example.com',
+                        contact: '9999999999'
+                    },
+                    theme: {
+                        color: '#3B82F6'
+                    },
+                    modal: {
+                        ondismiss: function() {
+                            document.getElementById('output').innerHTML = '<p style="color: orange;">⚠️ Payment cancelled by user</p>';
+                        }
+                    }
+                };
+
+                const razorpay = new Razorpay(options);
+                razorpay.open();
+
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('output').innerHTML = `<p style="color: red;">❌ Error: ${error.message}</p>`;
+            }
+        }
+
+        // Test if Razorpay is loaded
+        window.onload = function() {
+            if (typeof Razorpay !== 'undefined') {
+                console.log('✅ Razorpay script loaded successfully');
+                document.getElementById('output').innerHTML = '<p style="color: green;">✅ Razorpay script loaded successfully. Click the button to test payment.</p>';
+            } else {
+                console.error('❌ Razorpay script failed to load');
+                document.getElementById('output').innerHTML = '<p style="color: red;">❌ Razorpay script failed to load</p>';
+            }
+        };
+    </script>
+</body>
+</html>

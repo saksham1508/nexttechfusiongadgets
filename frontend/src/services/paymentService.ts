@@ -67,91 +67,7 @@ class PaymentService {
     }
   }
 
-  // Razorpay Payment Methods
-  async createRazorpayOrder(amount: number, currency = 'INR', receipt?: string): Promise<RazorpayOrder> {
-    try {
-      const response = await api.post('/payment-methods/razorpay/create-order', {
-        amount,
-        currency,
-        receipt: receipt || `receipt_${Date.now()}`,
-        notes: {
-          orderId: receipt || `order_${Date.now()}`
-        }
-      });
-      return response.data.data;
-    } catch (error: any) {
-      throw new Error(error.response?.data?.message || 'Failed to create Razorpay order');
-    }
-  }
 
-  async processRazorpayPayment(
-    amount: number,
-    orderId: string,
-    userDetails: { name: string; email: string; contact: string }
-  ): Promise<any> {
-    return new Promise(async (resolve, reject) => {
-      try {
-        // Load Razorpay script if not already loaded
-        if (!window.Razorpay) {
-          await this.loadScript('https://checkout.razorpay.com/v1/checkout.js');
-        }
-
-        const order = await this.createRazorpayOrder(amount, 'INR', orderId);
-
-        const options = {
-          key: process.env.REACT_APP_RAZORPAY_KEY_ID,
-          amount: order.amount,
-          currency: order.currency,
-          name: 'NextTechFusionGadgets',
-          description: 'Payment for your order',
-          order_id: order.orderId,
-          handler: async (response: any) => {
-            try {
-              const verificationResult = await this.verifyRazorpayPayment(
-                response.razorpay_order_id,
-                response.razorpay_payment_id,
-                response.razorpay_signature
-              );
-              resolve(verificationResult);
-            } catch (error) {
-              reject(error);
-            }
-          },
-          prefill: {
-            name: userDetails.name,
-            email: userDetails.email,
-            contact: userDetails.contact
-          },
-          theme: {
-            color: '#3B82F6'
-          },
-          modal: {
-            ondismiss: () => {
-              reject(new Error('Payment cancelled by user'));
-            }
-          }
-        };
-
-        const razorpay = new window.Razorpay(options);
-        razorpay.open();
-      } catch (error: any) {
-        reject(new Error(error.message || 'Razorpay payment failed'));
-      }
-    });
-  }
-
-  async verifyRazorpayPayment(orderId: string, paymentId: string, signature: string) {
-    try {
-      const response = await api.post('/payment-methods/razorpay/verify', {
-        razorpay_order_id: orderId,
-        razorpay_payment_id: paymentId,
-        razorpay_signature: signature
-      });
-      return response.data;
-    } catch (error: any) {
-      throw new Error(error.response?.data?.message || 'Failed to verify Razorpay payment');
-    }
-  }
 
   // PayPal Payment Methods
   async createPayPalOrder(amount: number, currency = 'USD', items: any[] = []): Promise<PayPalOrder> {
@@ -202,23 +118,42 @@ class PaymentService {
   }
 
   // UPI Payment Methods
-  async createUPIPayment(amount: number, upiId: string, transactionId?: string): Promise<UPIPayment> {
+  async createUPIPayment(amount: number, upiId: string, orderId: string): Promise<any> {
     try {
-      const response = await api.post('/payment-methods/upi/create', {
+      // For UPI payments, we can use PhonePe as the backend provider
+      // since PhonePe supports UPI payments
+      const response = await api.post('/payment-methods/phonepe/create-order', {
         amount,
         currency: 'INR',
-        upiId,
-        transactionId: transactionId || `txn_${Date.now()}`
+        orderId,
+        userPhone: '9999999999', // Default phone for UPI
+        upiId: upiId,
+        paymentType: 'UPI',
+        redirectUrl: `${window.location.origin}/payment/upi/callback`,
+        callbackUrl: `${process.env.REACT_APP_BACKEND_URL || 'http://localhost:5000'}/api/payment-methods/phonepe/callback`
       });
-      return response.data.data;
+      
+      const data = response.data.data;
+      
+      // Return UPI-specific format expected by UPIPayment component
+      return {
+        paymentId: data.transactionId,
+        qrCode: `upi://pay?pa=merchant@phonepe&pn=NextTech&am=${amount}&cu=INR&tn=${orderId}`,
+        deepLink: `upi://pay?pa=merchant@phonepe&pn=NextTech&am=${amount}&cu=INR&tn=${orderId}`,
+        amount: amount,
+        orderId: orderId,
+        upiId: upiId,
+        status: 'pending'
+      };
     } catch (error: any) {
       throw new Error(error.response?.data?.message || 'Failed to create UPI payment');
     }
   }
 
-  async processUPIPayment(amount: number, upiId: string): Promise<UPIPayment> {
+  async processUPIPayment(amount: number, upiId: string): Promise<any> {
     try {
-      const upiPayment = await this.createUPIPayment(amount, upiId);
+      const orderId = `order_${Date.now()}`;
+      const upiPayment = await this.createUPIPayment(amount, upiId, orderId);
       
       // For mobile devices, try to open UPI app
       if (this.isMobile()) {
@@ -228,6 +163,62 @@ class PaymentService {
       return upiPayment;
     } catch (error: any) {
       throw new Error(error.message || 'UPI payment failed');
+    }
+  }
+
+  // Paytm Payment Methods
+  async initiatePaytm(amount: number, orderId?: string, customerId?: string): Promise<any> {
+    try {
+      const response = await api.post('/payment-methods/paytm/initiate', {
+        amount,
+        orderId: orderId || `ORDER_${Date.now()}`,
+        customerId,
+        callbackUrl: `${process.env.REACT_APP_BACKEND_URL || 'http://localhost:5000'}/api/payment-methods/paytm/callback`
+      });
+      const { mid, orderId: paytmOrderId, txnToken, env } = response.data.data;
+
+      // Load Paytm JS if needed and open checkout
+      const scriptUrl = env === 'production'
+        ? 'https://securegw.paytm.in/merchantpgpui/checkoutjs/merchants/' + mid + '.js'
+        : 'https://securegw-stage.paytm.in/merchantpgpui/checkoutjs/merchants/' + mid + '.js';
+      await this.loadScript(scriptUrl);
+
+      const config = {
+        root: '',
+        flow: 'DEFAULT',
+        data: {
+          orderId: paytmOrderId,
+          token: txnToken,
+          tokenType: 'TXN_TOKEN',
+          amount: amount.toString(),
+        },
+        handler: {
+          notifyMerchant: function (eventName: string, data: any) {
+            console.log('Paytm event', eventName, data);
+          }
+        }
+      } as any;
+
+      // @ts-ignore
+      if (window.Paytm && window.Paytm.CheckoutJS) {
+        // @ts-ignore
+        await window.Paytm.CheckoutJS.init(config);
+        // @ts-ignore
+        window.Paytm.CheckoutJS.invoke();
+      }
+
+      return response.data.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || 'Failed to initiate Paytm transaction');
+    }
+  }
+
+  async checkPaytmStatus(orderId: string): Promise<any> {
+    try {
+      const response = await api.post('/payment-methods/paytm/status', { orderId });
+      return response.data.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || 'Failed to check Paytm status');
     }
   }
 
@@ -296,6 +287,232 @@ class PaymentService {
       throw new Error(error.response?.data?.message || error.message || 'Google Pay payment processing failed');
     }
   }
+
+  // Razorpay Payment Methods
+  async createRazorpayOrder(amount: number, currency = 'INR', orderId?: string, notes?: any): Promise<any> {
+    try {
+      const response = await api.post('/payment-methods/razorpay/create-order', {
+        amount: amount, // Amount should be in rupees, backend will convert to paise
+        currency,
+        receipt: orderId || `receipt_${Date.now()}`,
+        notes: notes || {}
+      });
+      return response.data.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || 'Failed to create Razorpay order');
+    }
+  }
+
+  async processRazorpayPayment(
+    amount: number,
+    orderId?: string,
+    userDetails?: { name: string; email: string; contact: string },
+    optionsArg?: { upiOnly?: boolean; upiFlow?: 'intent' | 'collect' }
+  ): Promise<any> {
+    return new Promise(async (resolve, reject) => {
+      try {
+        // Ensure Razorpay config
+        const razorpayKeyId = process.env.REACT_APP_RAZORPAY_KEY_ID;
+        if (!razorpayKeyId) {
+          throw new Error('Razorpay key not configured. Please check REACT_APP_RAZORPAY_KEY_ID environment variable.');
+        }
+
+        // Load Razorpay script if not already loaded
+        if (!window.Razorpay) {
+          await this.loadScript('https://checkout.razorpay.com/v1/checkout.js');
+        }
+
+        // Create order on backend
+        const orderData = await this.createRazorpayOrder(
+          amount,
+          'INR',
+          orderId || `order_${Date.now()}`,
+          { orderId: orderId || `order_${Date.now()}` }
+        );
+
+        // Configure Razorpay options
+        const checkoutOptions: any = {
+          key: razorpayKeyId,
+          amount: orderData.amount, // in paise
+          currency: orderData.currency,
+          name: 'NextTechFusionGadgets',
+          description: 'Payment for your order',
+          order_id: orderData.orderId,
+          handler: async (response: any) => {
+            try {
+              // Verify payment on backend
+              const verificationResult = await this.verifyRazorpayPayment(
+                response.razorpay_order_id,
+                response.razorpay_payment_id,
+                response.razorpay_signature
+              );
+
+              resolve({
+                ...response,
+                verification: verificationResult,
+                status: 'success'
+              });
+            } catch (verificationError: any) {
+              reject(new Error('Payment verification failed: ' + verificationError.message));
+            }
+          },
+          prefill: {
+            name: userDetails?.name || 'Test User',
+            email: userDetails?.email || 'test@example.com',
+            contact: userDetails?.contact || '9999999999'
+          },
+          theme: { color: '#3B82F6' },
+          modal: {
+            ondismiss: () => reject(new Error('Payment cancelled by user'))
+          }
+        };
+
+        // If UPI-only requested, restrict payment methods to UPI and set flow
+        if (optionsArg?.upiOnly) {
+          checkoutOptions.method = { upi: true, card: false, netbanking: false, wallet: false, emi: false, paylater: false };
+          // Set UPI flow (intent opens UPI apps, collect allows entering UPI ID; QR shows automatically when available)
+          checkoutOptions.upi = { flow: optionsArg.upiFlow || 'intent' };
+        }
+
+        const razorpay = new window.Razorpay(checkoutOptions);
+        razorpay.open();
+      } catch (error: any) {
+        console.error('Razorpay payment error:', error);
+        reject(new Error(error.message || 'Razorpay payment failed'));
+      }
+    });
+  }
+
+  async verifyRazorpayPayment(orderId: string, paymentId: string, signature: string): Promise<any> {
+    try {
+      const response = await api.post('/payment-methods/razorpay/verify', {
+        razorpay_order_id: orderId,
+        razorpay_payment_id: paymentId,
+        razorpay_signature: signature
+      });
+      return response.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || 'Payment verification failed');
+    }
+  }
+
+  // PhonePe Payment Methods
+  async createPhonePeOrder(amount: number, currency = 'INR', orderId?: string, userPhone?: string): Promise<any> {
+    try {
+      console.log('🔍 PhonePe API Debug:', {
+        baseURL: api.defaults.baseURL,
+        endpoint: '/payment-methods/phonepe/create-order',
+        fullURL: `${api.defaults.baseURL}/payment-methods/phonepe/create-order`
+      });
+      
+      const requestData = {
+        amount,
+        currency,
+        orderId: orderId || `order_${Date.now()}`,
+        userPhone: userPhone || '9999999999',
+        redirectUrl: `${window.location.origin}/payment/phonepe/callback`,
+        callbackUrl: `${process.env.REACT_APP_BACKEND_URL || 'http://localhost:5000'}/api/payment-methods/phonepe/callback`
+      };
+      
+      console.log('📤 PhonePe Request Data:', requestData);
+      
+      const response = await api.post('/payment-methods/phonepe/create-order', requestData);
+      
+      console.log('📥 PhonePe Response:', response.data);
+      
+      return response.data.data;
+    } catch (error: any) {
+      console.error('❌ PhonePe API Error:', error);
+      console.error('Error details:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+        config: error.config
+      });
+      throw new Error(error.response?.data?.message || 'Failed to create PhonePe order');
+    }
+  }
+
+  async verifyPhonePePayment(transactionId: string, checksum?: string): Promise<any> {
+    try {
+      const response = await api.post('/payment-methods/phonepe/verify', {
+        transactionId,
+        checksum
+      });
+      return response.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || 'Failed to verify PhonePe payment');
+    }
+  }
+
+  async checkPhonePeStatus(transactionId: string): Promise<any> {
+    try {
+      const response = await api.get(`/payment-methods/phonepe/status/${transactionId}`);
+      return response.data.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || 'Failed to check PhonePe status');
+    }
+  }
+
+  async processPhonePePayment(amount: number, orderId?: string, userPhone?: string): Promise<any> {
+    return new Promise(async (resolve, reject) => {
+      try {
+        // Create PhonePe order
+        const orderData = await this.createPhonePeOrder(amount, 'INR', orderId, userPhone);
+        
+        const { transactionId, paymentUrl, payload, checksum, apiEndpoint } = orderData;
+
+        // Create form and submit to PhonePe
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = apiEndpoint;
+        form.target = '_blank';
+
+        // Add request payload
+        const requestInput = document.createElement('input');
+        requestInput.type = 'hidden';
+        requestInput.name = 'request';
+        requestInput.value = payload;
+        form.appendChild(requestInput);
+
+        document.body.appendChild(form);
+        form.submit();
+        document.body.removeChild(form);
+
+        // Start polling for payment status
+        const pollStatus = async () => {
+          try {
+            const statusData = await this.checkPhonePeStatus(transactionId);
+            
+            if (statusData.status === 'COMPLETED' || statusData.status === 'completed') {
+              resolve({
+                transactionId,
+                status: 'completed',
+                amount: statusData.amount,
+                paymentMethod: 'phonepe',
+                providerTransactionId: statusData.providerTransactionId
+              });
+            } else if (statusData.status === 'FAILED' || statusData.status === 'failed') {
+              reject(new Error(`Payment failed: ${statusData.responseMessage || 'Unknown error'}`));
+            } else {
+              // Continue polling
+              setTimeout(pollStatus, 5000);
+            }
+          } catch (error: any) {
+            reject(new Error(error.message || 'Payment verification failed'));
+          }
+        };
+
+        // Start polling after a short delay
+        setTimeout(pollStatus, 3000);
+
+      } catch (error: any) {
+        reject(new Error(error.message || 'PhonePe payment processing failed'));
+      }
+    });
+  }
+
+
 
   // Utility Methods
   private async loadScript(src: string): Promise<void> {
@@ -369,18 +586,18 @@ class PaymentService {
     }
   }
 
+
+
   // Payment Provider Detection
   getAvailablePaymentMethods(): PaymentProvider[] {
-    const methods: PaymentProvider[] = ['stripe'];
-    
-    // Check for Indian payment methods
-    if (this.isIndianUser()) {
-      methods.push('razorpay', 'googlepay', 'phonepe', 'paytm', 'upi');
-    }
-    
+    // Base methods
+    const methods: PaymentProvider[] = ['cod', 'upi', 'razorpay', 'stripe'];
+
     // PayPal is available globally
     methods.push('paypal');
-    
+
+    // Note: We now expose a single consolidated UPI option that
+    // covers Google Pay, PhonePe, Paytm, etc. Individual tiles are hidden.
     return methods;
   }
 
@@ -426,7 +643,7 @@ class PaymentService {
       upi: {
         name: 'UPI',
         icon: '🏦',
-        description: 'Direct bank transfer'
+        description: 'Pay via any UPI app (GPay, PhonePe, Paytm, etc.)'
       },
       square: {
         name: 'Square',
@@ -442,8 +659,13 @@ class PaymentService {
         name: 'Ethereum',
         icon: 'Ξ',
         description: 'Cryptocurrency payment'
+      },
+      cod: {
+        name: 'Cash on Delivery',
+        icon: '💵',
+        description: 'Pay with cash when your order arrives'
       }
-    };
+    } as Record<PaymentProvider, { name: string; icon: string; description: string }>;
 
     return paymentMethods[provider] || {
       name: provider,

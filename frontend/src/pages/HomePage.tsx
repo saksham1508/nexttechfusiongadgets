@@ -17,6 +17,7 @@ import SmartRecommendations from '../components/SmartRecommendations';
 import ProductComparison from '../components/ProductComparison';
 import BulkOrderManager from '../components/BulkOrderManager';
 import HomeSlider from '../components/HomeSlider';
+import PhonePeApiTest from '../components/PhonePeApiTest';
 import { ArrowRight, Smartphone, Laptop, Headphones, Watch, MapPin, Clock, Zap, Scale, Package } from 'lucide-react';
 import { Location } from '../services/locationService';
 
@@ -167,6 +168,13 @@ const HomePage: React.FC = () => {
       {/* Slider */}
       <section className="section-padding">
         <HomeSlider />
+      </section>
+
+      {/* PhonePe API Test - Temporary for debugging */}
+      <section className="section-padding bg-gray-50">
+        <div className="container-modern">
+          <PhonePeApiTest />
+        </div>
       </section>
 
       {/* Quick Commerce Features */}

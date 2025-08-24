@@ -1,25 +1,58 @@
 import axios from 'axios';
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+// Function to get API URL with fallback
+const getApiUrl = () => {
+  const envApiUrl = process.env.REACT_APP_API_URL;
+  const fallbackUrl = 'http://localhost:5000/api';
+  
+  console.log('🔧 Environment Variables Check:', {
+    REACT_APP_API_URL: envApiUrl,
+    NODE_ENV: process.env.NODE_ENV,
+    allEnvVars: Object.keys(process.env).filter(key => key.startsWith('REACT_APP_'))
+  });
+  
+  if (!envApiUrl || envApiUrl === 'undefined' || envApiUrl.trim() === '') {
+    console.warn('⚠️ REACT_APP_API_URL is not set or invalid, using fallback:', fallbackUrl);
+    return fallbackUrl;
+  }
+  
+  console.log('✅ Using API URL from environment:', envApiUrl);
+  return envApiUrl;
+};
 
-// Create axios instance
+const API_URL = getApiUrl();
+
+// Create axios instance with guaranteed URL
 const api = axios.create({
   baseURL: API_URL,
   headers: {
     'Content-Type': 'application/json',
   },
+  timeout: 10000, // 10 second timeout
 });
 
-// Request interceptor to add auth token
+// Request interceptor to add auth token and log requests
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+    
+    // Log the full URL being called
+    const fullURL = `${config.baseURL}${config.url}`;
+    console.log('🌐 API Request:', {
+      method: config.method?.toUpperCase(),
+      url: config.url,
+      baseURL: config.baseURL,
+      fullURL: fullURL,
+      data: config.data
+    });
+    
     return config;
   },
   (error) => {
+    console.error('❌ Request interceptor error:', error);
     return Promise.reject(error);
   }
 );

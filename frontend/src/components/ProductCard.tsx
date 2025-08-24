@@ -44,11 +44,31 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, showQuickCommerce = 
   const [cartQuantity, setCartQuantity] = useState(0);
   const [showRecommendationsModal, setShowRecommendationsModal] = useState(false);
 
-  // Helper function to normalize product data
-  const normalizeProduct = (prod: Product): MainProduct => {
+  // Helper function to normalize product data for CartRecommendationsModal
+  const normalizeProductForModal = (prod: Product) => {
+    return {
+      _id: prod._id,
+      name: prod.name,
+      price: prod.price,
+      originalPrice: prod.originalPrice,
+      images: Array.isArray(prod.images) 
+        ? prod.images.map((img) => 
+            typeof img === 'string' 
+              ? { url: img, alt: prod.name }
+              : { url: img.url, alt: img.alt || prod.name }
+          )
+        : [{ url: '/placeholder-image.jpg', alt: prod.name }],
+      rating: typeof prod.rating === 'number' ? prod.rating : 0,
+      numReviews: typeof prod.numReviews === 'number' ? prod.numReviews : 0,
+      category: prod.category ?? 'General',
+      brand: prod.brand
+    };
+  };
+
+  // Helper function to normalize product data for comparison
+  const normalizeProductForComparison = (prod: Product): MainProduct => {
     return {
       ...prod,
-      // Ensure required MainProduct fields are present
       description: prod.description ?? 'No description provided',
       category: prod.category ?? 'General',
       rating: typeof prod.rating === 'number' ? prod.rating : 0,
@@ -61,11 +81,12 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, showQuickCommerce = 
           )
         : [{ url: '/placeholder-image.jpg', alt: prod.name, isPrimary: true }],
       seller: typeof prod.seller === 'string' ? prod.seller : prod.seller?._id || '',
+      stock: prod.stock ?? prod.countInStock ?? prod.stockQuantity ?? 0,
       stockQuantity: prod.stock ?? prod.countInStock ?? prod.stockQuantity ?? 0,
       inStock: (prod.stock ?? prod.countInStock ?? prod.stockQuantity ?? 0) > 0,
       specifications: {},
       features: [],
-      reviews: [],
+      reviews: prod.numReviews ?? 0,
       tags: [],
       lowStockThreshold: 5,
       deliveryInfo: {
@@ -214,23 +235,57 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, showQuickCommerce = 
         }
       }
     } else {
-      // User not logged in - show login prompt
-      console.log('👤 ProductCard: User not authenticated, showing login prompt');
+      // User not logged in - use guest cart (localStorage)
+      console.log('👤 ProductCard: User not authenticated, using guest cart');
       
-      toast.error('Please log in to add items to cart', {
-        duration: 4000,
-        icon: '🔒',
-      });
-      
-      // Clear any invalid auth data
-      if (authResult.error) {
-        clearAuthData();
+      try {
+        const existing = localStorage.getItem('mockCart');
+        const cart = existing ? JSON.parse(existing) : [];
+        
+        // Check if product already exists in cart
+        const existingIndex = cart.findIndex((i: any) => i.product?._id === product._id);
+        
+        if (existingIndex >= 0) {
+          // Update quantity
+          cart[existingIndex].quantity += 1;
+          console.log('📦 Updated existing item in guest cart:', cart[existingIndex]);
+        } else {
+          // Add new item
+          const newItem = {
+            product: {
+              _id: product._id,
+              name: product.name,
+              price: product.price,
+              images: Array.isArray(product.images) && product.images.length
+                ? (typeof product.images[0] === 'string'
+                    ? [{ url: product.images[0], alt: product.name }]
+                    : [{ url: product.images[0].url, alt: product.images[0].alt || product.name }])
+                : [{ url: '/placeholder-image.jpg', alt: product.name }],
+              stock: product.stock ?? product.countInStock ?? product.stockQuantity ?? 0
+            },
+            quantity: 1
+          };
+          cart.push(newItem);
+          console.log('📦 Added new item to guest cart:', newItem);
+        }
+        
+        localStorage.setItem('mockCart', JSON.stringify(cart));
+        window.dispatchEvent(new CustomEvent('cartUpdated', { detail: { productId: product._id, action: 'add-guest' } }));
+        
+        toast.success('Added to cart successfully!', {
+          duration: 3000,
+          icon: '🛒',
+        });
+        
+        // Show smart recommendations modal
+        setShowRecommendationsModal(true);
+      } catch (error) {
+        console.error('❌ Guest cart error:', error);
+        toast.error('Failed to add item to cart. Please try again.', {
+          duration: 4000,
+          icon: '❌',
+        });
       }
-      
-      // Redirect to login page after a delay
-      setTimeout(() => {
-        navigate('/login');
-      }, 2000);
     }
   };
 
@@ -297,7 +352,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, showQuickCommerce = 
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                onAddToComparison(normalizeProduct(product));
+                onAddToComparison(normalizeProductForComparison(product));
               }}
               className="bg-white/90 backdrop-blur-sm p-2 rounded-full hover:bg-white hover:shadow-lg transition-all duration-300 hover-scale"
               title="Add to comparison"
@@ -380,11 +435,11 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, showQuickCommerce = 
           )}
         </div>
 
-        {/* Authentication Notice */}
+        {/* Guest Cart Notice */}
         {!isVendor && !checkAuthentication(user).isAuthenticated && (
-          <div className="flex items-center space-x-2 mb-4 bg-orange-50 px-3 py-2 rounded-xl">
-            <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
-            <span className="text-sm font-semibold text-orange-700">Login required to add to cart</span>
+          <div className="flex items-center space-x-2 mb-4 bg-blue-50 px-3 py-2 rounded-xl">
+            <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+            <span className="text-sm font-semibold text-blue-700">Shopping as guest - Login to sync cart</span>
           </div>
         )}
 
@@ -454,7 +509,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, showQuickCommerce = 
       <CartRecommendationsModal
         isOpen={showRecommendationsModal}
         onClose={() => setShowRecommendationsModal(false)}
-        addedProduct={normalizeProduct(product)}
+        addedProduct={normalizeProductForModal(product)}
       />
     </div>
   );

@@ -148,11 +148,12 @@ const ProductDetailPage: React.FC = () => {
   };
 
   const formatPrice = (price: number) =>
-    new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(price);
+    new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2 }).format(price);
 
   const discount = product?.originalPrice
-    ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
+    ? Math.max(0, Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100))
     : 0;
+  const savingsAmount = product?.originalPrice ? Math.max(0, product.originalPrice - product.price) : 0;
 
   if (loading) return <div className="p-8 text-center">Loading...</div>;
   if (!product) return <div className="p-8 text-center text-red-600">Product not found.</div>;
@@ -191,13 +192,22 @@ const ProductDetailPage: React.FC = () => {
           <p className="text-sm text-gray-600 mb-4">Brand: {product.brand}</p>
 
           <div className="mb-4">
-            <span className="text-xl font-bold text-gray-900">{formatPrice(product.price)}</span>
-            {product.originalPrice && (
-              <span className="ml-2 text-gray-500 line-through">
-                {formatPrice(product.originalPrice)}
-              </span>
+            <div className="flex items-center gap-2">
+              <span className="text-2xl font-bold text-gray-900">{formatPrice(product.price)}</span>
+              {product.originalPrice && (
+                <span className="text-base text-gray-500 line-through">
+                  {formatPrice(product.originalPrice)}
+                </span>
+              )}
+              {discount > 0 && (
+                <span className="ml-1 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-800">
+                  Save {discount}%
+                </span>
+              )}
+            </div>
+            {product.originalPrice && discount > 0 && (
+              <div className="text-sm text-gray-600 mt-1">You save {formatPrice(savingsAmount)} on MRP</div>
             )}
-            {discount > 0 && <span className="ml-2 text-red-500">-{discount}%</span>}
           </div>
 
           <p className="text-gray-700 mb-4">{product.description}</p>

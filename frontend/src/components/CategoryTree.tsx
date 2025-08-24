@@ -68,10 +68,10 @@ const CategoryNode: React.FC<CategoryNodeProps> = ({
           onClick={handleSelect}
           className="category-content"
         >
-          {category.image?.url ? (
+          {category.image ? (
             <img
-              src={category.image.url}
-              alt={category.image.alt || category.name}
+              src={typeof category.image === 'string' ? category.image : category.image.url}
+              alt={typeof category.image === 'string' ? category.name : (category.image.alt || category.name)}
               className="category-image"
             />
           ) : (
@@ -98,7 +98,7 @@ const CategoryNode: React.FC<CategoryNodeProps> = ({
 
       {hasChildren && isExpanded && (
         <div className="category-children">
-          {category.children.map((child) => (
+          {category.children?.map((child) => (
             <CategoryNode
               key={child._id}
               category={child}
