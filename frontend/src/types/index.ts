@@ -422,9 +422,9 @@ export interface PayPalOrder {
 }
 
 export interface UPIPayment {
-  transactionId: string;
+  paymentId: string; // commonly used as transactionId in UI
+  orderId: string;
   amount: number;
-  currency: string;
   upiId: string;
   deepLink: string;
   qrCode: string;

@@ -20,6 +20,7 @@ import { CouponValidationResponse } from '../services/couponService';
 import couponService from '../services/couponService';
 import toast from 'react-hot-toast';
 import axios from 'axios';
+import paymentService from '../services/paymentService';
 
 const CheckoutPage: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
@@ -132,36 +133,25 @@ const CheckoutPage: React.FC = () => {
 
   const handleRazorpayPayment = async () => {
     try {
-      // Create order from backend
-      const { data } = await axios.post("http://localhost:5000/api/payment/create-order", {
-        amount: Math.round(finalAmount * 100), // paise
-        currency: "INR"
-      });
-
-      const options: any = {
-        key: "rzp_test_xxxxxxx", // replace with your Razorpay Test Key
-        amount: data.amount,
-        currency: data.currency,
-        order_id: data.id,
-        name: "My Ecommerce",
-        description: "Test Transaction",
-        handler: (response: any) => {
-          handlePaymentSuccess(response);
-        },
-        prefill: {
-          name: "Demo User",
-          email: "demo@example.com",
-          contact: "9999999999",
-        },
-        theme: {
-          color: "#3399cc",
-        },
+      // Use shared service which creates order and handles checkout script + verification
+      const userLS = localStorage.getItem('user');
+      const parsed = userLS ? JSON.parse(userLS) : null;
+      const userObj = parsed?.user || parsed || {};
+      const userDetails = {
+        name: userObj?.name || 'Demo User',
+        email: userObj?.email || 'demo@example.com',
+        contact: userObj?.phone || '9999999999',
       };
 
-      const razorpay = new (window as any).Razorpay(options);
-      razorpay.open();
-    } catch (err) {
-      handlePaymentError("Razorpay payment failed");
+      const result = await paymentService.processRazorpayPayment(
+        finalTotal,
+        orderId,
+        userDetails
+      );
+
+      handlePaymentSuccess(result);
+    } catch (err: any) {
+      handlePaymentError(err?.message || 'Razorpay payment failed');
     }
   };
 

@@ -18,7 +18,7 @@ interface PaymentOption {
   name: string;
   icon: React.ReactNode;
   description: string;
-  type: 'card' | 'upi' | 'wallet' | 'bank';
+  type: 'card' | 'upi' | 'wallet' | 'bank' | 'cod';
   color: string;
 }
 
@@ -97,6 +97,14 @@ const PaymentSelector: React.FC<PaymentSelectorProps> = ({
       description: 'Pay using PayPal account',
       type: 'wallet',
       color: 'bg-blue-400'
+    },
+    {
+      id: 'cod',
+      name: 'Cash on Delivery',
+      icon: <Wallet className="w-8 h-8" />,
+      description: 'Pay with cash at the time of delivery',
+      type: 'cod',
+      color: 'bg-gray-600'
     }
   ];
 
@@ -140,7 +148,7 @@ const PaymentSelector: React.FC<PaymentSelectorProps> = ({
         }
 
         case 'phonepe': {
-          await paymentService.processPhonePePayment(amount, orderId, paymentDetails.upiId || '9999999999');
+          await paymentService.createPhonePeOrder(amount, currency, orderId, paymentDetails.upiId || '9999999999');
           onPaymentSuccess({ paymentMethod: 'phonepe', amount, currency, transactionId: `phonepe_${Date.now()}` });
           return;
         }
@@ -191,6 +199,12 @@ const PaymentSelector: React.FC<PaymentSelectorProps> = ({
         case 'paypal': {
           await paymentService.processPayPalPayment(amount, 'USD', []);
           onPaymentSuccess({ paymentMethod: 'paypal', amount, currency: 'USD', transactionId: `pp_${Date.now()}` });
+          return;
+        }
+
+        case 'cod': {
+          // Simulate COD order confirmation without online payment
+          onPaymentSuccess({ paymentMethod: 'cod', amount, currency, transactionId: `cod_${Date.now()}` });
           return;
         }
 
@@ -420,6 +434,26 @@ const PaymentSelector: React.FC<PaymentSelectorProps> = ({
           </div>
         );
 
+      case 'cod':
+        return (
+          <div className="space-y-4">
+            <div className="bg-yellow-50 p-4 rounded-lg">
+              <p className="text-sm text-yellow-800">
+                🧾 Cash on Delivery selected. Please ensure someone is available with exact cash at delivery.
+              </p>
+            </div>
+            <label className="inline-flex items-center">
+              <input
+                type="checkbox"
+                checked={paymentDetails.codConfirmed || false}
+                onChange={(e) => setPaymentDetails({ ...paymentDetails, codConfirmed: e.target.checked })}
+                className="h-4 w-4 text-blue-600 border-gray-300 rounded"
+              />
+              <span className="ml-2 text-sm text-gray-700">I agree to pay the order amount in cash upon delivery</span>
+            </label>
+          </div>
+        );
+
       default:
         return null;
     }
@@ -441,6 +475,8 @@ const PaymentSelector: React.FC<PaymentSelectorProps> = ({
         return paymentDetails.cardNumber && paymentDetails.expiryDate && paymentDetails.cvv;
       case 'wallet':
         return paymentDetails.email && paymentDetails.email.includes('@');
+      case 'cod':
+        return paymentDetails.codConfirmed === true;
       default:
         return false;
     }

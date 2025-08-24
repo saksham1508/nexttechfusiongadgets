@@ -38,6 +38,7 @@ const PaymentPage: React.FC = () => {
   };
 
   if (paymentStatus === 'success') {
+    const isCOD = paymentResult?.paymentMethod === 'cod';
     return (
       <div className="min-h-screen bg-gray-50 py-8">
         <div className="max-w-2xl mx-auto px-4">
@@ -46,13 +47,13 @@ const PaymentPage: React.FC = () => {
               <CheckCircle className="w-8 h-8 text-green-500" />
             </div>
             
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">Payment Successful!</h1>
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">{isCOD ? 'Order Placed' : 'Payment Successful!'}</h1>
             <p className="text-gray-600 mb-6">
-              Your payment has been processed successfully.
+              {isCOD ? 'Payment Mode: COD' : 'Your payment has been processed successfully.'}
             </p>
 
             <div className="bg-gray-50 rounded-lg p-6 mb-6 text-left">
-              <h3 className="font-semibold text-gray-900 mb-4">Payment Details</h3>
+              <h3 className="font-semibold text-gray-900 mb-4">{isCOD ? 'Order Details' : 'Payment Details'}</h3>
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
                   <span className="text-gray-600">Transaction ID:</span>
@@ -60,7 +61,11 @@ const PaymentPage: React.FC = () => {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Payment Method:</span>
-                  <span className="capitalize">{paymentResult?.paymentMethod}</span>
+                  {isCOD ? (
+                    <span>COD</span>
+                  ) : (
+                    <span className="capitalize">{paymentResult?.paymentMethod}</span>
+                  )}
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Amount:</span>
@@ -68,7 +73,7 @@ const PaymentPage: React.FC = () => {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Status:</span>
-                  <span className="text-green-600 font-semibold">Success</span>
+                  <span className="text-green-600 font-semibold">{isCOD ? 'Order Placed' : 'Success'}</span>
                 </div>
               </div>
             </div>

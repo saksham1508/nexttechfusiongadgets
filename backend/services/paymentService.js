@@ -159,6 +159,21 @@ class PaymentService {
   // Razorpay Payment Methods
   async createRazorpayOrder(amount, currency = 'INR', receipt, notes = {}) {
     try {
+      // Dev fallback: if mock data is enabled, return a simulated order so frontend can proceed
+      if (process.env.ENABLE_MOCK_DATA === 'true' && !razorpay) {
+        const mockId = `order_mock_${Date.now()}`;
+        return {
+          success: true,
+          data: {
+            orderId: mockId,
+            amount: Math.round((amount || 1) * 100),
+            currency: currency || 'INR',
+            receipt: receipt || `receipt_${Date.now()}`,
+            status: 'created'
+          }
+        };
+      }
+
       if (!razorpay) {
         return {
           success: false,
