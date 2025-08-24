@@ -34,21 +34,21 @@ const CouponApplication: React.FC<CouponApplicationProps> = ({
 
   const loadAvailableCoupons = async () => {
     try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        // Not logged in; skip calling protected endpoint to avoid 401 spam
+        setAvailableCoupons([]);
+        return;
+      }
       const coupons = await couponService.getUserAvailableCoupons();
-      // Filter coupons based on order value and environment
       const validCoupons = coupons.filter(coupon => {
         const isValidForOrder = orderValue >= coupon.minOrderValue;
         const isValidNow = couponService.isValidNow(coupon);
-        
-        // Environment-specific filtering
         if (envInfo.isDevelopment || envInfo.isTest) {
-          // In dev/test, show all coupons for testing
           return isValidNow;
         }
-        
         return isValidForOrder && isValidNow;
       });
-      
       setAvailableCoupons(validCoupons);
     } catch (error) {
       console.error('Error loading available coupons:', error);
@@ -68,6 +68,13 @@ const CouponApplication: React.FC<CouponApplicationProps> = ({
     setError('');
 
     try {
+      // Require auth for validation/apply endpoints
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setError('Please sign in to apply coupons');
+        return;
+      }
+
       // Normalize payment method to backend-expected values
       const normalizePaymentMethod = (method?: string) => {
         switch (method) {
@@ -85,11 +92,27 @@ const CouponApplication: React.FC<CouponApplicationProps> = ({
         }
       };
 
+      // Pre-checks for clearer messages before hitting API
+      const selectedNormalized = normalizePaymentMethod(paymentMethod);
+      const matchedCoupon = availableCoupons.find(c => c.code.toUpperCase() === code.trim().toUpperCase());
+      if (matchedCoupon) {
+        if (orderValue < matchedCoupon.minOrderValue) {
+          setError(`Minimum order value should be ₹${matchedCoupon.minOrderValue}`);
+          setIsValidating(false);
+          return;
+        }
+        if (matchedCoupon.paymentMethods?.length && selectedNormalized && !matchedCoupon.paymentMethods.includes(selectedNormalized)) {
+          setError(`This coupon is only valid for ${matchedCoupon.paymentMethods.join(', ')} payments`);
+          setIsValidating(false);
+          return;
+        }
+      }
+
       const validationData = {
         code: code.trim().toUpperCase(),
         orderValue,
         products,
-        paymentMethod: normalizePaymentMethod(paymentMethod)
+        paymentMethod: selectedNormalized
       };
 
       const response = await couponService.validateCoupon(validationData);

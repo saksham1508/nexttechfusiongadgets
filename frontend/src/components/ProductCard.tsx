@@ -28,6 +28,8 @@ interface Product {
   category?: string;
   seller?: string | { _id: string; name: string };
   isActive?: boolean;
+  specifications?: Record<string, any>;
+  features?: string[];
 }
 
 interface ProductCardProps {
@@ -43,6 +45,20 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, showQuickCommerce = 
   const { user } = useSelector((state: RootState) => state.auth);
   const [cartQuantity, setCartQuantity] = useState(0);
   const [showRecommendationsModal, setShowRecommendationsModal] = useState(false);
+  const [showCompareTip, setShowCompareTip] = useState(false);
+
+  useEffect(() => {
+    let dismissed = false;
+    let shownThisSession = false;
+    try {
+      dismissed = localStorage.getItem('compareTipDismissed') === 'true';
+      shownThisSession = sessionStorage.getItem('compareTipShown') === 'true';
+    } catch {}
+    if (!dismissed && !shownThisSession) {
+      setShowCompareTip(true);
+      try { sessionStorage.setItem('compareTipShown', 'true'); } catch {}
+    }
+  }, []);
 
   // Helper function to normalize product data
   const normalizeProduct = (prod: Product): MainProduct => {
@@ -63,8 +79,8 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, showQuickCommerce = 
       seller: typeof prod.seller === 'string' ? prod.seller : prod.seller?._id || '',
       stockQuantity: prod.stock ?? prod.countInStock ?? prod.stockQuantity ?? 0,
       inStock: (prod.stock ?? prod.countInStock ?? prod.stockQuantity ?? 0) > 0,
-      specifications: {},
-      features: [],
+      specifications: (prod as any).specifications || {},
+      features: (prod as any).features || [],
       reviews: [],
       tags: [],
       lowStockThreshold: 5,
@@ -246,22 +262,33 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, showQuickCommerce = 
     <div className="card-product group">
       {/* Product Image */}
       <div className="relative overflow-hidden">
-        <Link to={isVendor ? `/vendor/products/${product._id}` : `/products/${product._id}`}>
+        <Link
+          to={isVendor ? `/vendor/products/${product._id}` : `/products/${product._id}`}
+          onClick={(e) => {
+            // If in compare select mode, intercept click to add to comparison and prevent navigation
+            try {
+              if (localStorage.getItem('compareSelectMode') === '1' && onAddToComparison) {
+                e.preventDefault();
+                e.stopPropagation();
+                const normalized = normalizeProduct(product);
+                onAddToComparison(normalized);
+                // ensure item is persisted for HomePage pickup
+                const existing = localStorage.getItem('comparePending');
+                const list = existing ? JSON.parse(existing) : [];
+                if (!list.find((x: any) => x._id === normalized._id)) list.push(normalized);
+                localStorage.setItem('comparePending', JSON.stringify(list));
+                // signal to reopen comparison modal on HomePage
+                localStorage.setItem('compareReopen', '1');
+                localStorage.removeItem('compareSelectMode');
+                toast.success('Added to comparison');
+                navigate('/');
+              }
+            } catch {}
+          }}
+        >
           <img
-            src={
-              Array.isArray(product.images) && product.images.length > 0
-                ? typeof product.images[0] === 'string' 
-                  ? product.images[0] 
-                  : product.images[0]?.url || '/placeholder-image.jpg'
-                : '/placeholder-image.jpg'
-            }
-            alt={
-              Array.isArray(product.images) && product.images.length > 0
-                ? typeof product.images[0] === 'string' 
-                  ? product.name 
-                  : product.images[0]?.alt || product.name
-                : product.name
-            }
+            src={'/Icon.png'}
+            alt={product.name}
             className="w-full h-56 object-cover group-hover:scale-110 transition-transform duration-500"
           />
         </Link>
@@ -292,18 +319,55 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, showQuickCommerce = 
             className="bg-white/90 backdrop-blur-sm hover:bg-white hover:shadow-lg transition-all duration-300 hover-scale"
           />
           {onAddToComparison && (
-            <button
-              type="button"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                onAddToComparison(normalizeProduct(product));
-              }}
-              className="bg-white/90 backdrop-blur-sm p-2 rounded-full hover:bg-white hover:shadow-lg transition-all duration-300 hover-scale"
-              title="Add to comparison"
-            >
-              <Scale className="h-4 w-4 text-gray-700" />
-            </button>
+            <div className="relative">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  const normalized = normalizeProduct(product);
+                  onAddToComparison(normalized);
+                  setShowCompareTip(false); // hide tip after first use
+                  // If user is in compare selection mode, finalize selection and return to comparison
+                  try {
+                    if (localStorage.getItem('compareSelectMode') === '1') {
+                      // ensure item is persisted for HomePage pickup
+                      const existing = localStorage.getItem('comparePending');
+                      const list = existing ? JSON.parse(existing) : [];
+                      if (!list.find((x: any) => x._id === normalized._id)) list.push(normalized);
+                      localStorage.setItem('comparePending', JSON.stringify(list));
+                      localStorage.setItem('compareReopen', '1');
+                      localStorage.removeItem('compareSelectMode');
+                      navigate('/');
+                    }
+                  } catch {}
+                }}
+                className="bg-white/90 backdrop-blur-sm p-2 rounded-full hover:bg-white hover:shadow-lg transition-all duration-300 hover-scale"
+                title="Add to comparison"
+              >
+                <Scale className="h-4 w-4 text-gray-700" />
+              </button>
+              {showCompareTip && (
+                <div className="absolute right-full mr-2 top-1/2 -translate-y-1/2 z-40">
+                  <div className="bg-gray-900 text-white text-xs rounded-lg px-3 py-2 shadow-lg max-w-[200px] flex items-start">
+                    <span>Tip: Click the scale icon to add to comparison</span>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setShowCompareTip(false);
+                        try { localStorage.setItem('compareTipDismissed', 'true'); } catch {}
+                      }}
+                      className="ml-2 text-gray-300 hover:text-white font-bold"
+                      aria-label="Dismiss tip"
+                    >
+                      ×
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           )}
           <Link
             to={isVendor ? `/vendor/products/${product._id}` : `/products/${product._id}`}

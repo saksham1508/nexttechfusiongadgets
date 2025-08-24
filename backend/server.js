@@ -13,6 +13,12 @@ const { rateLimits, sanitizeInput, addCorrelationId } = require('./middleware/va
 // Load env vars
 dotenv.config();
 
+// Paytm configuration
+const MID = process.env.PAYTM_MID;
+const MKEY = process.env.PAYTM_KEY;
+const WEBSITE = process.env.PAYTM_WEBSITE;
+const CALLBACK = process.env.PAYTM_CALLBACK;
+
 // Connect to database
 connectDB();
 
@@ -50,7 +56,9 @@ app.use(
           'https://checkout.razorpay.com',
           'https://js.stripe.com',
           'https://www.paypal.com',
-          'https://pay.google.com'
+          'https://pay.google.com',
+          'https://securegw-stage.paytm.in',
+          'https://securegw.paytm.in'
         ],
         connectSrc: [
           "'self'", 
@@ -65,7 +73,9 @@ app.use(
           'https://api.razorpay.com',
           'https://www.paypal.com',
           'https://api.paypal.com',
-          'https://pay.google.com'
+          'https://pay.google.com',
+          'https://securegw-stage.paytm.in',
+          'https://securegw.paytm.in'
         ]
       }
     },

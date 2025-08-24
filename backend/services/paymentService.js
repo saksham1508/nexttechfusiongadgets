@@ -1,4 +1,7 @@
 const crypto = require('crypto');
+const PaytmChecksum = (() => { try { return require('paytmchecksum'); } catch (e) { return null; } })();
+// dynamic import for node-fetch in CommonJS
+const fetch = (...args) => import('node-fetch').then(({ default: fetch }) => fetch(...args));
 
 // Initialize Stripe (only if API key is provided)
 let stripe = null;
@@ -523,6 +526,88 @@ class PaymentService {
         success: false,
         error: error.message
       };
+    }
+  }
+
+  // Paytm UPI (Staging/Live) - Initiate Transaction
+  async createPaytmTransaction({ amount, orderId, customerId, email, mobile, callbackUrl, testMode = true }) {
+    try {
+      if (!PaytmChecksum) {
+        return { success: false, error: 'paytmchecksum package not installed. Run: npm i paytmchecksum' };
+      }
+
+      const MID = process.env.PAYTM_MID;
+      const MKEY = process.env.PAYTM_KEY;
+      const WEBSITE = process.env.PAYTM_WEBSITE || (testMode ? 'WEBSTAGING' : 'DEFAULT');
+      const CALLBACK = callbackUrl || process.env.PAYTM_CALLBACK;
+
+      if (!MID || !MKEY) {
+        return { success: false, error: 'PAYTM_MID/PAYTM_KEY missing in environment' };
+      }
+
+      const txnAmount = Number(amount).toFixed(2);
+      const baseUrl = testMode ? 'https://securegw-stage.paytm.in' : 'https://securegw.paytm.in';
+
+      const body = {
+        requestType: 'Payment',
+        mid: MID,
+        websiteName: WEBSITE,
+        orderId: orderId,
+        callbackUrl: CALLBACK,
+        txnAmount: { value: txnAmount, currency: 'INR' },
+        userInfo: { custId: customerId || 'CUST_' + Date.now(), email, mobile }
+      };
+
+      const checksum = await PaytmChecksum.generateSignature(JSON.stringify(body), MKEY);
+
+      const response = await fetch(`${baseUrl}/theia/api/v1/initiateTransaction?mid=${MID}&orderId=${orderId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ body, head: { signature: checksum } })
+      });
+      const data = await response.json();
+
+      if (!data || !data.body) {
+        return { success: false, error: 'Invalid response from Paytm' };
+      }
+
+      return {
+        success: true,
+        data: {
+          mid: MID,
+          orderId,
+          amount: txnAmount,
+          txnToken: data.body.txnToken,
+          callbackUrl: CALLBACK,
+          baseUrl,
+          env: testMode ? 'staging' : 'production'
+        }
+      };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  // Paytm callback verification
+  async verifyPaytmCallback(callbackBody) {
+    try {
+      if (!PaytmChecksum) {
+        return { success: false, error: 'paytmchecksum package not installed' };
+      }
+
+      const MKEY = process.env.PAYTM_KEY;
+      const paytmParams = { ...callbackBody };
+      const paytmChecksum = paytmParams.CHECKSUMHASH;
+      delete paytmParams.CHECKSUMHASH;
+
+      const isValid = PaytmChecksum.verifySignature(paytmParams, MKEY, paytmChecksum);
+      if (!isValid) {
+        return { success: false, error: 'Invalid Paytm checksum' };
+      }
+
+      return { success: true, data: paytmParams };
+    } catch (error) {
+      return { success: false, error: error.message };
     }
   }
 

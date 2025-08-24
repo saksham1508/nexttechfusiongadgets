@@ -41,9 +41,8 @@ import VendorBanner from './components/VendorBanner';
 // import ApiDebug from './components/ApiDebug';
 // Debug components removed for production
 import VendorProductViewPage from './pages/VendorProductViewPage';
-import PayPalTest from './components/PayPalTest';
-import PaymentTestPage from './pages/PaymentTestPage';
-import PaymentMethodsDebug from './components/PaymentMethodsDebug';
+import PaytmUPITestPage from './pages/PaytmUPITestPage';
+
 
 
 // Optional: Use ApiStatusIndicator for enhanced connection feedback
@@ -194,9 +193,9 @@ function App() {
                   }
                 />
                 <Route path="/cookie-policy" element={<CookiePolicyPage />} />
-                <Route path="/test-paypal" element={<PayPalTest />} />
-                <Route path="/test-payments" element={<PaymentTestPage />} />
-                <Route path="/debug-payments" element={<PaymentMethodsDebug />} />
+                {/* Paytm UPI test route */}
+                <Route path="/test/paytm-upi" element={<PaytmUPITestPage />} />
+
               </Routes>
             </ErrorBoundary>
           </main>

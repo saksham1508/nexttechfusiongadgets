@@ -4,11 +4,12 @@ import { Link } from 'react-router-dom';
 // Simple, dependency-free slider with autoplay and dots
 // Images are served from public/slider
 const slides = [
-  { id: 0, imageUrl: '/slider/auraglow-launching-soon.jpg' },
-  { id: 1, imageUrl: '/slider/auraglow-inverter-slide1.jpg' },
-  { id: 2, imageUrl: '/slider/slide-2.jpg' },
-  { id: 3, imageUrl: '/slider/slide-tv.jpg' },
-  { id: 4, imageUrl: '/slider/slide-headphones.jpg' },
+  { id: 0, imageUrl: '/slider/discount-50.png' },
+  { id: 1, imageUrl: '/slider/auraglow-launching-soon.jpg' },
+  { id: 2, imageUrl: '/slider/auraglow-inverter-slide1.jpg' },
+  { id: 3, imageUrl: '/slider/slide-2.jpg' },
+  { id: 4, imageUrl: '/slider/slide-tv.jpg' },
+  { id: 5, imageUrl: '/slider/slide-headphones.jpg' },
 ];
 
 const AUTOPLAY_MS = 5000;

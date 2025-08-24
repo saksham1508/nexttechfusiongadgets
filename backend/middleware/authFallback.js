@@ -1,7 +1,8 @@
 const jwt = require('jsonwebtoken');
 
-// Mock users database (same as in authRoutesFallback.js)
+// Mock users database (kept in sync with mockAuthController.js mock users)
 const mockUsers = [
+  // Customer users
   {
     _id: 'user_1',
     name: 'Test User',
@@ -13,6 +14,27 @@ const mockUsers = [
     createdAt: new Date('2024-01-01')
   },
   {
+    _id: 'mock_user_1', // matches mockAuthController
+    name: 'Test User',
+    email: 'test@example.com',
+    password: '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi',
+    role: 'customer',
+    isVerified: true,
+    phone: '+1234567890',
+    createdAt: new Date('2024-01-01')
+  },
+  {
+    _id: 'demo_user_123', // matches mockAuthController
+    name: 'Demo User',
+    email: 'test@example.com',
+    password: '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi',
+    role: 'customer',
+    isVerified: true,
+    phone: '+1234567890',
+    createdAt: new Date('2024-01-01')
+  },
+  // Admin users
+  {
     _id: 'admin_1',
     name: 'Admin User',
     email: 'admin@example.com',
@@ -22,6 +44,17 @@ const mockUsers = [
     phone: '9876543211',
     createdAt: new Date('2024-01-01')
   },
+  {
+    _id: 'mock_admin_1', // matches mockAuthController
+    name: 'Admin User',
+    email: 'admin@example.com',
+    password: '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi',
+    role: 'admin',
+    isVerified: true,
+    phone: '+1234567891',
+    createdAt: new Date('2024-01-01')
+  },
+  // Vendor users (sellers)
   {
     _id: 'vendor_1',
     name: 'Acme Supplies',
@@ -78,10 +111,12 @@ const auth = async (req, res, next) => {
       // Try to verify as JWT
       const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret_key');
       
-      // Find user in mock database
-      const user = mockUsers.find(u => u._id === decoded.id);
+      // Find user in mock database; if missing (e.g., newly mock-registered), fallback to a default customer
+      let user = mockUsers.find(u => u._id === decoded.id);
       if (!user) {
-        return res.status(401).json({ message: 'Not authorized, user not found' });
+        console.warn('Mock auth: decoded user not found in local list, falling back to default customer for mock mode');
+        const fallback = mockUsers.find(u => u.role === 'customer') || mockUsers[0];
+        user = { ...fallback, _id: decoded.id };
       }
       
       // Remove password from user object
