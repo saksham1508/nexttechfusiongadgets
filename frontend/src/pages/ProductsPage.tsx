@@ -48,185 +48,50 @@ const ProductsPage: React.FC = () => {
     pageNumber: parseInt(urlSearchParams.get('page') || '1'),
   });
 
-  // Fallback: local dummy products shown if API fails or returns empty
+  // Default fallback products if API fails (ensures UI still shows items)
   const allMockProducts: Product[] = [
     {
-      _id: 'mock-1',
-      name: 'NexPhone X1',
-      description: 'Powerful smartphone with edge-to-edge display',
-      price: 49999,
-      originalPrice: 54999,
-      category: 'smartphones',
-      images: ['/Icon.png'],
-      rating: 4.5,
-      numReviews: 128,
-      countInStock: 25,
-      brand: 'NexTech',
-      seller: 'vendor_1',
-      isActive: true,
-    },
-    {
-      _id: 'mock-2',
-      name: 'UltraBook Pro 14',
-      description: 'Lightweight laptop with long battery life',
-      price: 89999,
-      originalPrice: 99999,
-      category: 'laptops',
-      images: ['/Icon.png'],
-      rating: 4.7,
-      numReviews: 85,
-      countInStock: 14,
-      brand: 'NexTech',
-      seller: 'vendor_1',
-      isActive: true,
-    },
-    {
-      _id: 'mock-3',
-      name: 'AudioWave Buds',
-      description: 'True wireless earbuds with ANC',
-      price: 6999,
-      originalPrice: 7999,
-      category: 'audio',
-      images: ['/Icon.png'],
-      rating: 4.2,
-      numReviews: 342,
-      countInStock: 80,
-      brand: 'AudioWave',
-      seller: 'vendor_2',
-      isActive: true,
-    },
-    {
-      _id: 'mock-4',
-      name: 'GameBox One',
-      description: 'Next-gen gaming console with 4K HDR',
-      price: 49999,
-      originalPrice: 54999,
-      category: 'gaming',
-      images: ['/Icon.png'],
-      rating: 4.6,
-      numReviews: 210,
-      countInStock: 10,
-      brand: 'GameBox',
-      seller: 'vendor_3',
-      isActive: true,
-    },
-    {
-      _id: 'mock-5',
-      name: 'Tab Plus 11',
-      description: 'Sleek tablet for entertainment and productivity',
-      price: 29999,
-      originalPrice: 34999,
-      category: 'tablets',
-      images: ['/Icon.png'],
-      rating: 4.1,
-      numReviews: 64,
-      countInStock: 33,
-      brand: 'NexTech',
-      seller: 'vendor_4',
-      isActive: true,
-    },
-    {
-      _id: 'mock-6',
-      name: 'FitBand 3',
-      description: 'Smart wearable with health monitoring',
-      price: 4999,
-      originalPrice: 5999,
-      category: 'wearables',
-      images: ['/Icon.png'],
-      rating: 4.0,
-      numReviews: 420,
-      countInStock: 120,
-      brand: 'Healthify',
-      seller: 'vendor_2',
-      isActive: true,
-    },
-    {
-      _id: 'mock-7',
-      name: 'ProHeadset 7.1',
-      description: 'Surround sound gaming headset',
-      price: 8999,
-      originalPrice: 10999,
-      category: 'audio',
-      images: ['/Icon.png'],
-      rating: 4.3,
-      numReviews: 97,
-      countInStock: 45,
-      brand: 'ProAudio',
-      seller: 'vendor_3',
-      isActive: true,
-    },
-    {
-      _id: 'mock-8',
-      name: 'NexCharger 65W',
-      description: 'Fast charger for laptops and phones',
-      price: 2999,
-      originalPrice: 3499,
-      category: 'accessories',
-      images: ['/Icon.png'],
-      rating: 4.4,
-      numReviews: 56,
-      countInStock: 200,
-      brand: 'NexTech',
-      seller: 'vendor_1',
-      isActive: true,
-    },
-    {
-      _id: 'mock-9',
-      name: '4K Action Cam',
-      description: 'Rugged action camera with stabilization',
-      price: 24999,
-      originalPrice: 27999,
-      category: 'accessories',
-      images: ['/Icon.png'],
-      rating: 4.1,
-      numReviews: 34,
-      countInStock: 18,
-      brand: 'ActionPro',
-      seller: 'vendor_4',
-      isActive: true,
-    },
-    {
-      _id: 'mock-10',
-      name: 'NexPhone X1 Case',
-      description: 'Protective case with sleek design',
+      _id: 'fp_1',
+      name: 'iPhone 15 Pro',
+      description: 'Latest iPhone with A17 Pro chip',
       price: 999,
-      originalPrice: 1299,
-      category: 'accessories',
-      images: ['/Icon.png'],
-      rating: 4.5,
-      numReviews: 18,
-      countInStock: 300,
-      brand: 'NexTech',
+      originalPrice: 1099,
+      category: 'smartphones',
+      images: ['https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=600'],
+      rating: 4.8,
+      numReviews: 1250,
+      countInStock: 25,
+      brand: 'Apple',
       seller: 'vendor_1',
       isActive: true,
     },
     {
-      _id: 'mock-11',
-      name: 'Studio Mic USB',
-      description: 'USB condenser microphone for creators',
-      price: 12999,
-      originalPrice: 14999,
-      category: 'accessories',
-      images: ['/Icon.png'],
-      rating: 4.6,
-      numReviews: 75,
-      countInStock: 22,
-      brand: 'SoundLab',
-      seller: 'vendor_5',
+      _id: 'fp_2',
+      name: 'Samsung Galaxy S24 Ultra',
+      description: 'Premium Android smartphone with S Pen',
+      price: 899,
+      originalPrice: 999,
+      category: 'smartphones',
+      images: ['https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=600'],
+      rating: 4.7,
+      numReviews: 980,
+      countInStock: 18,
+      brand: 'Samsung',
+      seller: 'vendor_2',
       isActive: true,
     },
     {
-      _id: 'mock-12',
-      name: 'Gaming Mouse RGB',
-      description: 'High precision gaming mouse with RGB',
-      price: 3499,
-      originalPrice: 3999,
-      category: 'gaming',
-      images: ['/Icon.png'],
-      rating: 4.3,
-      numReviews: 142,
-      countInStock: 90,
-      brand: 'GamePro',
+      _id: 'fp_3',
+      name: 'Sony WH-1000XM5',
+      description: 'Industry-leading noise canceling headphones',
+      price: 349,
+      originalPrice: 399,
+      category: 'audio',
+      images: ['https://images.unsplash.com/photo-1518443895914-3c7b99bc3a3b?w=600'],
+      rating: 4.8,
+      numReviews: 1500,
+      countInStock: 40,
+      brand: 'Sony',
       seller: 'vendor_3',
       isActive: true,
     },
@@ -275,22 +140,20 @@ const ProductsPage: React.FC = () => {
           features: p.features || [],
         }));
 
-        setProducts(normalized);
-        setTotal(pagination.totalProducts || normalized.length);
+        // Fallback to local mock data if API returns empty
+        const finalList = normalized.length > 0 ? normalized : allMockProducts;
+        setProducts(finalList);
+        setTotal(pagination.totalProducts || finalList.length);
         setPages(pagination.totalPages || 1);
         setPage(pagination.currentPage || 1);
       } catch (err) {
         console.error('Failed to fetch products:', err);
-        // On network/API error, fallback to mock products
-        if (allMockProducts.length > 0) {
-          setProducts(allMockProducts);
-          setTotal(allMockProducts.length);
-          setPages(1);
-          setPage(1);
-          toast('Showing demo products (API unavailable)', { icon: '🧪' });
-        } else {
-          toast.error('Failed to load products');
-        }
+        // Show fallback products to keep UI functional
+        setProducts(allMockProducts);
+        setTotal(allMockProducts.length);
+        setPages(1);
+        setPage(1);
+        toast.error('Loading fallback products (API unavailable)');
       } finally {
         setIsLoading(false);
       }

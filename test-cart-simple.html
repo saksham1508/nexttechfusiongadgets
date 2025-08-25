@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Cart Test</title>
+</head>
+<body>
+    <h1>Cart LocalStorage Test</h1>
+    <button onclick="addTestItem()">Add Test Item to Cart</button>
+    <button onclick="checkCart()">Check Cart</button>
+    <button onclick="clearCart()">Clear Cart</button>
+    <div id="output"></div>
+
+    <script>
+        function addTestItem() {
+            const mockCart = JSON.parse(localStorage.getItem('mockCart') || '[]');
+            const testItem = {
+                product: {
+                    _id: 'test123',
+                    name: 'Test Product',
+                    price: 999,
+                    images: [{ url: '/test.jpg', alt: 'Test' }],
+                    stock: 10
+                },
+                quantity: 1
+            };
+            
+            const existingIndex = mockCart.findIndex(item => item.product._id === 'test123');
+            if (existingIndex >= 0) {
+                mockCart[existingIndex].quantity += 1;
+            } else {
+                mockCart.push(testItem);
+            }
+            
+            localStorage.setItem('mockCart', JSON.stringify(mockCart));
+            window.dispatchEvent(new CustomEvent('cartUpdated', { detail: { productId: 'test123', action: 'add-test' } }));
+            
+            document.getElementById('output').innerHTML = '<p>✅ Test item added to cart</p>';
+        }
+        
+        function checkCart() {
+            const mockCart = JSON.parse(localStorage.getItem('mockCart') || '[]');
+            const count = mockCart.reduce((total, item) => total + item.quantity, 0);
+            
+            document.getElementById('output').innerHTML = `
+                <h3>Cart Contents:</h3>
+                <p>Total items: ${count}</p>
+                <pre>${JSON.stringify(mockCart, null, 2)}</pre>
+            `;
+        }
+        
+        function clearCart() {
+            localStorage.removeItem('mockCart');
+            document.getElementById('output').innerHTML = '<p>✅ Cart cleared</p>';
+        }
+        
+        // Listen for cart updates
+        window.addEventListener('cartUpdated', (event) => {
+            console.log('Cart updated event:', event.detail);
+        });
+    </script>
+</body>
+</html>

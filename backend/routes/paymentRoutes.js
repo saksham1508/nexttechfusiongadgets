@@ -542,10 +542,94 @@ const createRefund = asyncHandler(async (req, res) => {
     case 'razorpay':
       result = await paymentService.createRazorpayRefund(paymentId, amount, { reason });
       break;
+    case 'phonepe':
+      // Here paymentId is treated as merchantOrderId; caller must pass refundId too
+      if (!req.body.refundId) { res.status(400); throw new Error('refundId is required for PhonePe'); }
+      result = await paymentService.phonePeRefund(paymentId, req.body.refundId, amount);
+      break;
     default:
       res.status(400);
       throw new Error('Unsupported payment provider');
   }
+  
+  if (result.success) {
+    res.json({
+      success: true,
+      data: result.data
+    });
+  } else {
+    res.status(400);
+    throw new Error(result.error);
+  }
+});
+
+// @desc    Create PhonePe order
+// @route   POST /api/payment-methods/phonepe/create-order
+// @access  Private
+const createPhonePeOrder = asyncHandler(async (req, res) => {
+  const { amount, currency = 'INR', orderId, userPhone, redirectUrl, callbackUrl } = req.body;
+  
+  if (!amount) {
+    res.status(400);
+    throw new Error('Amount is required');
+  }
+  
+  const result = await paymentService.createPhonePeOrder(
+    amount,
+    currency,
+    orderId || `order_${Date.now()}`,
+    userPhone || req.user?.phone || '9999999999',
+    redirectUrl || `${process.env.FRONTEND_URL}/payment/success`,
+    callbackUrl || `${process.env.BACKEND_URL}/api/payment-methods/phonepe/callback`
+  );
+  
+  if (result.success) {
+    res.json({
+      success: true,
+      data: result.data
+    });
+  } else {
+    res.status(400);
+    throw new Error(result.error);
+  }
+});
+
+// @desc    Verify PhonePe payment
+// @route   POST /api/payment-methods/phonepe/verify
+// @access  Private
+const verifyPhonePePayment = asyncHandler(async (req, res) => {
+  const { transactionId, checksum } = req.body;
+  
+  if (!transactionId) {
+    res.status(400);
+    throw new Error('Transaction ID is required');
+  }
+  
+  const result = await paymentService.verifyPhonePePayment(transactionId, checksum);
+  
+  if (result.success) {
+    res.json({
+      success: true,
+      data: result.data
+    });
+  } else {
+    res.status(400);
+    throw new Error(result.error);
+  }
+});
+
+// @desc    Check PhonePe payment status
+// @route   GET /api/payment-methods/phonepe/status/:transactionId
+// @access  Private
+const checkPhonePeStatus = asyncHandler(async (req, res) => {
+  const { transactionId } = req.params;
+  
+  if (!transactionId) {
+    res.status(400);
+    throw new Error('Transaction ID is required');
+  }
+  
+  const result = await paymentService.checkPhonePeStatus(transactionId);
   
   if (result.success) {
     res.json({
@@ -574,12 +658,12 @@ router.post('/create-intent', auth, createPaymentIntent);
 router.post('/confirm-intent', auth, confirmPaymentIntent);
 
 // Razorpay routes
-router.post('/razorpay/create-order', auth, createRazorpayOrder);
-router.post('/razorpay/verify', auth, verifyRazorpayPayment);
+router.post('/razorpay/create-order', optional, createRazorpayOrder);
+router.post('/razorpay/verify', optional, verifyRazorpayPayment);
 
 // PayPal routes
-router.post('/paypal/create-order', auth, createPayPalOrder);
-router.post('/paypal/capture/:orderId', auth, capturePayPalOrder);
+router.post('/paypal/create-order', optional, createPayPalOrder);
+router.post('/paypal/capture/:orderId', optional, capturePayPalOrder);
 
 // Paytm routes
 router.post('/paytm/initiate', optional, asyncHandler(async (req, res) => {
@@ -613,11 +697,191 @@ router.post('/upi/create', optional, createUPIPayment);
 router.post('/googlepay/create', auth, createGooglePayPayment);
 router.post('/googlepay/process', auth, processGooglePayPayment);
 
+// PhonePe routes
+router.post('/phonepe/create-order', optional, createPhonePeOrder);
+router.post('/phonepe/verify', optional, verifyPhonePePayment);
+router.get('/phonepe/status/:transactionId', optional, checkPhonePeStatus);
+
+// PhonePe callback route (for handling payment responses)
+router.post('/phonepe/callback', asyncHandler(async (req, res) => {
+  console.log('PhonePe callback received:', req.body);
+  
+  try {
+    const { transactionId, checksum } = req.body;
+    
+    if (transactionId) {
+      // Verify the payment
+      const result = await paymentService.verifyPhonePePayment(transactionId, checksum);
+      
+      if (result.success) {
+        console.log('PhonePe payment verified successfully:', result.data);
+        // Here you can update order status, send notifications, etc.
+      } else {
+        console.log('PhonePe payment verification failed:', result.error);
+      }
+    }
+    
+    // Always respond with success to PhonePe
+    res.json({ success: true, message: 'Callback received' });
+  } catch (error) {
+    console.error('PhonePe callback error:', error);
+    res.json({ success: true, message: 'Callback received' }); // Still respond with success
+  }
+}));
+
+// Paytm routes
+router.post('/paytm/initiate', optional, asyncHandler(async (req, res) => {
+  const { amount, orderId, customerId, callbackUrl } = req.body;
+  if (!amount) { res.status(400); throw new Error('Amount is required'); }
+  const result = await paymentService.createPaytmTransaction(Number(amount), orderId, customerId, callbackUrl);
+  if (result.success) return res.json({ success: true, data: result.data });
+  res.status(400); throw new Error(result.error);
+}));
+
+router.post('/paytm/status', optional, asyncHandler(async (req, res) => {
+  const { orderId } = req.body;
+  if (!orderId) { res.status(400); throw new Error('orderId is required'); }
+  const result = await paymentService.verifyPaytmTransactionStatus(orderId);
+  if (result.success) return res.json({ success: true, data: result.data });
+  res.status(400); throw new Error(result.error);
+}));
+
+// Paytm callback route (for handling payment responses)
+router.post('/paytm/callback', asyncHandler(async (req, res) => {
+  console.log('Paytm callback received:', req.body);
+  
+  const { ORDERID, STATUS, TXNID, BANKTXNID, TXNAMOUNT, CHECKSUMHASH } = req.body;
+  
+  if (!ORDERID) {
+    return res.status(400).json({ success: false, error: 'Order ID is required' });
+  }
+  
+  // Verify the transaction status
+  const result = await paymentService.verifyPaytmTransactionStatus(ORDERID);
+  
+  if (result.success) {
+    // Redirect to success page
+    res.redirect(`${process.env.FRONTEND_URL}/payment/success?orderId=${ORDERID}&status=success`);
+  } else {
+    // Redirect to failure page
+    res.redirect(`${process.env.FRONTEND_URL}/payment/failure?orderId=${ORDERID}&status=failed&error=${encodeURIComponent(result.error)}`);
+  }
+}));
+
+// PhonePe routes
+
+router.post('/phonepe/create-order', optional, asyncHandler(async (req, res) => {
+  const { amount, currency = 'INR', orderId, userPhone, redirectUrl, callbackUrl } = req.body;
+  
+  if (!amount) {
+    res.status(400);
+    throw new Error('Amount is required');
+  }
+  
+  const result = await paymentService.createPhonePeOrder(
+    amount,
+    currency,
+    orderId || `order_${Date.now()}`,
+    userPhone || '9999999999',
+    redirectUrl || `${process.env.FRONTEND_URL}/payment/phonepe/callback`,
+    callbackUrl || `${process.env.BACKEND_URL}/api/payment-methods/phonepe/callback`
+  );
+  
+  if (result.success) {
+    res.json({
+      success: true,
+      data: result.data
+    });
+  } else {
+    res.status(400);
+    throw new Error(result.error);
+  }
+}));
+
+router.post('/phonepe/verify', optional, asyncHandler(async (req, res) => {
+  const { transactionId, checksum } = req.body;
+  
+  if (!transactionId) {
+    res.status(400);
+    throw new Error('Transaction ID is required');
+  }
+  
+  const result = await paymentService.verifyPhonePePayment(transactionId, checksum);
+  
+  if (result.success) {
+    res.json({
+      success: true,
+      data: result.data
+    });
+  } else {
+    res.status(400);
+    throw new Error(result.error);
+  }
+}));
+
+router.get('/phonepe/status/:transactionId', optional, asyncHandler(async (req, res) => {
+  const { transactionId } = req.params;
+  
+  if (!transactionId) {
+    res.status(400);
+    throw new Error('Transaction ID is required');
+  }
+  
+  const result = await paymentService.checkPhonePeStatus(transactionId);
+  
+  if (result.success) {
+    res.json({
+      success: true,
+      data: result.data
+    });
+  } else {
+    res.status(400);
+    throw new Error(result.error);
+  }
+}));
+
+router.post('/phonepe/callback', asyncHandler(async (req, res) => {
+  const rawBody = JSON.stringify(req.body || {});
+  const authHeader = req.headers['authorization'] || req.headers['Authorization'];
+  console.log('PhonePe callback received');
+
+  // Try SDK callback validation if available
+  const validation = await paymentService.validatePhonePeCallback(authHeader, rawBody);
+  if (!validation.success) {
+    console.warn('PhonePe callback validation skipped/failed:', validation.error);
+  }
+
+  const transactionId = req.body?.transactionId || req.body?.data?.merchantTransactionId;
+  if (!transactionId) {
+    return res.status(400).json({ success: false, error: 'Transaction ID is required' });
+  }
+
+  // Verify the transaction status
+  const result = await paymentService.checkPhonePeStatus(transactionId);
+
+  if (result.success && (result.data.status === 'COMPLETED' || result.data.status === 'SUCCESS')) {
+    res.redirect(`${process.env.FRONTEND_URL}/payment/success?transactionId=${transactionId}&status=success`);
+  } else {
+    res.redirect(`${process.env.FRONTEND_URL}/payment/failure?transactionId=${transactionId}&status=failed&error=${encodeURIComponent(result.error || 'Payment failed')}`);
+  }
+}));
+
+// Razorpay routes
+router.post('/razorpay/create-order', optional, createRazorpayOrder);
+router.post('/razorpay/verify', optional, verifyRazorpayPayment);
+
 // Webhook routes (public)
 router.post('/webhooks/stripe', handleStripeWebhook);
 router.post('/webhooks/razorpay', handleRazorpayWebhook);
 
 // Refund routes
 router.post('/refund', auth, createRefund);
+router.post('/phonepe/refund-status', optional, asyncHandler(async (req, res) => {
+  const { refundId } = req.body;
+  if (!refundId) { res.status(400); throw new Error('refundId is required'); }
+  const result = await paymentService.getPhonePeRefundStatus(refundId);
+  if (result.success) return res.json({ success: true, data: result.data });
+  res.status(400); throw new Error(result.error);
+}));
 
 module.exports = router;

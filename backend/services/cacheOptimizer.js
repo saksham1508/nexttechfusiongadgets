@@ -32,8 +32,9 @@ class CacheOptimizer {
   // O(1) - Initialize Redis connection
   async initializeRedis() {
     try {
-      // Check if Redis is explicitly disabled
-      if (process.env.DISABLE_REDIS === 'true') {
+      // Check if Redis is explicitly disabled (support both flags)
+      const redisDisabled = process.env.DISABLE_REDIS === 'true' || process.env.REDIS_DISABLED === 'true';
+      if (redisDisabled) {
         console.log('ℹ️  Redis disabled by configuration, using memory cache only');
         this.redisClient = null;
         return;

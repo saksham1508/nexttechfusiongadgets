@@ -41,8 +41,13 @@ import VendorBanner from './components/VendorBanner';
 // import ApiDebug from './components/ApiDebug';
 // Debug components removed for production
 import VendorProductViewPage from './pages/VendorProductViewPage';
-import PaytmUPITestPage from './pages/PaytmUPITestPage';
-
+import PayPalTest from './components/PayPalTest';
+import PaymentTestPage from './pages/PaymentTestPage';
+import PaymentMethodsDebug from './components/PaymentMethodsDebug';
+import PaymentDebugPage from './pages/PaymentDebugPage';
+import PaymentPage from './pages/PaymentPage';
+import PaymentTestLink from './components/PaymentTestLink';
+import QuickLogin from './components/QuickLogin';
 
 
 // Optional: Use ApiStatusIndicator for enhanced connection feedback
@@ -193,9 +198,11 @@ function App() {
                   }
                 />
                 <Route path="/cookie-policy" element={<CookiePolicyPage />} />
-                {/* Paytm UPI test route */}
-                <Route path="/test/paytm-upi" element={<PaytmUPITestPage />} />
-
+                <Route path="/test-paypal" element={<PayPalTest />} />
+                <Route path="/test-payments" element={<PaymentTestPage />} />
+                <Route path="/debug-payments" element={<PaymentMethodsDebug />} />
+                <Route path="/payment-debug" element={<PaymentDebugPage />} />
+                <Route path="/payment" element={<PaymentPage />} />
               </Routes>
             </ErrorBoundary>
           </main>
@@ -219,6 +226,12 @@ function App() {
           </ErrorBoundary>
           <ErrorBoundary>
             <EnvironmentInfo />
+          </ErrorBoundary>
+          <ErrorBoundary>
+            <PaymentTestLink />
+          </ErrorBoundary>
+          <ErrorBoundary>
+            <QuickLogin />
           </ErrorBoundary>
           {/* Debug components removed for cleaner UI */}
           <Toaster

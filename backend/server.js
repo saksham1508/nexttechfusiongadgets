@@ -1,3 +1,4 @@
+const Razorpay = require('razorpay');
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -51,30 +52,29 @@ app.use(
         fontSrc: ["'self'", 'https://fonts.gstatic.com'],
         imgSrc: ["'self'", 'data:', 'https://res.cloudinary.com'],
         scriptSrc: [
-          "'self'", 
-          "'unsafe-inline'",
-          'https://checkout.razorpay.com',
-          'https://js.stripe.com',
-          'https://www.paypal.com',
+          "'self'",
           'https://pay.google.com',
           'https://www.gstatic.com',
+          'https://checkout.razorpay.com',
+          'https://www.paypal.com',
           'https://securegw-stage.paytm.in',
           'https://securegw.paytm.in'
         ],
         connectSrc: [
-          "'self'", 
+          "'self'",
           'https://api.stripe.com',
-          'http://localhost:3000',
-          'http://localhost:3001',
-          'http://localhost:5000',
-          'http://localhost:5001',
-          'https://api.nexttechfusiongadgets.com',
-          'https://accounts.google.com',
-          'https://checkout.razorpay.com',
+          'https://pay.google.com',
           'https://api.razorpay.com',
           'https://www.paypal.com',
-          'https://api.paypal.com',
-          'https://pay.google.com',
+          'https://securegw-stage.paytm.in',
+          'https://securegw.paytm.in',
+          'https://api-preprod.phonepe.com'
+        ],
+        frameSrc: [
+          "'self'",
+          'https://api.razorpay.com',
+          'https://checkout.razorpay.com',
+          'https://www.paypal.com',
           'https://securegw-stage.paytm.in',
           'https://securegw.paytm.in'
         ]

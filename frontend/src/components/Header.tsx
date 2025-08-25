@@ -37,12 +37,19 @@ const Header: React.FC = () => {
   const { items } = useSelector((state: RootState) => state.cart);
   const [tempCartCount, setTempCartCount] = useState(0);
 
-  // Load cart count from temporary cart
+  // Load cart count from mock cart (for guest users) and Redux cart (for authenticated users)
   useEffect(() => {
     const loadCartCount = () => {
-      const tempCart = JSON.parse(localStorage.getItem('tempCart') || '[]');
-      const count = tempCart.reduce((total: number, item: any) => total + item.quantity, 0);
-      setTempCartCount(count);
+      // For authenticated users, use Redux cart count
+      if (user) {
+        const reduxCount = items.reduce((total, item) => total + item.quantity, 0);
+        setTempCartCount(reduxCount);
+      } else {
+        // For guest users, use mockCart from localStorage
+        const mockCart = JSON.parse(localStorage.getItem('mockCart') || '[]');
+        const count = mockCart.reduce((total: number, item: any) => total + item.quantity, 0);
+        setTempCartCount(count);
+      }
     };
 
     loadCartCount();
@@ -57,7 +64,7 @@ const Header: React.FC = () => {
     return () => {
       window.removeEventListener('cartUpdated', handleCartUpdate);
     };
-  }, []);
+  }, [user, items]);
 
   const handleLogout = () => {
     console.log('🔄 Header logout button clicked');

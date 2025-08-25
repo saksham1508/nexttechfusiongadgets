@@ -1,195 +1,89 @@
-// Mock API Service for development/fallback
+// Simple localStorage-backed mock cart service for unauthenticated or fallback flows
+// Matches the response shape expected by cartSlice: { items, totalAmount }
+
+export interface MockCartProduct {
+  _id: string;
+  name: string;
+  price: number;
+  images: { url: string; alt: string }[];
+  stock: number;
+}
+
 export interface MockCartItem {
-  product: {
-    _id: string;
-    name: string;
-    price: number;
-    images: { url: string; alt: string }[];
-    stock: number;
-  };
+  product: MockCartProduct;
   quantity: number;
 }
 
-export interface MockCartResponse {
-  items: MockCartItem[];
-  totalAmount: number;
-}
+const STORAGE_KEY = 'mock_cart_v1';
 
-class MockApiService {
-  private readonly CART_STORAGE_KEY = 'mockCart';
-
-  // Simulate API delay
-  private delay(ms: number = 500): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
-  }
-
-  // Get cart items from localStorage
-  private getCartItems(): MockCartItem[] {
-    try {
-      const stored = localStorage.getItem(this.CART_STORAGE_KEY);
-      return stored ? JSON.parse(stored) : [];
-    } catch (error) {
-      console.error('Error loading cart from localStorage:', error);
-      return [];
-    }
-  }
-
-  // Save cart items to localStorage
-  private saveCartItems(items: MockCartItem[]): void {
-    try {
-      localStorage.setItem(this.CART_STORAGE_KEY, JSON.stringify(items));
-      console.log('💾 Mock API: Cart saved to localStorage', items);
-    } catch (error) {
-      console.error('Error saving cart to localStorage:', error);
-    }
-  }
-
-  async getCart(): Promise<MockCartResponse> {
-    await this.delay(300);
-    const cartItems = this.getCartItems();
-    console.log('🔄 Mock API: Getting cart', cartItems);
-    
-    const totalAmount = cartItems.reduce(
-      (sum, item) => sum + item.product.price * item.quantity,
-      0
-    );
-
-    return {
-      items: cartItems,
-      totalAmount
-    };
-  }
-
-  async addToCart(productId: string, quantity: number): Promise<MockCartResponse> {
-    await this.delay(500);
-    console.log('🔄 Mock API: Adding to cart', { productId, quantity });
-
-    const cartItems = this.getCartItems();
-
-    // Prefer a product snapshot saved by UI to keep name/price/images accurate
-    let mockProduct = {
-      _id: productId,
-      name: `Product ${productId.slice(-4)}`,
-      price: 0,
-      images: [{ url: '/placeholder-image.jpg', alt: 'Product Image' }],
-      stock: 10
-    } as { _id: string; name: string; price: number; images: { url: string; alt: string }[]; stock: number };
-
-    try {
-      const snapshotRaw = localStorage.getItem(`productSnapshot:${productId}`);
-      if (snapshotRaw) {
-        const snap = JSON.parse(snapshotRaw);
-        mockProduct = {
-          _id: snap._id || productId,
-          name: snap.name || mockProduct.name,
-          price: typeof snap.price === 'number' ? snap.price : mockProduct.price,
-          images: Array.isArray(snap.images) && snap.images.length ? snap.images : mockProduct.images,
-          stock: typeof snap.stock === 'number' ? snap.stock : mockProduct.stock
-        };
-      }
-    } catch (e) {
-      // ignore snapshot errors, fallback to defaults
-    }
-
-    const existingItemIndex = cartItems.findIndex(
-      item => item.product._id === productId
-    );
-
-    if (existingItemIndex !== -1) {
-      cartItems[existingItemIndex].quantity += quantity;
-      console.log('📦 Mock API: Updated existing item quantity', cartItems[existingItemIndex]);
-    } else {
-      const newItem = {
-        product: mockProduct,
-        quantity
-      };
-      cartItems.push(newItem);
-      console.log('📦 Mock API: Added new item to cart', newItem);
-    }
-
-    this.saveCartItems(cartItems);
-
-    const totalAmount = cartItems.reduce(
-      (sum, item) => sum + item.product.price * item.quantity,
-      0
-    );
-
-    console.log('✅ Mock API: Cart updated', cartItems);
-
-    return {
-      items: cartItems,
-      totalAmount
-    };
-  }
-
-  async updateCartItem(productId: string, quantity: number): Promise<MockCartResponse> {
-    await this.delay(300);
-    console.log('🔄 Mock API: Updating cart item', { productId, quantity });
-
-    let cartItems = this.getCartItems();
-
-    if (quantity === 0) {
-      cartItems = cartItems.filter(item => item.product._id !== productId);
-      console.log('🗑️ Mock API: Removed item from cart', productId);
-    } else {
-      const existingItemIndex = cartItems.findIndex(
-        item => item.product._id === productId
-      );
-
-      if (existingItemIndex !== -1) {
-        cartItems[existingItemIndex].quantity = quantity;
-        console.log('📦 Mock API: Updated item quantity', cartItems[existingItemIndex]);
-      }
-    }
-
-    this.saveCartItems(cartItems);
-
-    const totalAmount = cartItems.reduce(
-      (sum, item) => sum + item.product.price * item.quantity,
-      0
-    );
-
-    console.log('✅ Mock API: Cart item updated', cartItems);
-
-    return {
-      items: cartItems,
-      totalAmount
-    };
-  }
-
-  async removeFromCart(productId: string): Promise<MockCartResponse> {
-    await this.delay(300);
-    console.log('🔄 Mock API: Removing from cart', { productId });
-
-    const cartItems = this.getCartItems().filter(item => item.product._id !== productId);
-    this.saveCartItems(cartItems);
-
-    const totalAmount = cartItems.reduce(
-      (sum, item) => sum + item.product.price * item.quantity,
-      0
-    );
-
-    console.log('✅ Mock API: Item removed from cart', cartItems);
-
-    return {
-      items: cartItems,
-      totalAmount
-    };
-  }
-
-  async clearCart(): Promise<MockCartResponse> {
-    await this.delay(300);
-    console.log('🔄 Mock API: Clearing cart');
-
-    this.saveCartItems([]);
-
-    console.log('✅ Mock API: Cart cleared');
-
-    return {
-      items: [],
-      totalAmount: 0
-    };
+function loadCart(): MockCartItem[] {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? (JSON.parse(raw) as MockCartItem[]) : [];
+  } catch {
+    return [];
   }
 }
 
-export const mockApiService = new MockApiService();
+function saveCart(items: MockCartItem[]) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+}
+
+function calcTotal(items: MockCartItem[]) {
+  return items.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
+}
+
+function placeholderProduct(productId: string): MockCartProduct {
+  // Minimal product info for UI compatibility
+  return {
+    _id: productId,
+    name: `Product ${productId.substring(0, 6)}`,
+    price: 999,
+    images: [{ url: '/placeholder.png', alt: 'placeholder' }],
+    stock: 100,
+  };
+}
+
+export const mockApiService = {
+  async getCart() {
+    const items = loadCart();
+    return { items, totalAmount: calcTotal(items) };
+  },
+
+  async addToCart(productId: string, quantity: number) {
+    const items = loadCart();
+    const idx = items.findIndex((i) => i.product._id === productId);
+    if (idx >= 0) {
+      items[idx].quantity += quantity;
+    } else {
+      items.push({ product: placeholderProduct(productId), quantity });
+    }
+    saveCart(items);
+    return { items, totalAmount: calcTotal(items) };
+  },
+
+  async updateCartItem(productId: string, quantity: number) {
+    const items = loadCart();
+    const idx = items.findIndex((i) => i.product._id === productId);
+    if (idx >= 0) {
+      items[idx].quantity = Math.max(1, quantity);
+    } else {
+      items.push({ product: placeholderProduct(productId), quantity: Math.max(1, quantity) });
+    }
+    saveCart(items);
+    return { items, totalAmount: calcTotal(items) };
+  },
+
+  async removeFromCart(productId: string) {
+    let items = loadCart();
+    items = items.filter((i) => i.product._id !== productId);
+    saveCart(items);
+    return { items, totalAmount: calcTotal(items) };
+  },
+
+  async clearCart() {
+    const items: MockCartItem[] = [];
+    saveCart(items);
+    return { items, totalAmount: 0 };
+  },
+};

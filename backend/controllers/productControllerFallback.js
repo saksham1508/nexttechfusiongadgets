@@ -200,15 +200,26 @@ const createProduct = asyncHandler(async (req, res) => {
     });
   }
   
+  // Support MRP (originalPrice), SKU and variants like Meesho-style catalogs
+  const sellingPrice = Number(price);
+  const mrp = req.body.originalPrice ? Number(req.body.originalPrice) : sellingPrice;
+  const safeMrp = isNaN(mrp) || mrp < sellingPrice ? sellingPrice : mrp;
+  const providedSku = (req.body.sku || '').trim();
+  const autoSku = `${(brand || 'SKU').slice(0, 3).toUpperCase()}-${Date.now().toString().slice(-6)}`;
+  const variants = Array.isArray(req.body.variants) ? req.body.variants : [];
+
   const newProduct = {
     _id: `product_${Date.now()}`,
     name: name.trim(),
     description: description.trim(),
-    price: Number(price),
+    price: sellingPrice,
+    originalPrice: safeMrp,
     category: category.trim(),
     brand: brand.trim(),
+    sku: providedSku || autoSku,
     countInStock: Number(countInStock) || 0,
     images: images || ['https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=300'],
+    variants,
     seller: req.user._id,
     isActive: true,
     rating: 0,
@@ -262,9 +273,18 @@ const updateProduct = asyncHandler(async (req, res) => {
   }
   
   // Update product
+  // Enforce safe pricing and keep SKU if not provided
+  const nextPrice = req.body.price != null ? Number(req.body.price) : product.price;
+  const nextMrpRaw = req.body.originalPrice != null ? Number(req.body.originalPrice) : (product.originalPrice || nextPrice);
+  const nextMrp = isNaN(nextMrpRaw) || nextMrpRaw < nextPrice ? nextPrice : nextMrpRaw;
+
   const updatedProduct = {
     ...product,
     ...req.body,
+    price: nextPrice,
+    originalPrice: nextMrp,
+    sku: (req.body.sku || product.sku || `${(product.brand || 'SKU').slice(0,3).toUpperCase()}-${product._id.slice(-6)}`).trim(),
+    variants: Array.isArray(req.body.variants) ? req.body.variants : (product.variants || []),
     _id: product._id, // Preserve ID
     seller: product.seller, // Preserve seller
     updatedAt: new Date()

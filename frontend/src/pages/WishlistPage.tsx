@@ -266,7 +266,13 @@ const WishlistPage: React.FC = () => {
                 <div className="relative">
                   <Link to={`/products/${item.product._id}`}>
                     <img
-                      src={item.product.images[0]?.url || '/placeholder-image.jpg'}
+                      src={
+                        item.product.images[0] 
+                          ? typeof item.product.images[0] === 'string' 
+                            ? item.product.images[0] 
+                            : item.product.images[0].url
+                          : '/placeholder-image.jpg'
+                      }
                       alt={item.product.name}
                       className="w-full h-48 object-cover hover:scale-105 transition-transform duration-300"
                     />
@@ -313,7 +319,7 @@ const WishlistPage: React.FC = () => {
                         </span>
                       )}
                     </div>
-                    {item.priceWhenAdded > item.product.price && (
+                    {item.priceWhenAdded && item.priceWhenAdded > item.product.price && (
                       <span className="text-xs text-green-600 font-medium">
                         Price dropped!
                       </span>
@@ -322,7 +328,7 @@ const WishlistPage: React.FC = () => {
 
                   {/* Stock Status */}
                   <div className="mb-3">
-                    {item.product.inStock && item.product.stockQuantity > 0 ? (
+                    {(item.product.inStock ?? ((item.product.stockQuantity ?? 0) > 0)) && (item.product.stockQuantity ?? 0) > 0 ? (
                       <span className="text-sm text-green-600">In Stock</span>
                     ) : (
                       <span className="text-sm text-red-600">Out of Stock</span>
@@ -334,7 +340,7 @@ const WishlistPage: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => handleMoveToCart(item.product._id)}
-                      disabled={!item.product.inStock || item.product.stockQuantity === 0}
+                      disabled={!(item.product.inStock ?? ((item.product.stockQuantity ?? 0) > 0)) || (item.product.stockQuantity ?? 0) === 0}
                       className="flex-1 bg-blue-600 text-white py-2 px-3 rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center justify-center space-x-2"
                       aria-label={`Add ${item.product.name} to cart`}
                     >

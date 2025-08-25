@@ -60,6 +60,9 @@ export const API_ENDPOINTS = {
   PRODUCTS: {
     GET_ALL: '/products',
     GET_BY_ID: '/products',
+    CREATE: '/products',
+    UPDATE: '/products',
+    DELETE: '/products',
     SEARCH: '/products/search',
     CATEGORIES: '/products/categories'
   },
