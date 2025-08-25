@@ -57,6 +57,7 @@ app.use(
           'https://js.stripe.com',
           'https://www.paypal.com',
           'https://pay.google.com',
+          'https://www.gstatic.com',
           'https://securegw-stage.paytm.in',
           'https://securegw.paytm.in'
         ],
