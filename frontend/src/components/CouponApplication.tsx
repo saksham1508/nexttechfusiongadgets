@@ -35,12 +35,25 @@ const CouponApplication: React.FC<CouponApplicationProps> = ({
   const loadAvailableCoupons = async () => {
     try {
       const token = localStorage.getItem('token');
-      if (!token) {
-        // Not logged in; skip calling protected endpoint to avoid 401 spam
-        setAvailableCoupons([]);
-        return;
+      let coupons: Coupon[] = [];
+
+      // In dev/test, try public coupons first so guests see mock coupons
+      if (envInfo.isDevelopment || envInfo.isTest) {
+        try {
+          coupons = await couponService.getActiveCoupons();
+        } catch (e) {
+          // ignore and try user-specific next
+        }
       }
-      const coupons = await couponService.getUserAvailableCoupons();
+
+      if (!coupons.length && token) {
+        // Personalized list when logged in
+        coupons = await couponService.getUserAvailableCoupons();
+      } else if (!coupons.length) {
+        // Not logged in: show general active coupons
+        coupons = await couponService.getActiveCoupons();
+      }
+
       const validCoupons = coupons.filter(coupon => {
         const isValidForOrder = orderValue >= coupon.minOrderValue;
         const isValidNow = couponService.isValidNow(coupon);
@@ -49,9 +62,34 @@ const CouponApplication: React.FC<CouponApplicationProps> = ({
         }
         return isValidForOrder && isValidNow;
       });
+
       setAvailableCoupons(validCoupons);
-    } catch (error) {
+      // Show available coupons by default when present
+      setShowAvailableCoupons(validCoupons.length > 0);
+    } catch (error: any) {
       console.error('Error loading available coupons:', error);
+      const status = error?.response?.status;
+      if (status === 401) {
+        // Unauthorized: likely missing/expired token. In dev/test, fallback to public coupons
+        if (envInfo.isDevelopment || envInfo.isTest) {
+          try {
+            const publicCoupons = await couponService.getActiveCoupons();
+            const valid = publicCoupons.filter(c => couponService.isValidNow(c));
+            setAvailableCoupons(valid);
+            setShowAvailableCoupons(valid.length > 0);
+            return;
+          } catch (_) {
+            // fall through
+          }
+        }
+        setAvailableCoupons([]);
+        // Do not auto-open list when unauthorized
+        setShowAvailableCoupons(false);
+        if (envInfo.debugMode) {
+          toast('Sign in to view personalized coupons', { icon: '🔐' });
+        }
+        return;
+      }
       if (envInfo.debugMode) {
         toast.error('Failed to load available coupons');
       }
@@ -72,6 +110,7 @@ const CouponApplication: React.FC<CouponApplicationProps> = ({
       const token = localStorage.getItem('token');
       if (!token) {
         setError('Please sign in to apply coupons');
+        setIsValidating(false);
         return;
       }
 

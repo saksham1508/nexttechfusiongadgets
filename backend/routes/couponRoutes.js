@@ -8,7 +8,9 @@ const { auth } = require('../middleware/authFallback');
 const isMongoAvailable = () => {
   try {
     const mongoose = require('mongoose');
-    return mongoose.connection.readyState === 1; // 1 = connected
+    const mongoConnected = mongoose.connection.readyState === 1; // 1 = connected
+    const forceMock = process.env.ENABLE_MOCK_DATA === 'true' && process.env.NODE_ENV === 'development';
+    return mongoConnected && !forceMock;
   } catch (error) {
     return false;
   }
