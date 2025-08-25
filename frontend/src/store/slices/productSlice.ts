@@ -259,6 +259,19 @@ export const fetchProducts = createAsyncThunk(
       if (filters.limit) queryParams.append('limit', filters.limit.toString());
       
       const response = await axiosInstance.get(`${API_ENDPOINTS.PRODUCTS.GET_ALL}?${queryParams}`);
+      
+      // Handle the API response structure
+      if (response.data.success && response.data.data) {
+        const { products, pagination } = response.data.data;
+        return {
+          products: products || [],
+          page: pagination?.currentPage || 1,
+          pages: pagination?.totalPages || 1,
+          total: pagination?.totalProducts || 0
+        };
+      }
+      
+      // Fallback for different response structure
       return response.data;
     } catch (error: any) {
       // If API is not available, return mock data
@@ -324,6 +337,13 @@ export const fetchProductById = createAsyncThunk(
   async (id: string, { rejectWithValue }) => {
     try {
       const response = await axiosInstance.get(`${API_ENDPOINTS.PRODUCTS.GET_BY_ID}/${id}`);
+      
+      // Handle the API response structure
+      if (response.data.success && response.data.data) {
+        return response.data.data;
+      }
+      
+      // Fallback for different response structure
       return response.data;
     } catch (error: any) {
       // If API is not available, return mock data

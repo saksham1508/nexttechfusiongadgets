@@ -7,7 +7,6 @@ import UPIPayment from '../components/UPIPayment';
 import GooglePayPayment from '../components/GooglePayPayment';
 import RazorpayPayment from '../components/RazorpayPayment';
 import RazorpayTestMinimal from '../components/RazorpayTestMinimal';
-import PhonePePayment from '../components/PhonePePayment';
 import EnvDebug from '../components/EnvDebug';
 import { PaymentMethod } from '../types';
 
@@ -310,11 +309,9 @@ const PaymentTestPage: React.FC = () => {
               )}
 
               {selectedMethod?.provider === 'phonepe' && (
-                <PhonePePayment
+                <UPIPayment
                   amount={7499} // ₹74.99 (converted from $99.99)
-                  currency="INR"
                   orderId="test_order_123"
-                  userPhone="9999999999"
                   onSuccess={handlePaymentSuccess}
                   onError={handlePaymentError}
                   onCancel={handlePaymentCancel}

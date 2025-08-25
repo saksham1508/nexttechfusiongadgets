@@ -11,7 +11,6 @@ import StripePayment from '../components/StripePayment';
 import PayPalPayment from '../components/PayPalPayment';
 import UPIPayment from '../components/UPIPayment';
 import GooglePayPayment from '../components/GooglePayPayment';
-import PhonePePayment from '../components/PhonePePayment';
 import CouponApplication from '../components/CouponApplication';
 
 import { MapPin, ArrowLeft } from 'lucide-react';

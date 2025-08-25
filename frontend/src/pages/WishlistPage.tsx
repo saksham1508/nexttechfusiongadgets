@@ -328,7 +328,7 @@ const WishlistPage: React.FC = () => {
 
                   {/* Stock Status */}
                   <div className="mb-3">
-                    {(item.product.inStock ?? (item.product.stock > 0)) && (item.product.stockQuantity ?? item.product.stock) > 0 ? (
+                    {(item.product.inStock ?? ((item.product.stockQuantity ?? 0) > 0)) && (item.product.stockQuantity ?? 0) > 0 ? (
                       <span className="text-sm text-green-600">In Stock</span>
                     ) : (
                       <span className="text-sm text-red-600">Out of Stock</span>
@@ -340,7 +340,7 @@ const WishlistPage: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => handleMoveToCart(item.product._id)}
-                      disabled={!(item.product.inStock ?? (item.product.stock > 0)) || (item.product.stockQuantity ?? item.product.stock) === 0}
+                      disabled={!(item.product.inStock ?? ((item.product.stockQuantity ?? 0) > 0)) || (item.product.stockQuantity ?? 0) === 0}
                       className="flex-1 bg-blue-600 text-white py-2 px-3 rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center justify-center space-x-2"
                       aria-label={`Add ${item.product.name} to cart`}
                     >

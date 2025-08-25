@@ -10,11 +10,12 @@ const getApiUrl = (): string => {
     case 'production':
       return process.env.REACT_APP_API_URL || 'https://api.nexttechfusiongadgets.com';
     case 'development':
-      return process.env.REACT_APP_API_URL || 'http://localhost:3000/api';
+      // Point to backend server in dev by default
+      return process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
     case 'test':
-      return 'http://localhost:3001/api';
+      return process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
     default:
-      return 'http://localhost:3000/api';
+      return process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
   }
 };
 

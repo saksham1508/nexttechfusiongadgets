@@ -4,6 +4,7 @@
   - Loads Razorpay checkout script dynamically
 */
 import axios from 'axios';
+import { UPIPayment } from '../types';
 
 const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 const RAZORPAY_KEY = process.env.REACT_APP_RAZORPAY_KEY_ID || 'rzp_test_dev_key_id';
@@ -257,7 +258,7 @@ export async function processStripePayment(amount: number, paymentMethodId: stri
   return { status: 'succeeded', id: `pi_${Date.now()}`, amount, orderId, paymentMethodId, requiresAction: false as boolean, clientSecret: `cs_${Date.now()}` } as const;
 }
 
-export async function createUPIPayment(amount: number, upiId: string, orderId: string): Promise<UPIPaymentType> {
+export async function createUPIPayment(amount: number, upiId: string, orderId: string): Promise<UPIPayment> {
   const upiString = `upi://pay?pa=${encodeURIComponent(upiId)}&pn=NextTech&am=${amount}&cu=INR&tn=Order%20${encodeURIComponent(orderId)}`;
   return {
     paymentId: `UPI_${Date.now()}`,

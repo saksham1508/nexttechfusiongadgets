@@ -82,7 +82,8 @@ const CategoriesPage: React.FC = () => {
       breadcrumbs.unshift(current);
       // Find parent category by ID from categoryTree
       if (current.parent) {
-        current = findCategoryById(categoryTree, current.parent);
+        const parentId = typeof current.parent === 'string' ? current.parent : (current.parent as any)?._id;
+        current = findCategoryById(categoryTree, parentId);
       } else {
         current = undefined;
       }

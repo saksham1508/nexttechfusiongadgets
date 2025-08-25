@@ -11,6 +11,22 @@ import { checkAuthentication, clearAuthData } from '../utils/authHelpers';
 import toast from 'react-hot-toast';
 import { Product as MainProduct } from '../types';
 
+// Local Review interface to avoid import issues
+interface Review {
+  _id: string;
+  user: {
+    _id: string;
+    name: string;
+    avatar?: string;
+  };
+  rating: number;
+  comment: string;
+  images?: string[];
+  helpful: number;
+  verified: boolean;
+  createdAt: string;
+}
+
 // Extended Product interface to handle different incoming shapes (does not extend MainProduct)
 interface Product {
   _id: string;
@@ -66,11 +82,17 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, showQuickCommerce = 
   };
 
   // Helper function to normalize product data for comparison
-  const normalizeProductForComparison = (prod: Product): MainProduct => {
+  const normalizeProductForComparison = (prod: Product) => {
     return {
-      ...prod,
+      _id: prod._id,
+      name: prod.name,
       description: prod.description ?? 'No description provided',
+      price: prod.price,
+      originalPrice: prod.originalPrice,
+      discount: prod.originalPrice ? Math.round(((prod.originalPrice - prod.price) / prod.originalPrice) * 100) : undefined,
       category: prod.category ?? 'General',
+      subcategory: undefined,
+      brand: prod.brand,
       rating: typeof prod.rating === 'number' ? prod.rating : 0,
       numReviews: typeof prod.numReviews === 'number' ? prod.numReviews : 0,
       images: Array.isArray(prod.images) 
@@ -81,12 +103,11 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, showQuickCommerce = 
           )
         : [{ url: '/placeholder-image.jpg', alt: prod.name, isPrimary: true }],
       seller: typeof prod.seller === 'string' ? prod.seller : prod.seller?._id || '',
-      stock: prod.stock ?? prod.countInStock ?? prod.stockQuantity ?? 0,
       stockQuantity: prod.stock ?? prod.countInStock ?? prod.stockQuantity ?? 0,
       inStock: (prod.stock ?? prod.countInStock ?? prod.stockQuantity ?? 0) > 0,
       specifications: {},
       features: [],
-      reviews: prod.numReviews ?? 0,
+      reviews: [] as any,
       tags: [],
       lowStockThreshold: 5,
       deliveryInfo: {
@@ -346,20 +367,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, showQuickCommerce = 
             size="sm"
             className="bg-white/90 backdrop-blur-sm hover:bg-white hover:shadow-lg transition-all duration-300 hover-scale"
           />
-          {onAddToComparison && (
-            <button
-              type="button"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                onAddToComparison(normalizeProductForComparison(product));
-              }}
-              className="bg-white/90 backdrop-blur-sm p-2 rounded-full hover:bg-white hover:shadow-lg transition-all duration-300 hover-scale"
-              title="Add to comparison"
-            >
-              <Scale className="h-4 w-4 text-gray-700" />
-            </button>
-          )}
+          {/* Comparison feature temporarily disabled */}
           <Link
             to={isVendor ? `/vendor/products/${product._id}` : `/products/${product._id}`}
             className="bg-white/90 backdrop-blur-sm p-2 rounded-full hover:bg-white hover:shadow-lg transition-all duration-300 hover-scale"
