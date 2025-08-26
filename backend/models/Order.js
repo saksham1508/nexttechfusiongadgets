@@ -36,15 +36,16 @@ const orderSchema = new mongoose.Schema({
     zipCode: { type: String, required: true },
     country: { type: String, required: true }
   },
+  // Store payment method as a simple string (e.g., 'cod', 'razorpay', 'paypal', 'stripe', 'upi')
   paymentMethod: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'PaymentMethod',
+    type: String,
     required: true
   },
+  // Provider is optional; default to 'cod' for offline
   paymentProvider: {
     type: String,
-    enum: ['stripe', 'paypal', 'razorpay', 'square', 'cod'],
-    required: true
+    enum: ['stripe', 'paypal', 'razorpay', 'square', 'cod', 'googlepay', 'phonepe', 'upi'],
+    default: 'cod'
   },
   paymentResult: {
     id: String,

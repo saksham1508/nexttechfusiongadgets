@@ -1,9 +1,17 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, CheckCircle, AlertCircle } from 'lucide-react';
 import PaymentSelector from '../components/PaymentSelector';
+import { useDispatch, useSelector } from 'react-redux';
+import { AppDispatch, RootState } from '../store/store';
+import { clearCart, fetchCart } from '../store/slices/cartSlice';
+import { createOrder } from '../store/slices/orderSlice';
+import toast from 'react-hot-toast';
 
 const PaymentPage: React.FC = () => {
+  const dispatch = useDispatch<AppDispatch>();
+  const navigate = useNavigate();
+  const { items, totalAmount } = useSelector((state: RootState) => state.cart);
   const [paymentStatus, setPaymentStatus] = useState<'pending' | 'success' | 'error'>('pending');
   const [paymentResult, setPaymentResult] = useState<any>(null);
   const [errorMessage, setErrorMessage] = useState<string>('');
@@ -19,10 +27,46 @@ const PaymentPage: React.FC = () => {
     ]
   };
 
-  const handlePaymentSuccess = (result: any) => {
+  const handlePaymentSuccess = async (result: any) => {
     console.log('Payment successful:', result);
     setPaymentResult(result);
+    try {
+      // 1) Create order after successful payment
+      if (!items || items.length === 0) {
+        toast.error('Cart is empty, cannot create order.');
+      } else {
+        const orderData = {
+          orderItems: items.map((item: any) => ({
+            product: item.product._id,
+            quantity: item.quantity,
+            price: item.product.price,
+          })),
+          shippingAddress: {
+            street: 'N/A', city: 'N/A', state: 'N/A', zipCode: 'N/A', country: 'India'
+          },
+          paymentMethod: result?.paymentMethod || 'online',
+          paymentResult: result,
+          totalPrice: totalAmount,
+        };
+        const created = await dispatch(createOrder(orderData)).unwrap();
+        // Notify orders first so /orders picks it up immediately
+        window.dispatchEvent(new Event('ordersUpdated'));
+        toast.success('Order placed successfully!');
+        // Optional: navigate to order detail
+        // navigate(`/orders/${created._id}`);
+      }
+    } catch (e) {
+      console.error('Failed to create order after payment:', e);
+      toast.error('Order creation failed. Please check My Orders.');
+    }
+
+    // 2) Clear cart and update UI
     setPaymentStatus('success');
+    try { await dispatch(clearCart()).unwrap(); } catch {}
+    localStorage.removeItem('mock_cart_v1');
+    localStorage.removeItem('mockCart');
+    window.dispatchEvent(new Event('cartUpdated'));
+    try { await dispatch(fetchCart()); } catch {}
   };
 
   const handlePaymentError = (error: string) => {

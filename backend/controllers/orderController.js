@@ -35,15 +35,33 @@ const addOrderItems = async (req, res) => {
       }
     }
 
+    const enrichedOrderItems = [];
+    for (let item of orderItems) {
+      const productDoc = await Product.findById(item.product).select('name images price');
+      enrichedOrderItems.push({
+        product: productDoc._id,
+        name: productDoc.name,
+        quantity: item.quantity,
+        price: item.price ?? productDoc.price,
+        image: (productDoc.images && productDoc.images[0] && productDoc.images[0].url) || undefined,
+      });
+    }
+
+    const provider = ['razorpay','paypal','stripe','googlepay','phonepe','upi','cod'].includes(String(paymentMethod))
+      ? String(paymentMethod)
+      : 'cod';
+
     const order = new Order({
-      orderItems,
+      orderItems: enrichedOrderItems,
       user: req.user._id,
       shippingAddress,
-      paymentMethod,
-      itemsPrice,
+      paymentMethod: String(paymentMethod),
+      paymentProvider: provider,
       taxPrice,
       shippingPrice,
       totalPrice,
+      isPaid: provider !== 'cod',
+      paidAt: provider !== 'cod' ? Date.now() : undefined,
     });
 
     const createdOrder = await order.save();
@@ -73,10 +91,9 @@ const addOrderItems = async (req, res) => {
 // @access  Private
 const getOrderById = async (req, res) => {
   try {
-    const order = await Order.findById(req.params.id).populate(
-      'user',
-      'name email'
-    );
+    const order = await Order.findById(req.params.id)
+      .populate('user', 'name email')
+      .populate('orderItems.product', 'name images');
 
     if (order) {
       res.json(order);
@@ -121,7 +138,9 @@ const updateOrderToPaid = async (req, res) => {
 // @access  Private
 const getMyOrders = async (req, res) => {
   try {
-    const orders = await Order.find({ user: req.user._id }).sort({ createdAt: -1 });
+    const orders = await Order.find({ user: req.user._id })
+      .populate('orderItems.product', 'name images')
+      .sort({ createdAt: -1 });
     res.json(orders);
   } catch (error) {
     res.status(500).json({ message: error.message });

@@ -34,6 +34,8 @@ const PayPalPayment: React.FC<PayPalPaymentProps> = ({
     clientId: process.env.REACT_APP_PAYPAL_CLIENT_ID || '',
     currency: currency,
     intent: 'capture',
+    components: 'buttons',
+    enableFunding: 'card', // ask PayPal SDK to show card funding if eligible
     'data-client-token': 'sandbox_client_token',
   };
 
@@ -41,9 +43,9 @@ const PayPalPayment: React.FC<PayPalPaymentProps> = ({
     try {
       setLoading(true);
       setError(null);
-      console.log('💳 PayPal: Creating order for amount:', amount, currency);
+      console.log('💳 PayPal: Creating order for amount:', amount, currency, 'orderId:', orderId);
       
-      const order = await paymentService.createPayPalOrder(amount, currency, items);
+      const order = await paymentService.createPayPalOrder(amount, currency, items, orderId);
       console.log('✅ PayPal: Order created successfully:', order.orderId);
       return order.orderId;
     } catch (error: any) {
@@ -119,12 +121,31 @@ const PayPalPayment: React.FC<PayPalPaymentProps> = ({
               label: 'paypal',
               height: 50,
             }}
+            fundingSource={undefined}
             createOrder={createOrder}
             onApprove={onApprove}
             onError={onErrorHandler}
             onCancel={onCancelHandler}
             disabled={loading}
           />
+          {/* Explicit card button (appears only if eligible in region/account) */}
+          <div className="mt-3">
+            <PayPalButtons
+              style={{
+                layout: 'vertical',
+                color: 'silver',
+                shape: 'rect',
+                label: 'pay',
+                height: 45,
+              }}
+              fundingSource="card"
+              createOrder={createOrder}
+              onApprove={onApprove}
+              onError={onErrorHandler}
+              onCancel={onCancelHandler}
+              disabled={loading}
+            />
+          </div>
         </PayPalScriptProvider>
       </div>
 

@@ -1,5 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useSelector } from 'react-redux';
+import { RootState } from '../store/store';
+import axiosInstance from '../utils/axiosConfig';
 
 // Define interfaces for order data structure (consistent with OrderDetailPage)
 interface ProductImage {
@@ -87,81 +90,63 @@ const DollarSign = (props: React.SVGProps<SVGSVGElement>) => (
 
 
 const OrdersPage: React.FC = () => {
-  // Local state to simulate Redux data
+  // Local state for orders
   const [orders, setOrders] = useState<Order[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  // Simulate a logged-in user. Set to null to test the "Please Login" state.
-  const [user, setUser] = useState<{ _id: string; name: string; email: string } | null>(
-    { _id: 'user123', name: 'John Doe', email: 'john.doe@example.com' }
-    // Set to null initially to demonstrate login flow:
-    // null
-  );
+  // Actual logged-in user from Redux
+  const user = useSelector((state: RootState) => state.auth.user);
 
-  // Simulate fetching user and orders
+  // Fetch orders for logged-in user and refresh on 'ordersUpdated' events
   useEffect(() => {
-    // Simulate user login if not already set (e.g., if starting with null user)
-    if (!user) {
-      setTimeout(() => {
-        setUser({ _id: 'user123', name: 'John Doe', email: 'john.doe@example.com' });
-      }, 500); // Simulate a short delay for user authentication
-    }
+    let retryTimeout: any;
 
-    // Simulate fetching orders only if a user is "logged in"
-    const fetchOrders = async () => {
-      setIsLoading(true);
+    const fetchOrders = async (silent = false) => {
+      if (!silent) setIsLoading(true);
       try {
-        // Simulate API call delay
-        await new Promise(resolve => setTimeout(resolve, 1500));
-        const mockOrders: Order[] = [
-          {
-            _id: 'order1234567890',
-            createdAt: new Date().toISOString(),
-            totalPrice: 150.75,
-            status: 'delivered',
-            orderItems: [
-              { product: { name: 'Wireless Headphones', images: [{ url: 'https://placehold.co/100x100/A0B2C3/FFFFFF?text=Headphones' }] }, quantity: 1, price: 75.50 },
-              { product: { name: 'USB-C Cable (2m)', images: [{ url: 'https://placehold.co/100x100/B2C3A0/FFFFFF?text=Cable' }] }, quantity: 2, price: 12.00 },
-              { product: { name: 'Portable Charger 10000mAh', images: [{ url: 'https://placehold.co/100x100/C3A0B2/FFFFFF?text=Charger' }] }, quantity: 1, price: 51.25 },
-            ],
-            shippingAddress: { street: '123 Main St', city: 'Anytown', state: 'CA', zipCode: '90210' },
-          },
-          {
-            _id: 'order0987654321',
-            createdAt: new Date(Date.now() - 86400000 * 5).toISOString(), // 5 days ago
-            totalPrice: 49.99,
-            status: 'processing',
-            orderItems: [
-              { product: { name: 'Ergonomic Mouse', images: [{ url: 'https://placehold.co/100x100/D4E5F6/FFFFFF?text=Mouse' }] }, quantity: 1, price: 49.99 },
-            ],
-            shippingAddress: { street: '456 Oak Ave', city: 'Sometown', state: 'NY', zipCode: '10001' },
-          },
-          {
-            _id: 'order1122334455',
-            createdAt: new Date(Date.now() - 86400000 * 10).toISOString(), // 10 days ago
-            totalPrice: 299.00,
-            status: 'shipped',
-            orderItems: [
-              { product: { name: '4K Monitor 27-inch', images: [{ url: 'https://placehold.co/100x100/E5F6D4/FFFFFF?text=Monitor' }] }, quantity: 1, price: 299.00 },
-              { product: { name: 'Webcam HD 1080p', images: [{ url: 'https://placehold.co/100x100/F6D4E5/FFFFFF?text=Webcam' }] }, quantity: 1, price: 60.00 },
-              { product: { name: 'Mechanical Keyboard', images: [{ url: 'https://placehold.co/100x100/CDEFAA/FFFFFF?text=Keyboard' }] }, quantity: 1, price: 90.00 },
-              { product: { name: 'Desk Mat Large', images: [{ url: 'https://placehold.co/100x100/ABCDEF/FFFFFF?text=Desk+Mat' }] }, quantity: 1, price: 25.00 },
-            ],
-            shippingAddress: { street: '789 Pine Ln', city: 'Otherville', state: 'TX', zipCode: '75001' },
-          },
-        ];
-        setOrders(mockOrders);
-      } catch (error) {
-        console.error("Failed to fetch orders:", error);
-        setOrders([]); // Set to empty array on error
+        if (!user) {
+          setOrders([]);
+          return;
+        }
+        // Prefer authenticated endpoint that returns current user's orders
+        const res = await axiosInstance.get('/orders/myorders');
+        setOrders(res.data || []);
+      } catch (error: any) {
+        // If unauthorized, show login state
+        if (error?.response?.status === 401) {
+          setOrders([]);
+        }
+        console.error('Failed to fetch orders:', error);
       } finally {
-        setIsLoading(false);
+        if (!silent) setIsLoading(false);
       }
     };
 
-    if (user) { // Fetch orders only if user is "logged in"
-      fetchOrders();
-    }
-  }, [user]); // Re-run when user state changes
+    const onOrdersUpdated = () => {
+      // Immediate refresh, plus a short retry to catch eventual consistency
+      fetchOrders(true);
+      clearTimeout(retryTimeout);
+      retryTimeout = setTimeout(() => fetchOrders(true), 800);
+    };
+
+    const onVisibilityOrFocus = () => {
+      if (document.visibilityState === 'visible') {
+        fetchOrders(true);
+      }
+    };
+
+    fetchOrders();
+
+    window.addEventListener('ordersUpdated', onOrdersUpdated);
+    window.addEventListener('focus', onVisibilityOrFocus);
+    document.addEventListener('visibilitychange', onVisibilityOrFocus);
+
+    return () => {
+      window.removeEventListener('ordersUpdated', onOrdersUpdated);
+      window.removeEventListener('focus', onVisibilityOrFocus);
+      document.removeEventListener('visibilitychange', onVisibilityOrFocus);
+      clearTimeout(retryTimeout);
+    };
+  }, [user]);
 
   // Helper function to determine status badge color based on order status
   const getStatusColor = (status: string) => {

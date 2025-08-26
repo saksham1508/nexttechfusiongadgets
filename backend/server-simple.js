@@ -1220,7 +1220,7 @@ app.post('/api/payment-methods/paypal/create-order', async (req, res) => {
       });
     }
 
-    const { amount, currency = 'USD', items = [], returnUrl, cancelUrl } = req.body;
+    const { amount, currency = 'USD', items = [], returnUrl, cancelUrl, orderId } = req.body;
     
     if (!amount) {
       return res.status(400).json({
@@ -1229,13 +1229,14 @@ app.post('/api/payment-methods/paypal/create-order', async (req, res) => {
       });
     }
 
-    console.log('🌐 Creating PayPal order:', { amount, currency, items });
+    console.log('🌐 Creating PayPal order:', { amount, currency, items, orderId });
 
     const request = new paypal.orders.OrdersCreateRequest();
     request.prefer("return=representation");
     request.requestBody({
       intent: 'CAPTURE',
       purchase_units: [{
+        custom_id: orderId || `ORDER_${Date.now()}`,
         amount: {
           currency_code: currency,
           value: amount.toString()
@@ -1298,6 +1299,7 @@ app.post('/api/payment-methods/paypal/capture/:orderId', async (req, res) => {
         status: capture.result.status,
         paymentId: capture.result.purchase_units[0]?.payments?.captures[0]?.id,
         amount: capture.result.purchase_units[0]?.payments?.captures[0]?.amount,
+        customId: capture.result.purchase_units[0]?.custom_id,
         timestamp: new Date().toISOString()
       }
     });

@@ -3,8 +3,6 @@ import { Link, useNavigate } from 'react-router-dom';
 import LoadingSpinner from '../components/LoadingSpinner';
 import ProductCard from '../components/ProductCard';
 import { Filter, Grid, List, ShoppingBag } from '../components/Icons';
-import axiosInstance from '../utils/axiosConfig';
-import toast from 'react-hot-toast';
 
 interface ProductImage {
   url: string;
@@ -98,69 +96,34 @@ const ProductsPage: React.FC = () => {
   ];
 
   useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        setIsLoading(true);
-        const params = new URLSearchParams();
-        if (filters.keyword) params.set('keyword', filters.keyword);
-        if (filters.category) params.set('category', filters.category);
-        if (filters.minPrice) params.set('minPrice', filters.minPrice);
-        if (filters.maxPrice) params.set('maxPrice', filters.maxPrice);
-        params.set('page', String(filters.pageNumber));
-        params.set('limit', '12');
+    setIsLoading(true);
+    const pageSize = 12;
 
-        const res = await axiosInstance.get(`/products?${params.toString()}`);
-        // Backend returns { success, data: { products, pagination } } in fallback and real modes
-        let apiProducts = res.data.data?.products || res.data.products || [];
-        let pagination = res.data.data?.pagination || res.data.pagination || { currentPage: 1, totalPages: 1, totalProducts: apiProducts.length };
+    // Client-side filtering over mock data only
+    const filtered = allMockProducts.filter((p) => {
+      const keyword = (filters.keyword || '').toLowerCase();
+      const matchesKeyword =
+        !keyword ||
+        p.name.toLowerCase().includes(keyword) ||
+        (p.description || '').toLowerCase().includes(keyword);
+      const matchesCategory = !filters.category || p.category === filters.category;
+      const price = Number(p.price) || 0;
+      const minOk = !filters.minPrice || price >= Number(filters.minPrice);
+      const maxOk = !filters.maxPrice || price <= Number(filters.maxPrice);
+      return matchesKeyword && matchesCategory && minOk && maxOk;
+    });
 
-        // If API returned empty, use local mock products as graceful fallback
-        if ((!apiProducts || apiProducts.length === 0) && allMockProducts.length > 0) {
-          apiProducts = allMockProducts;
-          pagination = { currentPage: 1, totalPages: 1, totalProducts: allMockProducts.length };
-        }
+    const totalCount = filtered.length;
+    const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+    const currentPage = Math.min(Math.max(1, filters.pageNumber || 1), totalPages);
+    const start = (currentPage - 1) * pageSize;
+    const paged = filtered.slice(start, start + pageSize);
 
-        // Normalize to local type if needed
-        const normalized: Product[] = apiProducts.map((p: any) => ({
-          _id: p._id,
-          name: p.name,
-          description: p.description || '',
-          price: p.price,
-          originalPrice: p.originalPrice,
-          category: typeof p.category === 'object' ? (p.category?.name || p.category?._id || 'General') : (p.category || 'General'),
-          // Force placeholder image for products list
-          images: ['/Icon.png'],
-          rating: p.rating || 0,
-          numReviews: p.numReviews || 0,
-          countInStock: p.countInStock ?? p.stockQuantity ?? 0,
-          brand: p.brand || 'Unknown',
-          seller: typeof p.seller === 'object' ? p.seller?._id : p.seller,
-          isActive: p.isActive !== false,
-          specifications: p.specifications || {},
-          features: p.features || [],
-        }));
-
-        // Fallback to local mock data if API returns empty
-        const finalList = normalized.length > 0 ? normalized : allMockProducts;
-        setProducts(finalList);
-        setTotal(pagination.totalProducts || finalList.length);
-        setPages(pagination.totalPages || 1);
-        setPage(pagination.currentPage || 1);
-      } catch (err) {
-        console.error('Failed to fetch products:', err);
-        // Show fallback products to keep UI functional
-        setProducts(allMockProducts);
-        setTotal(allMockProducts.length);
-        setPages(1);
-        setPage(1);
-        toast.error('Loading fallback products (API unavailable)');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    const debounce = setTimeout(fetchProducts, 400);
-    return () => clearTimeout(debounce);
+    setProducts(paged);
+    setTotal(totalCount);
+    setPages(totalPages);
+    setPage(currentPage);
+    setIsLoading(false);
   }, [filters]);
 
   const handleFilterChange = (key: string, value: string) => {

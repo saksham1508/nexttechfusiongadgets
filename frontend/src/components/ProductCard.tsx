@@ -99,31 +99,33 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, showQuickCommerce = 
 
   // Helper function to normalize product data for comparison
   const normalizeProductForComparison = (prod: Product) => {
+    const stockVal = prod.stock ?? prod.countInStock ?? prod.stockQuantity ?? 0;
+    const imgArray = Array.isArray(prod.images)
+      ? prod.images.map((img, index) =>
+          typeof img === 'string'
+            ? { url: img, alt: prod.name, isPrimary: index === 0 }
+            : { url: img.url, alt: img.alt || prod.name, isPrimary: index === 0 }
+        )
+      : [{ url: '/placeholder-image.jpg', alt: prod.name, isPrimary: true }];
+
     return {
       _id: prod._id,
       name: prod.name,
       description: prod.description ?? 'No description provided',
       price: prod.price,
       originalPrice: prod.originalPrice,
-      discount: prod.originalPrice ? Math.round(((prod.originalPrice - prod.price) / prod.originalPrice) * 100) : undefined,
       category: prod.category ?? 'General',
-      subcategory: undefined,
       brand: prod.brand,
       rating: typeof prod.rating === 'number' ? prod.rating : 0,
+      reviews: typeof prod.numReviews === 'number' ? prod.numReviews : 0,
       numReviews: typeof prod.numReviews === 'number' ? prod.numReviews : 0,
-      images: Array.isArray(prod.images) 
-        ? prod.images.map((img, index) => 
-            typeof img === 'string' 
-              ? { url: img, alt: prod.name, isPrimary: index === 0 }
-              : { ...img, isPrimary: index === 0 }
-          )
-        : [{ url: '/placeholder-image.jpg', alt: prod.name, isPrimary: true }],
-      seller: typeof prod.seller === 'string' ? prod.seller : prod.seller?._id || '',
-      stockQuantity: prod.stock ?? prod.countInStock ?? prod.stockQuantity ?? 0,
-      inStock: (prod.stock ?? prod.countInStock ?? prod.stockQuantity ?? 0) > 0,
+      images: imgArray,
+      seller: typeof prod.seller === 'string' ? prod.seller : prod.seller?._id || undefined,
+      stock: stockVal,
+      stockQuantity: stockVal,
+      inStock: stockVal > 0,
       specifications: {},
       features: [],
-      reviews: [] as any,
       tags: [],
       lowStockThreshold: 5,
       deliveryInfo: {
@@ -346,7 +348,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, showQuickCommerce = 
               if (localStorage.getItem('compareSelectMode') === '1' && onAddToComparison) {
                 e.preventDefault();
                 e.stopPropagation();
-                const normalized = normalizeProduct(product);
+                const normalized = normalizeProductForComparison(product);
                 onAddToComparison(normalized);
                 // ensure item is persisted for HomePage pickup
                 const existing = localStorage.getItem('comparePending');

@@ -42,12 +42,6 @@ if (process.env.PAYPAL_CLIENT_ID && process.env.PAYPAL_CLIENT_SECRET &&
 }
 
 // Paytm configuration
-let PaytmChecksum = null;
-try {
-  PaytmChecksum = require('paytmchecksum');
-} catch (e) {
-  // package may not be installed in some environments
-}
 const PAYTM_HOST = (process.env.PAYTM_ENV === 'production')
   ? 'https://securegw.paytm.in'
   : 'https://securegw-stage.paytm.in';

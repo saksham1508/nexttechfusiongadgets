@@ -4,7 +4,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { RootState, AppDispatch } from '../store/store';
 import { createOrder } from '../store/slices/orderSlice';
-import { fetchCart } from '../store/slices/cartSlice';
+import { fetchCart, clearCart } from '../store/slices/cartSlice';
 import LoadingSpinner from '../components/LoadingSpinner';
 import PaymentMethods from '../components/PaymentMethods';
 import StripePayment from '../components/StripePayment';
@@ -125,6 +125,16 @@ const CheckoutPage: React.FC = () => {
       };
 
       const result = await dispatch(createOrder(orderData)).unwrap();
+      // Notify My Orders to refresh ASAP
+      window.dispatchEvent(new Event('ordersUpdated'));
+      // Clear cart after successful order placement
+      try { await dispatch(clearCart()).unwrap(); } catch {}
+      // Also clear mock cart for guest flows (both legacy and v1 keys)
+      localStorage.removeItem('mock_cart_v1');
+      localStorage.removeItem('mockCart');
+      window.dispatchEvent(new Event('cartUpdated'));
+      // Refresh Redux cart state to reflect empty cart
+      try { await dispatch(fetchCart()); } catch {}
       toast.success('Order placed successfully!');
       navigate(`/orders/${result._id}`);
     } catch (error) {
@@ -348,8 +358,74 @@ const CheckoutPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Order Summary (unchanged) */}
-          {/* ... */}
+          {/* Order Summary */}
+          <div className="space-y-6">
+            {/* Apply Coupon - top of summary column for visibility */}
+            <div className="bg-white rounded-lg shadow-md p-6">
+              <h2 className="text-lg font-semibold text-gray-900 mb-3">Apply Coupon</h2>
+              <CouponApplication
+                orderValue={subtotal}
+                paymentMethod={selectedProvider || undefined}
+                products={items.map((i: any) => i.product._id)}
+                onCouponApplied={handleCouponApplied}
+              />
+            </div>
+
+            <div className="bg-white rounded-lg shadow-md p-6">
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">Order Summary</h2>
+
+              {/* Apply Coupon inside Order Summary */}
+              <CouponApplication
+                orderValue={subtotal}
+                paymentMethod={selectedProvider || undefined}
+                products={items.map((i: any) => i.product._id)}
+                onCouponApplied={handleCouponApplied}
+                className="mb-4"
+              />
+
+              {/* Price Breakdown */}
+              <div className="space-y-3 text-sm text-gray-700">
+                <div className="flex justify-between">
+                  <span>Subtotal</span>
+                  <span>₹{subtotal.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Discount</span>
+                  <span className={discountAmount > 0 ? 'text-green-600 font-semibold' : ''}>
+                    -₹{Math.min(discountAmount, subtotal).toFixed(2)}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Shipping</span>
+                  <span>{shipping === 0 ? 'Free' : `₹${shipping.toFixed(2)}`}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Tax</span>
+                  <span>₹{tax.toFixed(2)}</span>
+                </div>
+                <div className="border-t pt-3 mt-3 flex justify-between text-base font-semibold text-gray-900">
+                  <span>Total</span>
+                  <span>₹{finalTotal.toFixed(2)}</span>
+                </div>
+              </div>
+
+              {/* Continue / Place Order button from summary */}
+              <button type="submit" className="mt-6 btn-primary w-full">
+                {selectedProvider ? 'Proceed' : 'Continue to Payment'}
+              </button>
+
+              {/* Note about coupon removal */}
+              {appliedCoupon && (
+                <button
+                  type="button"
+                  onClick={handleRemoveCoupon}
+                  className="mt-3 w-full text-sm text-gray-600 hover:text-gray-800"
+                >
+                  Remove coupon ({appliedCoupon?.coupon?.code})
+                </button>
+              )}
+            </div>
+          </div>
         </div>
       </form>
     </div>
