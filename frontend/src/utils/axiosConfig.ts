@@ -11,25 +11,43 @@ const axiosInstance = axios.create({
 // Request interceptor to add auth token
 axiosInstance.interceptors.request.use(
   (config) => {
+    // Helper: attempt to extract token from various stored shapes
+    const extractToken = (raw: any): string | null => {
+      if (!raw) return null;
+      try {
+        const obj = typeof raw === 'string' ? JSON.parse(raw) : raw;
+        return (
+          obj?.token ||
+          obj?.accessToken ||
+          obj?.data?.token ||
+          obj?.data?.accessToken ||
+          obj?.data?.tokens?.accessToken ||
+          obj?.tokens?.accessToken ||
+          obj?.user?.token ||
+          null
+        );
+      } catch {
+        return null;
+      }
+    };
+
     // Get token from localStorage - try direct token first
     let token = localStorage.getItem('token');
-    
-    // If no direct token, try to get from user object
+
+    // If no direct token, try to get from user object (handles nested backend shapes)
     if (!token) {
-      const user = localStorage.getItem('user');
-      if (user) {
-        try {
-          const userData = JSON.parse(user);
-          token = userData.token;
-          console.log('🔑 Axios: Token extracted from user object:', token ? token.substring(0, 20) + '...' : 'null');
-        } catch (error) {
-          console.error('❌ Axios: Error parsing user data:', error);
-        }
+      const userRaw = localStorage.getItem('user') || sessionStorage.getItem('user');
+      const extracted = extractToken(userRaw);
+      if (extracted) {
+        token = extracted;
+        // Persist for future requests
+        try { localStorage.setItem('token', token); } catch {}
+        console.log('🔑 Axios: Token extracted from stored user payload:', token.substring(0, 20) + '...');
       }
     } else {
       console.log('🔑 Axios: Token found directly in localStorage:', token.substring(0, 20) + '...');
     }
-    
+
     // Development fallback: synthesize mock vendor token if user is a seller
     if (!token) {
       try {

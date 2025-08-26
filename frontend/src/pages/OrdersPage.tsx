@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { RootState } from '../store/store';
 import axiosInstance from '../utils/axiosConfig';
+import { mockOrderService } from '../services/mockOrderService';
 
 // Define interfaces for order data structure (consistent with OrderDetailPage)
 interface ProductImage {
@@ -107,13 +108,19 @@ const OrdersPage: React.FC = () => {
           setOrders([]);
           return;
         }
-        // Prefer authenticated endpoint that returns current user's orders
+        // Try authenticated endpoint first
         const res = await axiosInstance.get('/orders/myorders');
-        setOrders(res.data || []);
+        const apiOrders = res.data || [];
+        setOrders(apiOrders);
       } catch (error: any) {
-        // If unauthorized, show login state
-        if (error?.response?.status === 401) {
-          setOrders([]);
+        // If unauthorized or server not available, fallback to mock orders
+        if (error?.response?.status === 401 || !error?.response || error?.response?.status >= 500) {
+          try {
+            const mockOrders = await mockOrderService.listMy();
+            setOrders(mockOrders as any);
+          } catch (e) {
+            setOrders([]);
+          }
         }
         console.error('Failed to fetch orders:', error);
       } finally {
