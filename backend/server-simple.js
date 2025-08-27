@@ -63,6 +63,50 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+// Mock vendor analytics (simple server)
+app.get('/api/vendor/analytics', (req, res) => {
+  // In simple server we don't have auth/user. Return static-ish mock data.
+  const months = [];
+  const now = new Date();
+  for (let i = 11; i >= 0; i--) {
+    const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - i, 1));
+    months.push(`${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`);
+  }
+
+  const productMonthly = [
+    { productId: '1', name: 'iPhone 15 Pro', months, series: [5,6,8,7,9,12,10,11,13,12,14,16] },
+    { productId: '3', name: 'MacBook Pro M3', months, series: [2,3,2,4,3,5,4,6,5,7,6,8] },
+    { productId: '6', name: 'Sony WH-1000XM5', months, series: [7,8,6,7,8,9,10,9,8,10,11,12] },
+  ];
+
+  const productOrders = [
+    { productId: '1', name: 'iPhone 15 Pro', views: 1200, orders: 160 },
+    { productId: '6', name: 'Sony WH-1000XM5', views: 900, orders: 110 },
+    { productId: '3', name: 'MacBook Pro M3', views: 600, orders: 70 },
+  ];
+
+  const totalViews = productOrders.reduce((s, p) => s + p.views, 0);
+  const totalOrders = productOrders.reduce((s, p) => s + p.orders, 0);
+  const conversionRate = +(totalViews ? ((totalOrders / totalViews) * 100).toFixed(2) : 0);
+  const totalSales = 160*999.99 + 110*349.99 + 70*1999.99;
+
+  res.json({
+    success: true,
+    data: {
+      summary: {
+        totalClicks: totalViews, // treat views as clicks in mock
+        totalViews,
+        totalOrders,
+        conversionRate,
+        totalSales: +totalSales.toFixed(2),
+        returnPercentage: 2.5
+      },
+      productOrders,
+      productMonthly
+    }
+  });
+});
+
 // Basic API info endpoint
 app.get('/api', (req, res) => {
   res.json({

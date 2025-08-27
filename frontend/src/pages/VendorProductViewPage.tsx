@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useSelector } from 'react-redux';
+import type { RootState } from '../store/store';
 import axiosInstance from '../utils/axiosConfig';
 import { Eye, Pencil, ArrowLeft } from 'lucide-react';
 
@@ -19,6 +21,7 @@ interface Product {
 const VendorProductViewPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { user } = useSelector((state: RootState) => state.auth);
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -26,6 +29,22 @@ const VendorProductViewPage: React.FC = () => {
     const fetchProduct = async () => {
       try {
         setLoading(true);
+        // If product was created offline and not synced, try local cache first
+        try {
+          const localKey = user?._id ? `vendorProducts:${user._id}` : '';
+          if (localKey) {
+            const saved = localStorage.getItem(localKey);
+            if (saved) {
+              const cached = JSON.parse(saved) as any[];
+              const found = cached.find(p => p._id === id);
+              if (found) {
+                setProduct(found);
+                setLoading(false);
+                return; // Short-circuit if found locally
+              }
+            }
+          }
+        } catch {}
         const res = await axiosInstance.get(`/products/${id}`);
         const data = res.data?.data?.product || res.data?.data || res.data?.product || res.data;
         setProduct(data);
@@ -36,7 +55,7 @@ const VendorProductViewPage: React.FC = () => {
       }
     };
     fetchProduct();
-  }, [id]);
+  }, [id, user?._id]);
 
   if (loading) return <div className="p-6">Loading...</div>;
   if (!product) return <div className="p-6 text-red-600">Product not found.</div>;

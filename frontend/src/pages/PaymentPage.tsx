@@ -1,13 +1,14 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, CheckCircle, AlertCircle } from 'lucide-react';
-import PaymentSelector from '../components/PaymentSelector';
 import { useDispatch, useSelector } from 'react-redux';
-import { AppDispatch, RootState } from '../store/store';
-import { clearCart, fetchCart } from '../store/slices/cartSlice';
+import { RootState, AppDispatch } from '../store/store';
+import { fetchCart } from '../store/slices/cartSlice';
+import PaymentSelector from '../components/PaymentSelector';
+import paymentService from '../services/paymentService';
+import { clearCart } from '../store/slices/cartSlice';
 import { createOrder } from '../store/slices/orderSlice';
 import { mockOrderService } from '../services/mockOrderService';
-import { mockApiService } from '../services/mockApiService';
 import toast from 'react-hot-toast';
 
 const PaymentPage: React.FC = () => {
@@ -18,15 +19,21 @@ const PaymentPage: React.FC = () => {
   const [paymentResult, setPaymentResult] = useState<any>(null);
   const [errorMessage, setErrorMessage] = useState<string>('');
 
-  // Sample order details - in real app, this would come from props/context
+  // Use live cart data instead of static sample (already using items/totalAmount above)
+
+  useEffect(() => {
+    dispatch(fetchCart());
+  }, [dispatch]);
+
   const orderDetails = {
-    amount: 1299.99,
+    amount: totalAmount,
     currency: 'INR',
     orderId: 'ORD_' + Date.now(),
-    items: [
-      { name: 'Wireless Headphones', price: 999.99, quantity: 1 },
-      { name: 'Phone Case', price: 299.99, quantity: 1 }
-    ]
+    items: cartItems.map((ci: any) => ({
+      name: ci.product?.name || 'Item',
+      price: ci.product?.price || 0,
+      quantity: ci.quantity || 1
+    }))
   };
 
   const handlePaymentSuccess = async (result: any) => {
@@ -163,7 +170,7 @@ const PaymentPage: React.FC = () => {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Amount:</span>
-                  <span className="font-semibold">{paymentResult?.currency} {paymentResult?.amount}</span>
+                  <span className="font-semibold">{orderDetails.currency} {orderDetails.amount.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Status:</span>
@@ -291,6 +298,32 @@ const PaymentPage: React.FC = () => {
               currency={orderDetails.currency}
               onPaymentSuccess={handlePaymentSuccess}
               onPaymentError={handlePaymentError}
+              allowedProviders={(() => {
+                // Prefer per-product acceptance; intersect across cart items
+                try {
+                  const HIGH_VALUE = 30000;
+                  const base = paymentService.getAvailablePaymentMethods();
+                  const perItemAllowed = cartItems.map((ci: any) => {
+                    const p = ci.product;
+                    const productAcceptance = p?.paymentAcceptance;
+                    let acceptance = productAcceptance;
+                    if (!acceptance) {
+                      try {
+                        const vendorCfg = localStorage.getItem('vendorPaymentAcceptance');
+                        acceptance = vendorCfg ? JSON.parse(vendorCfg) : null;
+                      } catch {}
+                    }
+                    if (!acceptance || acceptance.acceptAll) return base;
+                    const isHigh = (p?.price || 0) >= (acceptance.highValueThreshold || HIGH_VALUE);
+                    const list = isHigh ? acceptance.acceptedMethodsAboveThreshold : acceptance.acceptedMethods;
+                    return (Array.isArray(list) && list.length) ? list : base;
+                  });
+                  const intersection = perItemAllowed.reduce((acc: any[], curr: any[]) => acc.filter(x => curr.includes(x)), base);
+                  return intersection && intersection.length ? intersection : base;
+                } catch {
+                  return paymentService.getAvailablePaymentMethods();
+                }
+              })()}
             />
           </div>
         </div>

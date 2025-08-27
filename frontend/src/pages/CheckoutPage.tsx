@@ -52,11 +52,14 @@ const CheckoutPage: React.FC = () => {
     toast.success('Coupon removed');
   }
 
+  // Always refresh cart on entering checkout to avoid stale totals
   useEffect(() => {
-    if (items.length === 0) {
-      dispatch(fetchCart());
-    }
-  }, [dispatch, items.length]);
+    dispatch(fetchCart());
+    // Also refresh when other components signal cart updates
+    const handler = () => dispatch(fetchCart());
+    window.addEventListener('cartUpdated', handler as EventListener);
+    return () => window.removeEventListener('cartUpdated', handler as EventListener);
+  }, [dispatch]);
 
   useEffect(() => {
     setFinalAmount(totalAmount - discountAmount);
@@ -89,6 +92,33 @@ const CheckoutPage: React.FC = () => {
       setDiscountAmount(0);
     }
   };
+
+  // Compute vendor-allowed payment providers (per product, intersect across cart)
+  const allowedProvidersComputed: PaymentProvider[] = (() => {
+    try {
+      const HIGH_VALUE = 30000;
+      const base = paymentService.getAvailablePaymentMethods();
+      const perItemAllowed = items.map((item: any) => {
+        const p = item.product;
+        const productAcceptance = p?.paymentAcceptance;
+        let acceptance = productAcceptance;
+        if (!acceptance) {
+          try {
+            const vendorCfg = localStorage.getItem('vendorPaymentAcceptance');
+            acceptance = vendorCfg ? JSON.parse(vendorCfg) : null;
+          } catch {}
+        }
+        if (!acceptance || acceptance.acceptAll) return base;
+        const isHigh = (p?.price || 0) >= (acceptance.highValueThreshold || HIGH_VALUE);
+        const list = isHigh ? acceptance.acceptedMethodsAboveThreshold : acceptance.acceptedMethods;
+        return (Array.isArray(list) && list.length) ? list : base;
+      });
+      const intersection = perItemAllowed.reduce((acc: any[], curr: any[]) => acc.filter(x => curr.includes(x)), base);
+      return intersection && intersection.length ? intersection as PaymentProvider[] : base;
+    } catch {
+      return paymentService.getAvailablePaymentMethods();
+    }
+  })();
 
   // Using CouponApplication for validation and apply/remove via handleCouponApplied
 
@@ -182,14 +212,22 @@ const CheckoutPage: React.FC = () => {
       toast.error('Please select a payment method');
       return;
     }
-    if (selectedProvider === 'razorpay') {
+
+    // Disallow methods not in allowedProvidersComputed
+    const providerToUse = selectedProvider || selectedPaymentMethod?.provider || null;
+    if (providerToUse && !allowedProvidersComputed.includes(providerToUse)) {
+      toast.error('Selected payment method is not available for these items.');
+      return;
+    }
+
+    if (providerToUse === 'razorpay') {
       handleRazorpayPayment();
-    } else if (selectedProvider === 'cod') {
+    } else if (providerToUse === 'cod') {
       // Directly place order with COD without online payment
       await handlePaymentSuccess({ success: true, status: 'cod_selected' });
     } else {
       setPaymentStep('process');
-      setSelectedProvider(selectedPaymentMethod?.provider || null);
+      setSelectedProvider(providerToUse);
     }
   };
 
@@ -206,14 +244,13 @@ const CheckoutPage: React.FC = () => {
     );
   }
 
+  // Recompute from latest Redux state to avoid stale summary
   const subtotal = totalAmount;
-  const shipping = totalAmount > 50 ? 0 : 9.99;
-  // Ensure discount never exceeds subtotal
+  const shipping = subtotal > 50 ? 0 : 9.99;
   const cappedDiscount = Math.min(discountAmount, subtotal);
-  // Tax should be computed on non-negative base after discount
   const taxableBase = Math.max(subtotal - cappedDiscount, 0);
-  const tax = taxableBase * 0.08;
-  const finalTotal = taxableBase + shipping + tax;
+  const tax = Number((taxableBase * 0.08).toFixed(2));
+  const finalTotal = Number((taxableBase + shipping + tax).toFixed(2));
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -240,19 +277,22 @@ const CheckoutPage: React.FC = () => {
                     onPaymentMethodSelect={handlePaymentMethodSelect}
                     selectedAmount={finalTotal}
                     orderId={orderId}
+                    allowedProviders={allowedProvidersComputed}
                   />
-                  <div className="mt-4">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSelectedProvider('cod');
-                        setPaymentStep('process');
-                      }}
-                      className="w-full py-3 px-4 rounded-lg bg-green-600 text-white hover:bg-green-700"
-                    >
-                      Place Order with Cash on Delivery
-                    </button>
-                  </div>
+                  {allowedProvidersComputed.includes('cod') && (
+                    <div className="mt-4">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedProvider('cod');
+                          setPaymentStep('process');
+                        }}
+                        className="w-full py-3 px-4 rounded-lg bg-green-600 text-white hover:bg-green-700"
+                      >
+                        Place Order with Cash on Delivery
+                      </button>
+                    </div>
+                  )}
                 </>
               ) : (
                 <div className="space-y-4">
@@ -278,13 +318,13 @@ const CheckoutPage: React.FC = () => {
 
                   {selectedProvider === 'paypal' && (
                     <PayPalPayment
-                      amount={finalTotal}
+                      amount={Number((finalTotal / (process.env.REACT_APP_USD_INR_RATE ? parseFloat(process.env.REACT_APP_USD_INR_RATE) : 83)).toFixed(2))}
                       currency="USD"
                       orderId={orderId}
                       items={items.map((item: any) => ({
                         name: item.product.name,
                         description: item.product.description,
-                        price: item.product.price,
+                        price: Number(((item.product.price * item.quantity) / (process.env.REACT_APP_USD_INR_RATE ? parseFloat(process.env.REACT_APP_USD_INR_RATE) : 83)).toFixed(2)),
                         quantity: item.quantity
                       }))}
                       onSuccess={handlePaymentSuccess}

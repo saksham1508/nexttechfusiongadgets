@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { PayPalScriptProvider, PayPalButtons } from '@paypal/react-paypal-js';
+import type { ReactPayPalScriptOptions } from '@paypal/react-paypal-js';
 import { Globe, CheckCircle, AlertCircle } from 'lucide-react';
 import paymentService from '../services/paymentService';
 
@@ -30,54 +31,92 @@ const PayPalPayment: React.FC<PayPalPaymentProps> = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const initialOptions = {
+  const initialOptions: ReactPayPalScriptOptions = {
     clientId: process.env.REACT_APP_PAYPAL_CLIENT_ID || '',
-    currency: currency,
+    currency,
     intent: 'capture',
     components: 'buttons',
-    enableFunding: 'card', // ask PayPal SDK to show card funding if eligible
+    // Ask PayPal SDK to show card funding if eligible
+    enableFunding: 'card',
     'data-client-token': 'sandbox_client_token',
   };
 
-  const createOrder = async () => {
+  const createOrder = async (_data?: any, actions?: any) => {
     try {
       setLoading(true);
       setError(null);
-      console.log('💳 PayPal: Creating order for amount:', amount, currency, 'orderId:', orderId);
-      
+      // Prefer creating PayPal order via SDK if available; otherwise, fallback to backend helper
+      if (actions?.order?.create) {
+        const orderIdCreated = await actions.order.create({
+          intent: 'CAPTURE',
+          purchase_units: [
+            {
+              description: `Order ${orderId}`,
+              amount: {
+                currency_code: currency,
+                value: amount.toFixed(2),
+                breakdown: {
+                  item_total: {
+                    currency_code: currency,
+                    value: items?.length
+                      ? items.reduce((sum, it) => sum + it.price * it.quantity, 0).toFixed(2)
+                      : amount.toFixed(2),
+                  },
+                },
+              },
+              ...(items && items.length
+                ? {
+                    items: items.map((it) => ({
+                      name: it.name,
+                      description: it.description || '',
+                      unit_amount: { currency_code: currency, value: it.price.toFixed(2) },
+                      quantity: String(it.quantity || 1),
+                    })),
+                  }
+                : {}),
+            },
+          ],
+        });
+        return orderIdCreated;
+      }
+
+      // Fallback: use backend helper to create order id
       const order = await paymentService.createPayPalOrder(amount, currency, items, orderId);
-      console.log('✅ PayPal: Order created successfully:', order.orderId);
       return order.orderId;
     } catch (error: any) {
-      console.error('❌ PayPal: Order creation failed:', error);
-      setError(error.message);
-      onError(error.message);
+      const msg = error?.message || 'Failed to create PayPal order';
+      setError(msg);
+      onError(msg);
       throw error;
     } finally {
       setLoading(false);
     }
   };
 
-  const onApprove = async (data: any) => {
+  const onApprove = async (data: any, actions?: any) => {
     try {
       setLoading(true);
-      console.log('✅ PayPal: Payment approved, capturing order:', data.orderID);
-      const result = await paymentService.capturePayPalOrder(data.orderID);
-      console.log('✅ PayPal: Payment captured successfully:', result);
-      onSuccess(result);
+      // Prefer capturing via SDK actions if available
+      if (actions?.order?.capture) {
+        const details = await actions.order.capture();
+        onSuccess({ success: true, status: details?.status || 'COMPLETED', orderId: data?.orderID, details });
+      } else {
+        const result = await paymentService.capturePayPalOrder(data.orderID);
+        onSuccess(result);
+      }
     } catch (error: any) {
-      console.error('❌ PayPal: Payment capture failed:', error);
-      setError(error.message);
-      onError(error.message);
+      const msg = error?.message || 'PayPal capture failed';
+      setError(msg);
+      onError(msg);
     } finally {
       setLoading(false);
     }
   };
 
   const onErrorHandler = (error: any) => {
-    console.error('PayPal Error:', error);
-    setError('PayPal payment failed. Please try again.');
-    onError('PayPal payment failed. Please try again.');
+    const msg = typeof error === 'string' ? error : (error?.message || 'PayPal payment failed. Please try again.');
+    setError(msg);
+    onError(msg);
   };
 
   const onCancelHandler = () => {
@@ -121,7 +160,6 @@ const PayPalPayment: React.FC<PayPalPaymentProps> = ({
               label: 'paypal',
               height: 50,
             }}
-            fundingSource={undefined}
             createOrder={createOrder}
             onApprove={onApprove}
             onError={onErrorHandler}

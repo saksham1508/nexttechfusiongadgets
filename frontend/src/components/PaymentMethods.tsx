@@ -22,6 +22,7 @@ interface PaymentMethodsProps {
   orderId?: string;
   onPaymentSuccess?: (result: any) => void;
   onPaymentError?: (error: string) => void;
+  allowedProviders?: PaymentProvider[];
 }
 
 const PaymentMethods: React.FC<PaymentMethodsProps> = ({
@@ -29,7 +30,8 @@ const PaymentMethods: React.FC<PaymentMethodsProps> = ({
   selectedAmount,
   orderId,
   onPaymentSuccess,
-  onPaymentError
+  onPaymentError,
+  allowedProviders
 }) => {
   const dispatch = useDispatch();
   const { user } = useSelector((state: RootState) => state.auth);
@@ -46,6 +48,12 @@ const PaymentMethods: React.FC<PaymentMethodsProps> = ({
     loadPaymentMethods();
     setAvailableProviders(paymentService.getAvailablePaymentMethods());
   }, []);
+
+  // When allowedProviders is provided, filter the base providers accordingly
+  useEffect(() => {
+    const base = paymentService.getAvailablePaymentMethods();
+    setAvailableProviders(allowedProviders && allowedProviders.length ? base.filter((p) => (allowedProviders as PaymentProvider[]).includes(p)) : base);
+  }, [allowedProviders]);
 
   const loadPaymentMethods = async () => {
     try {
@@ -72,6 +80,12 @@ const PaymentMethods: React.FC<PaymentMethodsProps> = ({
   };
 
   const handleProviderSelect = async (provider: PaymentProvider) => {
+    // Block selection if provider is not allowed for current cart
+    if (allowedProviders && allowedProviders.length && !(allowedProviders as PaymentProvider[]).includes(provider)) {
+      setError('This payment method is not available for the selected items.');
+      return;
+    }
+
     // If Redux user missing, try to derive basic details from localStorage
     const stored = localStorage.getItem('user');
     const parsed = stored ? JSON.parse(stored) : null;

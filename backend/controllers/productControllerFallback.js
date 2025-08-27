@@ -151,6 +151,11 @@ const getProductById = asyncHandler(async (req, res) => {
     });
   }
   
+  // Increment view analytics in mock mode
+  product.analytics = product.analytics || { views: 0, clicks: 0 };
+  product.analytics.views = Number(product.analytics.views || 0) + 1;
+  product.updatedAt = new Date();
+  
   // Get related products (same category, different product)
   const relatedProducts = mockProducts
     .filter(p => p.category === product.category && p._id !== product._id && p.isActive)
@@ -354,11 +359,14 @@ const searchProducts = asyncHandler(async (req, res) => {
   return getProducts(req, res);
 });
 
+const getMockProducts = () => mockProducts;
+
 module.exports = {
   getProducts,
   getProductById,
   createProduct,
   updateProduct,
   deleteProduct,
-  searchProducts
+  searchProducts,
+  getMockProducts
 };

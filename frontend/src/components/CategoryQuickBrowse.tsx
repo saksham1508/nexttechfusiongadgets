@@ -10,7 +10,9 @@ import {
   Speaker,
   ChevronRight,
   Zap,
-  Clock
+  Clock,
+  Plug,
+  BatteryCharging
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -125,6 +127,18 @@ const CategoryQuickBrowse: React.FC = () => {
         { id: '34', name: 'Cables', icon: Zap, image: '/api/placeholder/60/60', itemCount: 35, deliveryTime: '8 min' },
         { id: '35', name: 'Screen Guards', icon: Smartphone, image: '/api/placeholder/60/60', itemCount: 45, deliveryTime: '8 min' },
         { id: '36', name: 'Stands & Mounts', icon: Tablet, image: '/api/placeholder/60/60', itemCount: 25, deliveryTime: '12 min' }
+      ]
+    },
+    {
+      id: 'ev-and-energy',
+      name: 'EV & Energy',
+      icon: Plug,
+      color: 'text-emerald-600',
+      bgColor: 'bg-emerald-50',
+      items: [
+        { id: '37', name: 'EV Charging', icon: Plug, image: '/api/placeholder/60/60', itemCount: 12, deliveryTime: '2-5 days', trending: true },
+        { id: '38', name: 'Multifunction Inverters', icon: BatteryCharging, image: '/api/placeholder/60/60', itemCount: 9, deliveryTime: '2-5 days' },
+        { id: '39', name: 'Lithium Iron Batteries', icon: BatteryCharging, image: '/api/placeholder/60/60', itemCount: 14, deliveryTime: '2-5 days' }
       ]
     }
   ];

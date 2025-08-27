@@ -44,9 +44,46 @@ function placeholderProduct(productId: string): MockCartProduct {
   };
 }
 
+// Try to load a previously stored snapshot for accurate name/price/images
+function productFromSnapshot(productId: string): MockCartProduct | null {
+  try {
+    const raw = localStorage.getItem(`productSnapshot:${productId}`);
+    if (!raw) return null;
+    const snap = JSON.parse(raw);
+    const images = Array.isArray(snap.images) && snap.images.length
+      ? snap.images.map((img: any) => (
+          typeof img === 'string'
+            ? { url: img, alt: snap.name || 'product' }
+            : { url: img.url, alt: img.alt || snap.name || 'product' }
+        ))
+      : [{ url: '/placeholder.png', alt: snap.name || 'product' }];
+
+    return {
+      _id: snap._id || productId,
+      name: snap.name || `Product ${productId.substring(0, 6)}`,
+      price: typeof snap.price === 'number' ? snap.price : Number(snap.price) || 999,
+      images,
+      stock: typeof snap.stock === 'number' ? snap.stock : 100,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function resolveProduct(productId: string): MockCartProduct {
+  const fromSnap = productFromSnapshot(productId);
+  return fromSnap || placeholderProduct(productId);
+}
+
 export const mockApiService = {
   async getCart() {
-    const items = loadCart();
+    // Rehydrate products from snapshots if available
+    const rawItems = loadCart();
+    const items = rawItems.map((item) => {
+      const pid = typeof (item as any).product === 'string' ? (item as any).product : (item as any).product?._id;
+      const snap = pid ? productFromSnapshot(pid) : null;
+      return snap ? { ...item, product: snap } : item;
+    });
     return { items, totalAmount: calcTotal(items) };
   },
 
@@ -56,7 +93,7 @@ export const mockApiService = {
     if (idx >= 0) {
       items[idx].quantity += quantity;
     } else {
-      items.push({ product: placeholderProduct(productId), quantity });
+      items.push({ product: resolveProduct(productId), quantity });
     }
     saveCart(items);
     return { items, totalAmount: calcTotal(items) };
@@ -67,8 +104,11 @@ export const mockApiService = {
     const idx = items.findIndex((i) => i.product._id === productId);
     if (idx >= 0) {
       items[idx].quantity = Math.max(1, quantity);
+      // also refresh product info from snapshot if available
+      const snap = productFromSnapshot(productId);
+      if (snap) items[idx].product = snap;
     } else {
-      items.push({ product: placeholderProduct(productId), quantity: Math.max(1, quantity) });
+      items.push({ product: resolveProduct(productId), quantity: Math.max(1, quantity) });
     }
     saveCart(items);
     return { items, totalAmount: calcTotal(items) };

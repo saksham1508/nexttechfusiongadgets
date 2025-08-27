@@ -21,6 +21,18 @@ router.get('/', rateLimits.general, ValidationRules.productQuery(), handleValida
 router.get('/search', rateLimits.api, ValidationRules.productQuery(), handleValidationErrors, searchProducts);
 router.get('/:id', rateLimits.general, ValidationRules.mongoIdParam(), handleValidationErrors, getProductById);
 
+// Track product click (e.g., when user navigates to vendor product view)
+router.post('/:id/track', rateLimits.api, ValidationRules.mongoIdParam(), handleValidationErrors, async (req, res) => {
+  try {
+    const Product = require('../models/Product');
+    const productId = req.params.id;
+    await Product.updateOne({ _id: productId }, { $inc: { 'analytics.clicks': 1 } });
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ success: false, message: 'Failed to track click' });
+  }
+});
+
 // Protected routes with API rate limiting
 router.post('/',
   rateLimits.api,
