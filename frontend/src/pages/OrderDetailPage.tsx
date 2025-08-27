@@ -3,7 +3,10 @@ import React, { useEffect, useState } from 'react';
 // its direct usage within this component might be limited without a router context.
 // However, it's good practice to keep it if the intention is to place this component
 // within a routing environment.
-import { Link } from 'react-router-dom'; // Keep Link for consistency with original intent
+import { Link, useParams } from 'react-router-dom';
+import axiosInstance from '../utils/axiosConfig';
+import { mockOrderService } from '../services/mockOrderService';
+import { formatCurrency } from '../utils';
 
 // Define interfaces for order data structure (extended for detail page)
 interface ProductImage {
@@ -105,50 +108,81 @@ const DollarSign = (props: React.SVGProps<SVGSVGElement>) => (
 
 
 const OrderDetailPage: React.FC = () => {
-  // Simulate useParams for the 'id'
-  const { id } = { id: 'order1234567890' }; // Hardcode an ID for demonstration
+  const { id } = useParams<{ id: string }>();
 
-  // Local state to simulate Redux data
   const [currentOrder, setCurrentOrder] = useState<Order | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  // Mock data for a single order, matching the structure
-  const mockOrderDetail: Order = {
-    _id: 'order1234567890',
-    createdAt: new Date(Date.now() - 86400000 * 15).toISOString(), // 15 days ago
-    totalPrice: 200.50,
-    status: 'delivered',
-    orderItems: [
-      { product: { name: 'Smartwatch Series 7', images: [{ url: 'https://placehold.co/100x100/F0F0F0/000000?text=Smartwatch' }] }, quantity: 1, price: 150.00 },
-      { product: { name: 'Screen Protector (2-pack)', images: [{ url: 'https://placehold.co/100x100/E0E0E0/000000?text=Protector' }] }, quantity: 1, price: 10.50 },
-      { product: { name: 'Wireless Charging Pad', images: [{ url: 'https://placehold.co/100x100/D0D0D0/000000?text=Charger' }] }, quantity: 1, price: 25.00 },
-    ],
-    shippingAddress: {
-      street: '42 Wallaby Way',
-      city: 'Sydney',
-      state: 'NSW',
-      zipCode: '2000',
-      country: 'Australia',
-    },
-    paymentMethod: 'credit card',
-    isPaid: true,
-    paidAt: new Date(Date.now() - 86400000 * 14).toISOString(), // 14 days ago
-    deliveredAt: new Date(Date.now() - 86400000 * 10).toISOString(), // 10 days ago
-  };
-
-  // Simulate fetching order by ID
+  // Fetch order by ID from API, fallback to mock storage
   useEffect(() => {
-    setIsLoading(true);
-    // Simulate API call delay
-    setTimeout(() => {
-      if (id === mockOrderDetail._id) {
-        setCurrentOrder(mockOrderDetail);
-      } else {
-        setCurrentOrder(null); // Order not found
+    let isMounted = true;
+    async function fetchOrder() {
+      if (!id) { setCurrentOrder(null); setIsLoading(false); return; }
+      setIsLoading(true);
+      try {
+        const res = await axiosInstance.get(`/orders/${id}`);
+        const data = res.data;
+        // Normalize minimal fields used in UI if needed
+        const normalized: Order = {
+          _id: data._id || id,
+          createdAt: data.createdAt || new Date().toISOString(),
+          totalPrice: Number(data.totalPrice || 0),
+          status: data.status || 'pending',
+          orderItems: (data.orderItems || []).map((it: any) => ({
+            product: typeof it.product === 'object' && it.product !== null
+              ? { name: it.product.name || it.name || 'Item', images: it.product.images || it.images || [] }
+              : { name: it.name || 'Item', images: it.images || [] },
+            quantity: Number(it.quantity || 0),
+            price: Number(it.price || it.product?.price || 0),
+          })),
+          shippingAddress: data.shippingAddress || { street: '', city: '', state: '', zipCode: '', country: '' },
+          paymentMethod: data.paymentMethod || 'card',
+          isPaid: Boolean(data.isPaid),
+          paidAt: data.paidAt,
+          deliveredAt: data.deliveredAt,
+        };
+        if (isMounted) setCurrentOrder(normalized);
+      } catch (error: any) {
+        // Fallback to mock storage if 401/server error/local dev
+        try {
+          const mock = await mockOrderService.getById(id);
+          if (mock) {
+            const normalized: Order = {
+              _id: mock._id,
+              createdAt: mock.createdAt,
+              totalPrice: mock.totalPrice,
+              status: mock.status,
+              orderItems: mock.orderItems.map((it: any) => ({
+                product: { name: it.product?.name || 'Item', images: it.product?.images || [] },
+                quantity: it.quantity,
+                price: it.price,
+              })),
+              shippingAddress: {
+                street: mock.shippingAddress.street,
+                city: mock.shippingAddress.city,
+                state: mock.shippingAddress.state,
+                zipCode: mock.shippingAddress.zipCode,
+                country: mock.shippingAddress.country || '',
+              },
+              paymentMethod: mock.paymentMethod || 'card',
+              isPaid: true,
+              paidAt: mock.createdAt,
+              deliveredAt: undefined,
+            };
+            if (isMounted) setCurrentOrder(normalized);
+          } else {
+            if (isMounted) setCurrentOrder(null);
+          }
+        } catch {
+          if (isMounted) setCurrentOrder(null);
+        }
+      } finally {
+        if (isMounted) setIsLoading(false);
       }
-      setIsLoading(false);
-    }, 1000); // Simulate 1 second loading time
-  }, [id]); // Dependency: id from useParams simulation
+    }
+    fetchOrder();
+    return () => { isMounted = false; };
+  }, [id]);
 
   // Calculate subtotal
   const subtotal = currentOrder ? currentOrder.orderItems.reduce((total, item) => total + (item.price * item.quantity), 0) : 0;
@@ -188,6 +222,18 @@ const OrderDetailPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50 py-8 font-sans">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Success banner and quick access to My Orders */}
+        <div className="mb-6 bg-green-50 border border-green-200 rounded-lg p-4 flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <svg className="w-5 h-5 text-green-600" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M5 13l4 4L19 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            <p className="text-green-800 font-semibold">Order placed successfully</p>
+          </div>
+          <Link to="/orders" className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-600">
+            My Orders
+          </Link>
+        </div>
         {/* Page Title and Back Button */}
         <div className="flex items-center justify-between mb-8">
           <h1 className="text-3xl font-extrabold text-gray-900">Order Details <span className="text-gray-600 text-2xl">#{currentOrder._id.slice(-8).toUpperCase()}</span></h1>
@@ -219,10 +265,10 @@ const OrderDetailPage: React.FC = () => {
                     <div className="flex-1">
                       <p className="text-lg font-semibold text-gray-900">{item.product.name}</p>
                       <p className="text-gray-600">Quantity: {item.quantity}</p>
-                      <p className="text-gray-800 font-medium">${item.price.toFixed(2)} each</p>
+                      <p className="text-gray-800 font-medium">{formatCurrency(item.price, 'INR')} each</p>
                     </div>
                     <div className="text-lg font-bold text-gray-900">
-                      ${(item.price * item.quantity).toFixed(2)}
+                      {formatCurrency(item.price * item.quantity, 'INR')}
                     </div>
                   </div>
                 ))}
@@ -238,20 +284,20 @@ const OrderDetailPage: React.FC = () => {
               <div className="space-y-3">
                 <div className="flex justify-between">
                   <span className="text-gray-600">Subtotal</span>
-                  <span className="font-medium">${subtotal.toFixed(2)}</span>
+                  <span className="font-medium">{formatCurrency(subtotal, 'INR')}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Shipping</span>
-                  <span className="font-medium">${shippingCost.toFixed(2)}</span>
+                  <span className="font-medium">{formatCurrency(shippingCost, 'INR')}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Tax (8%)</span>
-                  <span className="font-medium">${taxAmount.toFixed(2)}</span>
+                  <span className="font-medium">{formatCurrency(taxAmount, 'INR')}</span>
                 </div>
                 <div className="border-t pt-3 mt-3">
                   <div className="flex justify-between">
                     <span className="text-xl font-bold text-gray-900">Total</span>
-                    <span className="text-xl font-bold text-indigo-600">${currentOrder.totalPrice.toFixed(2)}</span>
+                    <span className="text-xl font-bold text-indigo-600">{formatCurrency(currentOrder.totalPrice, 'INR')}</span>
                   </div>
                 </div>
               </div>

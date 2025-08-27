@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, CheckCircle, AlertCircle } from 'lucide-react';
 import PaymentSelector from '../components/PaymentSelector';
@@ -17,6 +17,27 @@ const PaymentPage: React.FC = () => {
   const [paymentStatus, setPaymentStatus] = useState<'pending' | 'success' | 'error'>('pending');
   const [paymentResult, setPaymentResult] = useState<any>(null);
   const [errorMessage, setErrorMessage] = useState<string>('');
+
+  // Shipping address state (editable in checkout)
+  const [shippingAddress, setShippingAddress] = useState({
+    street: '', city: '', state: '', zipCode: '', country: 'India'
+  });
+
+  // Prefill from localStorage if available
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('checkout_shipping');
+      if (saved) setShippingAddress(JSON.parse(saved));
+    } catch {}
+  }, []);
+
+  const handleShippingChange = (key: string, value: string) => {
+    setShippingAddress((prev) => {
+      const next = { ...prev, [key]: value };
+      try { localStorage.setItem('checkout_shipping', JSON.stringify(next)); } catch {}
+      return next;
+    });
+  };
 
   // Sample order details - in real app, this would come from props/context
   const orderDetails = {
@@ -72,9 +93,7 @@ const PaymentPage: React.FC = () => {
             quantity: item.quantity,
             price: item.product.price,
           })),
-          shippingAddress: {
-            street: 'N/A', city: 'N/A', state: 'N/A', zipCode: 'N/A', country: 'India',
-          },
+          shippingAddress: shippingAddress,
           paymentMethod: method,
           paymentResult: result,
           totalPrice: totalAmount,
@@ -89,9 +108,7 @@ const PaymentPage: React.FC = () => {
             quantity: item.quantity,
             price: item.product.price,
           })),
-          shippingAddress: {
-            street: 'N/A', city: 'N/A', state: 'N/A', zipCode: 'N/A', country: 'India',
-          },
+          shippingAddress: shippingAddress,
           paymentMethod: method,
           paymentResult: result,
           totalPrice: totalAmount,
@@ -101,8 +118,8 @@ const PaymentPage: React.FC = () => {
         // Notify orders first so /orders picks it up immediately
         window.dispatchEvent(new Event('ordersUpdated'));
         toast.success('Order placed successfully!');
-        // Optional: navigate to order detail
-        // navigate(`/orders/${created._id}`);
+        // Navigate to order detail
+        navigate(`/orders/${created._id}`);
       }
     } catch (e: any) {
       console.error('Failed to create order after payment:', e);
@@ -246,7 +263,53 @@ const PaymentPage: React.FC = () => {
           <div className="lg:col-span-1">
             <div className="bg-white rounded-lg shadow-lg p-6 sticky top-8">
               <h2 className="text-xl font-semibold text-gray-900 mb-4">Order Summary</h2>
-              
+
+              {/* Shipping Address Form */}
+              <div className="mb-6">
+                <h3 className="font-semibold text-gray-900 mb-3">Shipping Address</h3>
+                <div className="space-y-3">
+                  <input
+                    type="text"
+                    className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    placeholder="Street"
+                    value={shippingAddress.street}
+                    onChange={(e) => handleShippingChange('street', e.target.value)}
+                  />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <input
+                      type="text"
+                      className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      placeholder="City"
+                      value={shippingAddress.city}
+                      onChange={(e) => handleShippingChange('city', e.target.value)}
+                    />
+                    <input
+                      type="text"
+                      className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      placeholder="State"
+                      value={shippingAddress.state}
+                      onChange={(e) => handleShippingChange('state', e.target.value)}
+                    />
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <input
+                      type="text"
+                      className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      placeholder="ZIP / PIN Code"
+                      value={shippingAddress.zipCode}
+                      onChange={(e) => handleShippingChange('zipCode', e.target.value)}
+                    />
+                    <input
+                      type="text"
+                      className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      placeholder="Country"
+                      value={shippingAddress.country}
+                      onChange={(e) => handleShippingChange('country', e.target.value)}
+                    />
+                  </div>
+                </div>
+              </div>
+
               <div className="space-y-3 mb-4">
                 {orderDetails.items.map((item, index) => (
                   <div key={index} className="flex justify-between items-center">

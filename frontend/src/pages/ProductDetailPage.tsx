@@ -39,12 +39,114 @@ const ProductDetailPage: React.FC = () => {
   useEffect(() => {
     const fetchProduct = async () => {
       setLoading(true);
+
+      // Helper: try to show a fallback product for demo IDs or cached snapshot
+      const tryFallback = (): boolean => {
+        try {
+          const fallbackProducts: Product[] = [
+            {
+              _id: 'fp_1',
+              name: 'iPhone 15 Pro',
+              description: 'Latest iPhone with A17 Pro chip',
+              price: 99999,
+              originalPrice: 109999,
+              category: 'smartphones',
+              brand: 'Apple',
+              images: ['https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=600'],
+              inStock: true,
+              stockQuantity: 25,
+              rating: 4.8,
+              numReviews: 1250,
+              specifications: {},
+              features: [],
+              warranty: ''
+            },
+            {
+              _id: 'fp_2',
+              name: 'Samsung Galaxy S24 Ultra',
+              description: 'Premium Android smartphone with S Pen',
+              price: 899,
+              originalPrice: 999,
+              category: 'smartphones',
+              brand: 'Samsung',
+              images: ['https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=600'],
+              inStock: true,
+              stockQuantity: 18,
+              rating: 4.7,
+              numReviews: 980,
+              specifications: {},
+              features: [],
+              warranty: ''
+            },
+            {
+              _id: 'fp_3',
+              name: 'Sony WH-1000XM5',
+              description: 'Industry-leading noise canceling headphones',
+              price: 349,
+              originalPrice: 399,
+              category: 'audio',
+              brand: 'Sony',
+              images: ['https://images.unsplash.com/photo-1518443895914-3c7b99bc3a3b?w=600'],
+              inStock: true,
+              stockQuantity: 40,
+              rating: 4.8,
+              numReviews: 1500,
+              specifications: {},
+              features: [],
+              warranty: ''
+            }
+          ];
+
+          const fp = fallbackProducts.find((p) => p._id === id);
+          if (fp) {
+            setProduct(fp);
+            toast.success('Showing demo product');
+            return true;
+          }
+
+          // Try cached snapshot saved from product card/cart flows
+          const snapRaw = localStorage.getItem(`productSnapshot:${id}`);
+          if (snapRaw) {
+            const snap = JSON.parse(snapRaw);
+            const normalizedFromSnap: Product = {
+              _id: snap._id || (id as string),
+              name: snap.name || 'Product',
+              description: '',
+              price: Number(snap.price) || 0,
+              originalPrice: undefined,
+              category: 'General',
+              brand: '',
+              images: Array.isArray(snap.images) ? snap.images.map((i: any) => i.url) : [],
+              inStock: (snap.stock ?? 0) > 0,
+              stockQuantity: snap.stock ?? 0,
+              rating: 0,
+              numReviews: 0,
+              specifications: {},
+              features: [],
+              warranty: ''
+            };
+            setProduct(normalizedFromSnap);
+            toast.success('Showing cached product');
+            return true;
+          }
+        } catch {}
+        return false;
+      };
+
       try {
-        // Use axiosInstance for consistent API calls
-        const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000/api'}/products/${id}`);
+        const base = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+        const response = await fetch(`${base}/products/${id}`);
         if (!response.ok) {
+          if (response.status === 404) {
+            const handled = tryFallback();
+            if (handled) {
+              setLoading(false);
+              return;
+            }
+          }
           throw new Error(`HTTP error! status: ${response.status}`);
         }
+
         const json = await response.json();
         // Backend may wrap payload: { success, data: { product } }
         const apiProduct = json.data?.product || json.data || json.product || json;
@@ -69,10 +171,15 @@ const ProductDetailPage: React.FC = () => {
         setProduct(normalized);
       } catch (err) {
         console.error('Failed to fetch product:', err);
-        toast.error('Failed to load product details');
+        if (!tryFallback()) {
+          toast.error('Failed to load product details');
+          setProduct(null);
+        }
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
+
     fetchProduct();
   }, [id]);
 
@@ -132,18 +239,28 @@ const ProductDetailPage: React.FC = () => {
         toast.error(errorMessage);
       }
     } else {
-      // User not logged in - show login prompt
-      console.log('👤 ProductDetailPage: User not authenticated, showing login prompt');
-      
-      toast.error('Please log in to add items to cart', {
-        duration: 4000,
-        icon: '🔒',
-      });
-      
-      // Redirect to login page after a delay
-      setTimeout(() => {
-        navigate('/login');
-      }, 2000);
+      // Guest flow: Use mock cart via thunk fallback for smooth UX
+      try {
+        await dispatch(addToCart({ productId: product._id, quantity })).unwrap();
+        toast.success(`Added ${quantity} item(s) to cart`);
+      } catch (error) {
+        toast.error('Failed to add item to cart');
+      }
+    }
+  };
+
+  // Buy Now: add to cart then go to checkout payment options
+  const handleBuyNow = async () => {
+    if (!product) return;
+    if (!product.inStock || product.stockQuantity === 0) {
+      toast.error('Product is out of stock');
+      return;
+    }
+    try {
+      await dispatch(addToCart({ productId: product._id, quantity })).unwrap();
+      navigate('/checkout');
+    } catch (error: any) {
+      toast.error('Failed to proceed to checkout');
     }
   };
 
@@ -225,13 +342,41 @@ const ProductDetailPage: React.FC = () => {
             <span className="ml-2 text-sm text-gray-500">{product.stockQuantity} in stock</span>
           </div>
 
-          <button
-            type="button"
-            onClick={() => navigate(`/products`)}
-            className="px-6 py-3 rounded-lg font-semibold transition-all duration-300 bg-gray-100 text-gray-700 hover:bg-gray-200"
-          >
-            View More Products
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={handleAddToCart}
+              disabled={!product.inStock || product.stockQuantity === 0}
+              className={`px-6 py-3 rounded-lg font-semibold transition-all duration-300 ${
+                !product.inStock || product.stockQuantity === 0
+                  ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                  : 'bg-indigo-600 text-white hover:bg-indigo-700'
+              }`}
+            >
+              Add to Cart
+            </button>
+
+            <button
+              type="button"
+              onClick={handleBuyNow}
+              disabled={!product.inStock || product.stockQuantity === 0}
+              className={`px-6 py-3 rounded-lg font-semibold transition-all duration-300 ${
+                !product.inStock || product.stockQuantity === 0
+                  ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                  : 'bg-amber-500 text-white hover:bg-amber-600'
+              }`}
+            >
+              Buy Now
+            </button>
+
+            <button
+              type="button"
+              onClick={() => navigate(`/products`)}
+              className="px-6 py-3 rounded-lg font-semibold transition-all duration-300 bg-gray-100 text-gray-700 hover:bg-gray-200"
+            >
+              View More Products
+            </button>
+          </div>
         </div>
       </div>
 

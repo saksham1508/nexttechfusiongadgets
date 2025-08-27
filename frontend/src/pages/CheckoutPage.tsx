@@ -1,7 +1,7 @@
 // CheckoutPage.tsx
 import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { RootState, AppDispatch } from '../store/store';
 import { createOrder } from '../store/slices/orderSlice';
 import { fetchCart, clearCart } from '../store/slices/cartSlice';
@@ -26,6 +26,7 @@ import paymentService from '../services/paymentService';
 const CheckoutPage: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
+  const location = useLocation() as any;
   const { items, totalAmount } = useSelector((state: RootState) => state.cart);
   const { isLoading } = useSelector((state: RootState) => state.orders);
 
@@ -71,6 +72,12 @@ const CheckoutPage: React.FC = () => {
 
   useEffect(() => {
     setOrderId(`order_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
+  }, []);
+
+  // Ensure we always start at payment selection when arriving from Buy Now
+  useEffect(() => {
+    setPaymentStep('select');
+    setSelectedProvider(null);
   }, []);
 
   const handlePaymentMethodSelect = (method: PaymentMethod | null) => {
@@ -178,6 +185,19 @@ const CheckoutPage: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Ensure authenticated before proceeding to payment/order placement
+    const storedUser = localStorage.getItem('user');
+    const storedToken = localStorage.getItem('token');
+    const hasToken = !!storedToken || (() => {
+      try { return !!(storedUser && JSON.parse(storedUser)?.token); } catch { return false; }
+    })();
+    if (!hasToken) {
+      toast.error('Please log in to proceed with the order');
+      navigate('/login?redirect=/checkout');
+      return;
+    }
+
     if (!selectedPaymentMethod && !selectedProvider) {
       toast.error('Please select a payment method');
       return;
@@ -360,25 +380,17 @@ const CheckoutPage: React.FC = () => {
 
           {/* Order Summary */}
           <div className="space-y-6">
-            {/* Apply Coupon - top of summary column for visibility */}
-            <div className="bg-white rounded-lg shadow-md p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-3">Apply Coupon</h2>
-              <CouponApplication
-                orderValue={subtotal}
-                paymentMethod={selectedProvider || undefined}
-                products={items.map((i: any) => i.product._id)}
-                onCouponApplied={handleCouponApplied}
-              />
-            </div>
+
 
             <div className="bg-white rounded-lg shadow-md p-6">
               <h2 className="text-xl font-semibold text-gray-900 mb-4">Order Summary</h2>
 
-              {/* Apply Coupon inside Order Summary */}
+              {/* Apply Coupon */}
               <CouponApplication
+                key={couponAppKey}
                 orderValue={subtotal}
-                paymentMethod={selectedProvider || undefined}
-                products={items.map((i: any) => i.product._id)}
+                paymentMethod={selectedProvider || selectedPaymentMethod?.provider || undefined}
+                products={items.map((it: any) => it.product?._id || it.productId || it._id)}
                 onCouponApplied={handleCouponApplied}
                 className="mb-4"
               />

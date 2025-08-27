@@ -57,7 +57,7 @@ const CartPage: React.FC = () => {
       toast.error('Your cart is empty');
       return;
     }
-    navigate('/payment');
+    navigate('/checkout');
   };
 
 

@@ -4,6 +4,7 @@ import { useSelector } from 'react-redux';
 import { RootState } from '../store/store';
 import axiosInstance from '../utils/axiosConfig';
 import { mockOrderService } from '../services/mockOrderService';
+import { formatCurrency } from '../utils';
 
 // Define interfaces for order data structure (consistent with OrderDetailPage)
 interface ProductImage {
@@ -253,7 +254,7 @@ const OrdersPage: React.FC = () => {
                       <DollarSign className="h-5 w-5 text-gray-500" />
                       <div>
                         <p className="text-sm text-gray-600">Total Amount</p>
-                        <p className="font-semibold text-gray-900 text-base">${order.totalPrice.toFixed(2)}</p>
+                        <p className="font-semibold text-gray-900 text-base">{formatCurrency(order.totalPrice, 'INR')}</p>
                       </div>
                     </div>
                   </div>
@@ -276,26 +277,38 @@ const OrdersPage: React.FC = () => {
               <div className="px-6 py-5">
                 <h3 className="text-lg font-semibold text-gray-800 mb-4">Items in this order:</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {order.orderItems.slice(0, 3).map((item, index) => (
-                    <div key={index} className="flex items-center space-x-4 bg-gray-50 p-4 rounded-lg">
-                      <img
-                        src={item.product.images?.[0]?.url || `https://placehold.co/60x60/E0E0E0/333333?text=${item.product.name.split(' ').map(n => n[0]).join('')}`}
-                        alt={item.product.name}
-                        className="w-16 h-16 object-cover rounded-md border border-gray-200"
-                        onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
-                          e.currentTarget.src = `https://placehold.co/60x60/E0E0E0/333333?text=No+Image`;
-                        }}
-                      />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-base font-medium text-gray-900 truncate">
-                          {item.product.name}
-                        </p>
-                        <p className="text-sm text-gray-600 mt-1">
-                          Qty: <span className="font-medium">{item.quantity}</span> × ${item.price.toFixed(2)}
-                        </p>
+                  {order.orderItems.slice(0, 3).map((item, index) => {
+                    const productObj = typeof (item as any).product === 'object' ? (item as any).product : null;
+                    const productName = productObj?.name || (item as any).name || 'Item';
+                    const initials = productName
+                      .split(' ')
+                      .map((n: string) => n && n[0])
+                      .filter(Boolean)
+                      .join('')
+                      .slice(0, 3)
+                      .toUpperCase();
+                    const productImage = productObj?.images?.[0]?.url || (item as any).image || `https://placehold.co/60x60/E0E0E0/333333?text=${encodeURIComponent(initials)}`;
+                    return (
+                      <div key={index} className="flex items-center space-x-4 bg-gray-50 p-4 rounded-lg">
+                        <img
+                          src={productImage}
+                          alt={productName}
+                          className="w-16 h-16 object-cover rounded-md border border-gray-200"
+                          onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+                            e.currentTarget.src = `https://placehold.co/60x60/E0E0E0/333333?text=No+Image`;
+                          }}
+                        />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-base font-medium text-gray-900 truncate">
+                            {productName}
+                          </p>
+                          <p className="text-sm text-gray-600 mt-1">
+                            Qty: <span className="font-medium">{item.quantity}</span> × ${item.price.toFixed(2)}
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                   {order.orderItems.length > 3 && (
                     <div className="flex items-center justify-center text-base text-gray-500 bg-gray-50 p-4 rounded-lg border border-dashed border-gray-300">
                       <span className="font-medium">+{order.orderItems.length - 3} more items</span>
