@@ -105,10 +105,11 @@ const auth = async (req, res, next) => {
         }
         const { password, ...userWithoutPassword } = user;
         req.user = userWithoutPassword;
+        req.isMockAuth = true;
         return next();
       }
 
-      // Try to verify as JWT
+      // Try to verify as JWT (still mock mode handler)
       const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret_key');
       
       // Find user in mock database; if missing (e.g., newly mock-registered), fallback to a default customer
@@ -122,6 +123,7 @@ const auth = async (req, res, next) => {
       // Remove password from user object
       const { password, ...userWithoutPassword } = user;
       req.user = userWithoutPassword;
+      req.isMockAuth = true;
       next();
     } catch (error) {
       console.error('Auth error:', error.message);

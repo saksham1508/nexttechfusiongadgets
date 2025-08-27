@@ -19,7 +19,19 @@ const orderItemSchema = new mongoose.Schema({
     type: Number,
     required: true
   },
-  image: String
+  image: String,
+  // Vendor-managed per-item fulfillment status
+  vendorStatus: {
+    type: String,
+    enum: ['packaging','dispatched','shipped','out_for_delivery','delivered'],
+    default: 'packaging'
+  },
+  vendorStatusHistory: [{
+    status: String,
+    timestamp: { type: Date, default: Date.now },
+    note: String,
+    updatedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
+  }]
 });
 
 const orderSchema = new mongoose.Schema({

@@ -243,6 +243,11 @@ const getProductById = asyncHandler(async (req, res) => {
       }
     });
   }
+
+  // Persist analytics view count in DB (best-effort, non-blocking)
+  try {
+    await Product.updateOne({ _id: productId }, { $inc: { 'analytics.views': 1 } });
+  } catch (_) { /* ignore analytics update errors */ }
   
   // Filter related products by same category
   const filteredRelatedProducts = relatedProducts.filter(p => 

@@ -6,7 +6,7 @@ export const getApiUrl = (): string => {
     case 'production':
       return process.env.REACT_APP_API_URL || 'https://api.nexttechfusiongadgets.com';
     case 'development':
-      return process.env.REACT_APP_API_URL || 'http://localhost:5001/api';
+      return process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
     case 'test':
       return process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
     default:

@@ -152,7 +152,7 @@ const ProductDetailPage: React.FC = () => {
         const apiProduct = json.data?.product || json.data || json.product || json;
         // Normalize to ensure required fields exist for vendor-created items
         const normalized: Product = {
-          _id: apiProduct._id,
+          _id: apiProduct._id || apiProduct.id, // robust: support both
           name: apiProduct.name || 'Unnamed Product',
           description: apiProduct.description || '',
           price: Number(apiProduct.price) || 0,
@@ -183,6 +183,14 @@ const ProductDetailPage: React.FC = () => {
     fetchProduct();
   }, [id]);
 
+  // Track product view/click to update vendor analytics in real-time
+  useEffect(() => {
+    if (!product?._id) return;
+    const base = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+    // Fire-and-forget; ignore errors
+    fetch(`${base}/products/${product._id}/track`, { method: 'POST' }).catch(() => {});
+  }, [product?._id]);
+
   const handleAddToCart = async () => {
     if (!product) return;
 
@@ -206,9 +214,26 @@ const ProductDetailPage: React.FC = () => {
     if (isAuthenticated) {
       // User is logged in - use Redux/API cart system
       try {
+        // Save a product snapshot so mock fallback uses correct name/price/images
+        try {
+          const pid = (product as any)._id || (product as any).id;
+          localStorage.setItem(
+            `productSnapshot:${pid}`,
+            JSON.stringify({
+              _id: pid,
+              name: product.name,
+              price: product.price,
+              images: (product.images || []).map((img) => (
+                typeof img === 'string' ? { url: img, alt: product.name } : { url: (img as any).url, alt: (img as any).alt || product.name }
+              )),
+              stock: product.stockQuantity,
+            })
+          );
+        } catch {}
+
         console.log('🚀 Adding to authenticated cart:', { productId: product._id, quantity });
         await dispatch(addToCart({ 
-          productId: product._id, 
+          productId: (product as any)._id || (product as any).id, 
           quantity: quantity 
         })).unwrap();
         toast.success(`Added ${quantity} item(s) to cart successfully`);

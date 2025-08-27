@@ -119,6 +119,7 @@ const ProductsPage: React.FC = () => {
     const start = (currentPage - 1) * pageSize;
     const paged = filtered.slice(start, start + pageSize);
 
+    // Use local mock filtering and pagination for stability
     setProducts(paged);
     setTotal(totalCount);
     setPages(totalPages);
@@ -152,7 +153,8 @@ const ProductsPage: React.FC = () => {
     'audio',
     'wearables',
     'gaming',
-    'accessories'
+    'accessories',
+    'ev-and-energy' // EV Charging, Multifunction Inverters, Lithium Iron Batteries
   ];
 
   // Track selected for comparison (in compareSelectMode)

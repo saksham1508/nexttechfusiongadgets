@@ -5,6 +5,9 @@ import { useNavigate } from 'react-router-dom';
 import { ShoppingCart, Package, BarChart3, CheckCircle2, Plus, Edit, Trash2, Eye, Upload, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import axiosInstance from '../utils/axiosConfig';
+import { PaymentProvider } from '../types';
+import vendorService from '../services/vendorService';
+import vendorOrdersService, { VendorOrder } from '../services/vendorOrdersService';
 
 interface Product {
   _id: string;
@@ -101,10 +104,23 @@ const VendorDashboardPage: React.FC = () => {
       </div>
     );
   }
-  const [activeTab, setActiveTab] = useState<'overview' | 'products' | 'orders' | 'inventory' | 'pricing'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'business' | 'products' | 'orders' | 'inventory' | 'pricing'>('overview');
   const [showAddProduct, setShowAddProduct] = useState(false);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
+  const [analyticsRefreshKey, setAnalyticsRefreshKey] = useState(0);
+  const BusinessDashboardLazy = React.useMemo(() => React.lazy(() => import('../components/VendorBusinessDashboard')) as any, []);
+
+  // Vendor overview dynamic data
+  const [vendorTotals, setVendorTotals] = useState({ totalOrders: 0, fulfillmentRate: 0, revenue30d: 0 });
+  const [recentVendorOrders, setRecentVendorOrders] = useState<VendorOrder[]>([]);
+
+  // Refresh analytics when switching to Business tab or when product list changes
+  useEffect(() => {
+    if (activeTab === 'business') {
+      setAnalyticsRefreshKey(k => k + 1);
+    }
+  }, [activeTab, products.length]);
 
   const [newProduct, setNewProduct] = useState({
     name: '',
@@ -117,9 +133,27 @@ const VendorDashboardPage: React.FC = () => {
     brand: '',
     variants: [] as { name: string; value: string; price?: string; stock?: string; sku?: string }[]
   });
+  // High-value payment acceptance state (used when price >= 30k)
+  const [highValuePaymentAcceptance, setHighValuePaymentAcceptance] = useState<{ acceptAll: boolean; highValueThreshold: number; acceptedMethodsAboveThreshold: PaymentProvider[] }>(() => {
+    const saved = localStorage.getItem('vendorPaymentAcceptance');
+    return saved ? JSON.parse(saved) : { acceptAll: false, highValueThreshold: 30000, acceptedMethodsAboveThreshold: ['upi','cod','stripe'] };
+  });
+  useEffect(() => {
+    localStorage.setItem('vendorPaymentAcceptance', JSON.stringify(highValuePaymentAcceptance));
+  }, [highValuePaymentAcceptance]);
   // New: capture discount percentage for MRP-based pricing
   const [newDiscount, setNewDiscount] = useState<string>('');
+  // Detailed description fields
+  const [newHighlights, setNewHighlights] = useState<string>('');
+  const [newSellerInfo, setNewSellerInfo] = useState<string>(user?.name || '');
+  const [newSpecs, setNewSpecs] = useState<Array<{ key: string; value: string }>>([{ key: '', value: '' }]);
+  const [newDetails, setNewDetails] = useState<string>('');
   
+  // Guards to prevent repeated toasts and infinite sync loops
+  const isSyncingRef = useRef(false);
+  const offlineToastShownRef = useRef(false);
+  const lastSyncAtRef = useRef<number>(0);
+
   const [productImages, setProductImages] = useState<string[]>([]);
   const fileInputRefs = [
     useRef<HTMLInputElement>(null),
@@ -147,28 +181,110 @@ const VendorDashboardPage: React.FC = () => {
   // New: discount field for edit form
   const [editDiscount, setEditDiscount] = useState<string>('');
 
-  // Fetch vendor's products on component mount
+  // Fetch vendor's products on component mount.
+  // IMPORTANT: Do not seed mock vendor tokens here; it forces mock analytics on the backend.
+  // If you need mock mode, set REACT_APP_USE_MOCK_VENDOR=true in .env and handle it elsewhere explicitly.
   useEffect(() => {
     if (user && user.role === 'seller') {
+      try {
+        // Persist user so API clients can extract role/token if needed
+        const storedUser = localStorage.getItem('user');
+        if (!storedUser) {
+          localStorage.setItem('user', JSON.stringify(user));
+        }
+      } catch {}
       fetchProducts();
+      fetchVendorOverview();
     }
   }, [user]);
+
+  const syncOfflineProducts = async () => {
+    if (isSyncingRef.current) return; // prevent concurrent syncs
+    // debounce: avoid syncing too often
+    const now = Date.now();
+    if (now - lastSyncAtRef.current < 5000) return;
+    isSyncingRef.current = true;
+    try {
+      const localKey = `vendorProducts:${user?._id}`;
+      const saved = localStorage.getItem(localKey);
+      if (!saved) return;
+      const cached: any[] = JSON.parse(saved);
+      const offlineItems = cached.filter(p => String(p._id).startsWith('offline_'));
+      if (offlineItems.length === 0) return;
+      toast.loading(`Syncing ${offlineItems.length} offline product(s)...`, { id: 'sync-offline' });
+      for (const p of offlineItems) {
+        try {
+          const payload = {
+            name: p.name,
+            price: p.price,
+            originalPrice: p.originalPrice,
+            sku: p.sku,
+            category: p.category,
+            brand: p.brand,
+            countInStock: p.countInStock ?? 0,
+            images: Array.isArray(p.images) && p.images.length ? p.images : ['https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=300'],
+            variants: Array.isArray(p.variants) ? p.variants : [],
+            description: p.description || 'No description provided',
+          };
+          const res = await axiosInstance.post('/products', payload);
+          if (res.data?.success && res.data.data?.product) {
+            // Replace offline item with server product
+            const next = cached
+              .filter(x => x._id !== p._id)
+              .concat(res.data.data.product);
+            localStorage.setItem(localKey, JSON.stringify(next));
+          }
+        } catch (e: any) {
+          console.warn('Failed to sync offline product', p?._id, e?.message || e);
+        }
+      }
+      toast.success('Offline products synced', { id: 'sync-offline' });
+    } catch {} finally {
+      isSyncingRef.current = false;
+      lastSyncAtRef.current = Date.now();
+    }
+  };
 
   const fetchProducts = async () => {
     try {
       setLoading(true);
       const response = await axiosInstance.get(`/products?seller=${user?._id}`);
+      // Normalize API shapes from both full server (data.products) and simple server (products)
+      const list =
+        (response.data && response.data.data && Array.isArray(response.data.data.products)
+          ? response.data.data.products
+          : null) ||
+        (response.data && Array.isArray(response.data.products)
+          ? response.data.products
+          : []) as any[];
       // Guard: only keep products that belong to this vendor (defense in depth)
-      const list = response.data.data?.products || [];
       const vendorProducts = list.filter((p: any) => {
         const sellerId = (p.seller?._id || p.seller || '').toString();
         const uid = (user?._id || '').toString();
         return sellerId && uid && sellerId === uid;
       });
+
+      // If API returns empty (e.g., simple server without seller match), fall back to cached vendor list
+      if (vendorProducts.length === 0) {
+        try {
+          const localKey = `vendorProducts:${user?._id}`;
+          const saved = localStorage.getItem(localKey);
+          if (saved) {
+            const cached = JSON.parse(saved);
+            setProducts(cached);
+            // Background sync once without recursive fetch
+            syncOfflineProducts();
+            return;
+          }
+        } catch {}
+      }
+
       setProducts(vendorProducts);
       try {
         const localKey = `vendorProducts:${user?._id}`;
         localStorage.setItem(localKey, JSON.stringify(vendorProducts));
+        // After saving latest from API, try to sync any remaining offline items once
+        syncOfflineProducts();
       } catch {}
     } catch (error: any) {
       console.error('Error fetching products:', error);
@@ -179,7 +295,12 @@ const VendorDashboardPage: React.FC = () => {
         if (saved) {
           const cached = JSON.parse(saved);
           setProducts(cached);
-          toast.success('Loaded offline vendor products');
+          if (!offlineToastShownRef.current) {
+            toast.success('Loaded offline vendor products', { id: 'vendor-offline-loaded' });
+            offlineToastShownRef.current = true;
+          }
+          // Background sync once; do not recursively fetch
+          syncOfflineProducts();
         } else {
           toast.error('Failed to fetch products');
         }
@@ -188,6 +309,34 @@ const VendorDashboardPage: React.FC = () => {
       }
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Pull vendor analytics + orders to power Overview tiles and Recent Orders
+  const fetchVendorOverview = async () => {
+    try {
+      // 1) Analytics summary
+      const analytics = await vendorService.getAnalytics();
+      const totalOrdersFromAnalytics = analytics?.data?.summary?.totalOrders || 0;
+      const revenue30d = analytics?.data?.summary?.totalSales || 0; // using totalSales as 30d until historical is added
+
+      // 2) Recent vendor orders (limit 5)
+      const ordersRes = await vendorOrdersService.list({ page: 1, limit: 5 });
+      const recent = Array.isArray(ordersRes.orders) ? ordersRes.orders.slice(0, 5) : [];
+
+      // Compute fulfillment rate based on item-level vendorStatus
+      const allItems = recent.flatMap(o => o.orderItems || []);
+      const delivered = allItems.filter(i => i.vendorStatus === 'delivered').length;
+      const fulfillmentRate = allItems.length ? Math.round((delivered / allItems.length) * 100) : 0;
+
+      setVendorTotals({
+        totalOrders: totalOrdersFromAnalytics,
+        fulfillmentRate,
+        revenue30d,
+      });
+      setRecentVendorOrders(recent);
+    } catch (e) {
+      console.warn('fetchVendorOverview failed', e);
     }
   };
 
@@ -295,10 +444,34 @@ const VendorDashboardPage: React.FC = () => {
         description: newProduct.description || 'No description provided'
       };
 
-      const response = await axiosInstance.post('/products', productData);
+      // Attach vendor payment acceptance for high-value items
+      const HIGH_VALUE = 30000;
+      const acceptance = (sellingPrice >= HIGH_VALUE)
+        ? highValuePaymentAcceptance
+        : { acceptAll: true };
+      // Build rich description and specifications
+      const highlightsBlock = newHighlights
+        ? `\n\nHighlights:\n- ${newHighlights.split('\n').filter(Boolean).join('\n- ')}`
+        : '';
+      const sellerBlock = newSellerInfo ? `\n\nSeller: ${newSellerInfo}` : '';
+      const detailsBlock = newDetails ? `\n\nProduct Details:\n${newDetails}` : '';
+      const composedDescription = `${productData.description || ''}${highlightsBlock}${sellerBlock}${detailsBlock}`.trim();
+      const specsMap: Record<string,string> = {};
+      (newSpecs || []).forEach(row => {
+        const k = (row.key || '').trim();
+        const v = (row.value || '').trim();
+        if (k && v) specsMap[k] = v;
+      });
+      const response = await axiosInstance.post('/products', { 
+        ...productData, 
+        description: composedDescription,
+        specifications: Object.keys(specsMap).length ? specsMap : undefined,
+        paymentAcceptance: acceptance 
+      });
       
       if (response.data.success) {
         await fetchProducts(); // Refresh the products list
+        setAnalyticsRefreshKey(k => k + 1); // refresh analytics view
         setNewProduct({
           name: '',
           price: '',
@@ -312,6 +485,10 @@ const VendorDashboardPage: React.FC = () => {
         });
         setNewDiscount('');
         setProductImages([]);
+        setNewHighlights('');
+        setNewSellerInfo(user?.name || '');
+        setNewSpecs([{ key: '', value: '' }]);
+        setNewDetails('');
         setShowAddProduct(false);
         toast.success('Product added successfully!');
       }
@@ -322,6 +499,14 @@ const VendorDashboardPage: React.FC = () => {
         const localKey = `vendorProducts:${user?._id}`;
         const saved = localStorage.getItem(localKey);
         const cached = saved ? JSON.parse(saved) : [];
+        const highlightsBlock = newHighlights
+          ? `\n\nHighlights:\n- ${newHighlights.split('\n').filter(Boolean).join('\n- ')}`
+          : '';
+        const sellerBlock = newSellerInfo ? `\n\nSeller: ${newSellerInfo}` : '';
+        const detailsBlock = newDetails ? `\n\nProduct Details:\n${newDetails}` : '';
+        const composedOfflineDescription = `${newProduct.description || 'No description provided'}${highlightsBlock}${sellerBlock}${detailsBlock}`.trim();
+        const specsMap: Record<string,string> = {};
+        (newSpecs || []).forEach(row => { const k=(row.key||'').trim(); const v=(row.value||'').trim(); if(k && v) specsMap[k]=v; });
         const offlineProduct = {
           _id: `offline_${Date.now()}`,
           name: newProduct.name,
@@ -331,7 +516,8 @@ const VendorDashboardPage: React.FC = () => {
           brand: newProduct.brand,
           countInStock: parseInt(newProduct.countInStock) || 0,
           images: productImages.filter(img => img).length > 0 ? productImages.filter(img => img) : ['https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=300'],
-          description: newProduct.description || 'No description provided',
+          description: composedOfflineDescription,
+          specifications: Object.keys(specsMap).length ? specsMap : undefined,
           seller: user?._id || 'vendor_1',
           isActive: true,
           createdAt: new Date().toISOString(),
@@ -343,6 +529,10 @@ const VendorDashboardPage: React.FC = () => {
         setShowAddProduct(false);
         setNewDiscount('');
         setProductImages([]);
+        setNewHighlights('');
+        setNewSellerInfo(user?.name || '');
+        setNewSpecs([{ key: '', value: '' }]);
+        setNewDetails('');
         setNewProduct({
           name: '', price: '', originalPrice: '', sku: '', category: '', countInStock: '', description: '', brand: '', variants: []
         });
@@ -433,13 +623,14 @@ const VendorDashboardPage: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-0">
         {/* Full-height Sidebar */}
         <aside className="hidden lg:block lg:col-span-3 border-r border-gray-100 bg-white">
-          <div className="sticky top-0 h-screen overflow-y-auto p-6 bg-gradient-to-b from-rose-600 via-red-600 to-orange-500 text-white">
+          <div className="sticky top-0 h-screen overflow-y-auto p-6 bg-gradient-to-b from-gray-900 via-gray-800 to-gray-700 text-gray-100">
             <h1 className="text-2xl font-bold mb-1">Vendor Dashboard</h1>
             <p className="text-white/90 mb-6">{user ? `Welcome, ${user.name}!` : 'Manage your products, orders, and performance.'}</p>
             <h3 className="text-sm font-semibold mb-3 uppercase tracking-wide text-white/90">Manage Business</h3>
             <nav className="space-y-1">
               {([
                 { key: 'overview', label: 'Overview', icon: '🏠' },
+                { key: 'business', label: 'Business', icon: '📈' },
                 { key: 'products', label: `Products (${products.length})`, icon: '📦' },
                 { key: 'orders', label: 'Orders', icon: '🧾' },
                 { key: 'inventory', label: 'Inventory', icon: '📊' },
@@ -470,13 +661,13 @@ const VendorDashboardPage: React.FC = () => {
             <p className="text-gray-600 mt-1">{user ? `Welcome, ${user.name}!` : 'Manage your products, orders, and performance.'}</p>
             <div className="mt-4 border-b border-gray-200">
               <nav className="-mb-px flex space-x-8 overflow-x-auto">
-                {(['overview','products','orders','inventory','pricing'] as typeof activeTab[]).map(tab => (
+                {(['overview','business','products','orders','inventory','pricing'] as typeof activeTab[]).map(tab => (
                   <button
                     key={tab}
                     onClick={() => setActiveTab(tab)}
                     className={`py-2 px-1 border-b-2 font-medium text-sm ${
                       activeTab === tab
-                        ? 'border-red-500 text-red-600'
+                        ? 'border-gray-900 text-gray-900'
                         : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                     }`}
                   >
@@ -489,6 +680,34 @@ const VendorDashboardPage: React.FC = () => {
 
           {/* Existing tab content remains below */}
 
+      {/* Business Tab */}
+      {activeTab === 'business' && (
+        <div className="space-y-6">
+          <h2 className="text-2xl font-bold text-gray-900">Business Dashboard</h2>
+          <div className="bg-white rounded-xl shadow-soft border border-gray-100 p-5">
+            <p className="text-sm text-gray-500 mb-2">Your order and sales insights</p>
+            <div className="mt-4">
+              {/* Inline dynamic import fallback for SSR safety */}
+              <React.Suspense fallback={<div className="h-64 flex items-center justify-center text-gray-500">Loading analytics...</div>}>
+                <BusinessDashboardLazy key={analyticsRefreshKey} />
+              </React.Suspense>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Orders Tab */}
+      {activeTab === 'orders' && (
+        <div className="space-y-6">
+          <h2 className="text-2xl font-bold text-gray-900">Orders</h2>
+          <div className="bg-white rounded-xl shadow-soft border border-gray-100 p-5">
+            <React.Suspense fallback={<div className="p-8 text-center text-gray-500">Loading orders...</div>}>
+              {React.createElement(React.lazy(() => import('../components/VendorOrders')))}
+            </React.Suspense>
+          </div>
+        </div>
+      )}
+
       {/* Overview Tab */}
       {activeTab === 'overview' && (
         <>
@@ -498,7 +717,7 @@ const VendorDashboardPage: React.FC = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-500">Total Orders</p>
-                  <p className="text-2xl font-bold">—</p>
+                  <p className="text-2xl font-bold">{vendorTotals.totalOrders}</p>
                 </div>
                 <div className="p-3 bg-blue-50 rounded-lg">
                   <ShoppingCart className="h-6 w-6 text-blue-600" />
@@ -520,7 +739,7 @@ const VendorDashboardPage: React.FC = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-500">Fulfillment Rate</p>
-                  <p className="text-2xl font-bold">—</p>
+                  <p className="text-2xl font-bold">{vendorTotals.fulfillmentRate}%</p>
                 </div>
                 <div className="p-3 bg-green-50 rounded-lg">
                   <CheckCircle2 className="h-6 w-6 text-green-600" />
@@ -531,7 +750,7 @@ const VendorDashboardPage: React.FC = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-500">Revenue (30d)</p>
-                  <p className="text-2xl font-bold">₹2.4L</p>
+                  <p className="text-2xl font-bold">₹{new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 }).format(Math.round(vendorTotals.revenue30d))}</p>
                 </div>
                 <div className="p-3 bg-amber-50 rounded-lg">
                   <BarChart3 className="h-6 w-6 text-amber-600" />
@@ -545,20 +764,31 @@ const VendorDashboardPage: React.FC = () => {
             <div className="bg-white rounded-xl shadow-soft p-5 border border-gray-100">
               <h2 className="text-xl font-semibold mb-4">Recent Orders</h2>
               <div className="space-y-3">
-                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div>
-                    <p className="font-medium">Order #1234</p>
-                    <p className="text-sm text-gray-500">iPhone 15 Pro × 1</p>
-                  </div>
-                  <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">Delivered</span>
-                </div>
-                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div>
-                    <p className="font-medium">Order #1235</p>
-                    <p className="text-sm text-gray-500">MacBook Air M2 × 1</p>
-                  </div>
-                  <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">Processing</span>
-                </div>
+                {recentVendorOrders.length === 0 && (
+                  <div className="p-4 text-gray-500 bg-gray-50 rounded-lg text-center">No recent orders.</div>
+                )}
+                {recentVendorOrders.map(o => {
+                  const first = o.orderItems?.[0];
+                  const itemText = first ? `${first.product?.name || 'Item'} × ${first.quantity}` : `${o.orderItems?.length || 0} item(s)`;
+                  const badge = o.status === 'delivered'
+                    ? { cls: 'bg-green-100 text-green-800', text: 'Delivered' }
+                    : o.status === 'processing'
+                      ? { cls: 'bg-blue-100 text-blue-800', text: 'Processing' }
+                      : o.status === 'shipped'
+                        ? { cls: 'bg-purple-100 text-purple-800', text: 'Shipped' }
+                        : o.status === 'out_for_delivery'
+                          ? { cls: 'bg-amber-100 text-amber-800', text: 'Out for delivery' }
+                          : { cls: 'bg-gray-100 text-gray-800', text: o.status.replace(/_/g,' ') };
+                  return (
+                    <div key={o._id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div>
+                        <p className="font-medium">{o.orderNumber}</p>
+                        <p className="text-sm text-gray-500">{itemText}</p>
+                      </div>
+                      <span className={`px-2 py-1 text-xs rounded-full ${badge.cls}`}>{badge.text}</span>
+                    </div>
+                  );
+                })}
               </div>
             </div>
             <div className="bg-white rounded-xl shadow-soft p-5 border border-gray-100">
@@ -845,7 +1075,7 @@ const VendorDashboardPage: React.FC = () => {
       {/* Add Product Modal */}
       {showAddProduct && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-hidden">
-          <div className="bg-white rounded-xl w-full max-w-md mx-auto flex flex-col max-h-[90vh]">
+          <div className="bg-white rounded-xl w-full max-w-3xl mx-auto flex flex-col max-h-[90vh] overflow-hidden">
             {/* Modal Header - Fixed at top */}
             <div className="p-4 border-b border-gray-200 flex justify-between items-center sticky top-0 bg-white rounded-t-xl z-10">
               <h3 className="text-xl font-bold">Add New Product</h3>
@@ -858,7 +1088,7 @@ const VendorDashboardPage: React.FC = () => {
             </div>
             
             {/* Modal Body - Scrollable */}
-            <div className="p-4 overflow-y-auto flex-grow">
+            <div className="p-4 overflow-y-auto overflow-x-hidden flex-grow">
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Product Name *</label>
@@ -870,6 +1100,39 @@ const VendorDashboardPage: React.FC = () => {
                     placeholder="Enter product name"
                   />
                 </div>
+
+                {/* High-value payment acceptance (threshold 30,000) */}
+                {(() => {
+                  const priceNum = parseFloat(newProduct.price || newProduct.originalPrice || '0');
+                  const isHighValue = !isNaN(priceNum) && priceNum >= 30000;
+                  if (!isHighValue) return null;
+                  const allMethods: PaymentProvider[] = ['cod','upi','stripe','razorpay','paypal','googlepay','phonepe','paytm'];
+                  const toggle = (m: PaymentProvider) => {
+                    setHighValuePaymentAcceptance((prev) => {
+                      const set = new Set(prev.acceptedMethodsAboveThreshold || []);
+                      set.has(m) ? set.delete(m) : set.add(m);
+                      return { ...prev, acceptAll: false, acceptedMethodsAboveThreshold: Array.from(set) };
+                    });
+                  };
+                  return (
+                    <div className="border rounded-lg p-3 bg-amber-50 border-amber-200">
+                      <div className="font-medium text-amber-900 mb-2">Select accepted payment modes for high-value items (≥ ₹30,000)</div>
+                      <div className="grid grid-cols-2 gap-2">
+                        {allMethods.map((m) => (
+                          <label key={m} className="flex items-center space-x-2 text-sm">
+                            <input
+                              type="checkbox"
+                              checked={(highValuePaymentAcceptance.acceptedMethodsAboveThreshold || []).includes(m)}
+                              onChange={() => toggle(m)}
+                            />
+                            <span className="capitalize">{m}</span>
+                          </label>
+                        ))}
+                      </div>
+                      <p className="text-xs text-amber-800 mt-2">These modes will be enforced at checkout for buyers of this product.</p>
+                    </div>
+                  );
+                })()}
                 {/* Pricing Section: MRP + Discount → Auto Price */}
                 <div className="grid grid-cols-3 gap-3">
                   <div>
@@ -908,7 +1171,9 @@ const VendorDashboardPage: React.FC = () => {
                         const d = parseFloat(newDiscount || '');
                         if (!isNaN(mrp) && !isNaN(d)) {
                           const calc = Math.max(0, Math.round((mrp - (mrp * d) / 100) * 100) / 100);
-                          return `Auto price: ₹${calc.toLocaleString()} — You save ${Math.round(d)}% (₹${(mrp - calc).toLocaleString()})`;
+                          const platformFee = Math.round(calc * 0.05 * 100) / 100;
+                          const netToYou = Math.max(0, Math.round((calc - platformFee) * 100) / 100);
+                          return `Auto price: ₹${calc.toLocaleString()} — Platform fee (5%): ₹${platformFee.toLocaleString()} — You receive: ₹${netToYou.toLocaleString()} — You save ${Math.round(d)}% (₹${(mrp - calc).toLocaleString()})`;
                         }
                         return 'Enter MRP and Discount to auto-calculate price.';
                       })()}
@@ -993,13 +1258,64 @@ const VendorDashboardPage: React.FC = () => {
                   <p className="text-xs text-gray-500 mt-1">Upload up to 5 images (max 5MB each). First image will be the main product image.</p>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Highlights</label>
                   <textarea
-                    value={newProduct.description}
-                    onChange={(e) => setNewProduct({...newProduct, description: e.target.value})}
+                    value={newHighlights}
+                    onChange={(e) => setNewHighlights(e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
-                    placeholder="Enter product description"
+                    placeholder="Key features, bullet points (one per line)"
                     rows={3}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Seller</label>
+                  <input
+                    type="text"
+                    value={newSellerInfo}
+                    onChange={(e) => setNewSellerInfo(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                    placeholder="Seller or brand info"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Specifications</label>
+                  <div className="space-y-2">
+                    {newSpecs.map((row, idx) => (
+                      <div key={idx} className="flex flex-wrap gap-2 items-start">
+                        <input
+                          type="text"
+                          value={row.key}
+                          onChange={(e)=>{
+                            const next=[...newSpecs]; next[idx] = { ...next[idx], key: e.target.value }; setNewSpecs(next);
+                          }}
+                          className="min-w-[160px] flex-1 px-3 py-2 border border-gray-300 rounded-lg"
+                          placeholder="Key (e.g., RAM)"
+                        />
+                        <input
+                          type="text"
+                          value={row.value}
+                          onChange={(e)=>{
+                            const next=[...newSpecs]; next[idx] = { ...next[idx], value: e.target.value }; setNewSpecs(next);
+                          }}
+                          className="min-w-[200px] flex-1 px-3 py-2 border border-gray-300 rounded-lg"
+                          placeholder="Value (e.g., 8GB)"
+                        />
+                        <button type="button" className="shrink-0 px-3 py-2 bg-gray-100 rounded" onClick={()=>{
+                          const next=[...newSpecs]; next.splice(idx,1); setNewSpecs(next.length?next:[{key:'',value:''}]);
+                        }}>Remove</button>
+                      </div>
+                    ))}
+                    <button type="button" className="px-3 py-2 bg-gray-100 rounded" onClick={()=> setNewSpecs([...newSpecs, { key: '', value: '' }])}>+ Add Spec</button>
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Product Details</label>
+                  <textarea
+                    value={newDetails}
+                    onChange={(e) => setNewDetails(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                    placeholder="Detailed description, materials, care, package contents, etc."
+                    rows={4}
                   />
                 </div>
               </div>
@@ -1080,7 +1396,9 @@ const VendorDashboardPage: React.FC = () => {
                         const d = parseFloat(editDiscount || '');
                         if (!isNaN(mrp) && !isNaN(d)) {
                           const calc = Math.max(0, Math.round((mrp - (mrp * d) / 100) * 100) / 100);
-                          return `Auto price: ₹${calc.toLocaleString()} — You save ${Math.round(d)}% (₹${(mrp - calc).toLocaleString()})`;
+                          const platformFee = Math.round(calc * 0.05 * 100) / 100;
+                          const netToYou = Math.max(0, Math.round((calc - platformFee) * 100) / 100);
+                          return `Auto price: ₹${calc.toLocaleString()} — Platform fee (5%): ₹${platformFee.toLocaleString()} — You receive: ₹${netToYou.toLocaleString()} — You save ${Math.round(d)}% (₹${(mrp - calc).toLocaleString()})`;
                         }
                         return '';
                       })()}

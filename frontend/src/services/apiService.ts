@@ -72,13 +72,38 @@ class ApiService {
   // Generic API request with retry logic
   async request<T = any>(endpoint: string, options: RequestInit = {}): Promise<ApiResponse<T>> {
     const url = `${this.baseURL}${endpoint}`;
+
+    // Read token similar to axios interceptor
+    let token: string | null = localStorage.getItem('token');
+    if (!token) {
+      try {
+        const raw = localStorage.getItem('user');
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          const userObj = parsed.user || parsed; // support wrapped or direct shapes
+          if (userObj?.token) token = userObj.token;
+          // Dev fallback: generate mock vendor token if seller (keeps parity with axios path)
+          if (!token && userObj?.role === 'seller') {
+            const vendorId = userObj._id || 'vendor_1';
+            token = `mock_vendor_token_${vendorId}`;
+            localStorage.setItem('token', token);
+          }
+        }
+      } catch {}
+    }
+
     const defaultOptions: RequestInit = {
       headers: {
         'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
     };
 
-    const requestOptions = { ...defaultOptions, ...options };
+    // Merge headers carefully so caller-supplied headers can override defaults if needed
+    const requestOptions: RequestInit = {
+      ...options,
+      headers: { ...(defaultOptions.headers || {}), ...(options.headers || {}) },
+    };
 
     for (let attempt = 1; attempt <= this.retryAttempts; attempt++) {
       try {

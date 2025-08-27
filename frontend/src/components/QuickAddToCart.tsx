@@ -9,7 +9,8 @@ import { checkAuthentication, clearAuthData } from '../utils/authHelpers';
 import toast from 'react-hot-toast';
 
 interface Product {
-  _id: string;
+  _id?: string;
+  id?: string;
   name: string;
   price: number;
   image: string;
@@ -45,7 +46,8 @@ const QuickAddToCart: React.FC<QuickAddToCartProps> = ({
         // For authenticated users, quantity will be managed by Redux state
         // This will be updated when the parent component fetches cart data
         setQuantity(cartQuantity);
-        console.log('🔄 QuickAdd: Setting quantity from Redux:', { productId: product._id, cartQuantity });
+        const pid = (product as any)._id || (product as any).id;
+        console.log('🔄 QuickAdd: Setting quantity from Redux:', { productId: pid, cartQuantity });
       } else {
         // For non-authenticated users, always show 0
         setQuantity(0);
@@ -66,16 +68,17 @@ const QuickAddToCart: React.FC<QuickAddToCartProps> = ({
     return () => {
       window.removeEventListener('cartUpdated', handleCartUpdate);
     };
-  }, [product._id, cartQuantity, user]);
+  }, [(product as any)._id || (product as any).id, cartQuantity, user]);
 
   // Additional effect to sync with Redux cart state changes
   useEffect(() => {
     const authResult = checkAuthentication(user);
     if (authResult.isAuthenticated) {
       setQuantity(cartQuantity);
-      console.log('🔄 QuickAdd: Syncing with Redux cart quantity:', { productId: product._id, cartQuantity });
+      const pid = (product as any)._id || (product as any).id;
+      console.log('🔄 QuickAdd: Syncing with Redux cart quantity:', { productId: pid, cartQuantity });
     }
-  }, [cartQuantity, user, product._id]);
+  }, [cartQuantity, user, (product as any)._id || (product as any).id]);
 
   const sizeClasses = {
     sm: {
@@ -129,14 +132,15 @@ const QuickAddToCart: React.FC<QuickAddToCartProps> = ({
     
     // User is authenticated - proceed with cart operations
     try {
-      console.log('🚀 QuickAdd: Adding to authenticated cart:', { productId: product._id, quantity: 1 });
+      const pid = (product as any)._id || (product as any).id;
+      console.log('🚀 QuickAdd: Adding to authenticated cart:', { productId: pid, quantity: 1 });
       
       // Save a product snapshot so mock cart uses the correct name/price/images
       try {
         localStorage.setItem(
-          `productSnapshot:${product._id}`,
+          `productSnapshot:${pid}`,
           JSON.stringify({
-            _id: product._id,
+            _id: pid,
             name: product.name,
             price: product.price,
             images: [{ url: product.image, alt: product.name }],
@@ -145,11 +149,11 @@ const QuickAddToCart: React.FC<QuickAddToCartProps> = ({
         );
       } catch {}
 
-      const result = await dispatch(addToCart({ productId: product._id, quantity: 1 })).unwrap();
+      const result = await dispatch(addToCart({ productId: pid, quantity: 1 })).unwrap();
       console.log('✅ QuickAdd: Cart operation successful', result);
       
       // Update local quantity based on the result
-      const updatedItem = result.items?.find((item: any) => item.product._id === product._id);
+      const updatedItem = result.items?.find((item: any) => (item.product?._id || item.product?.id) === pid);
       if (updatedItem) {
         setQuantity(updatedItem.quantity);
         console.log('✅ QuickAdd: Updated local quantity to', updatedItem.quantity);
@@ -164,7 +168,7 @@ const QuickAddToCart: React.FC<QuickAddToCartProps> = ({
       
       // Dispatch custom event for other components to listen
       window.dispatchEvent(new CustomEvent('cartUpdated', { 
-        detail: { productId: product._id, action: 'add', result } 
+        detail: { productId: pid, action: 'add', result } 
       }));
       
       // Show smart recommendations modal
@@ -246,7 +250,8 @@ const QuickAddToCart: React.FC<QuickAddToCartProps> = ({
     try {
       if (newQuantity === 0) {
         // Remove from cart
-        const result = await dispatch(updateCartItem({ productId: product._id, quantity: 0 })).unwrap();
+        const pid = (product as any)._id || (product as any).id;
+        const result = await dispatch(updateCartItem({ productId: pid, quantity: 0 })).unwrap();
         console.log('✅ QuickAdd: Remove from cart operation successful', result);
         setQuantity(0);
         toast.success('Removed from cart', {
@@ -256,15 +261,16 @@ const QuickAddToCart: React.FC<QuickAddToCartProps> = ({
         
         // Dispatch custom event for other components to listen
         window.dispatchEvent(new CustomEvent('cartUpdated', { 
-          detail: { productId: product._id, action: 'remove', result } 
+          detail: { productId: pid, action: 'remove', result } 
         }));
       } else {
         // Update quantity
-        const result = await dispatch(updateCartItem({ productId: product._id, quantity: newQuantity })).unwrap();
+        const pid = (product as any)._id || (product as any).id;
+        const result = await dispatch(updateCartItem({ productId: pid, quantity: newQuantity })).unwrap();
         console.log('✅ QuickAdd: Update cart operation successful', result);
         
         // Update local quantity based on the result
-        const updatedItem = result.items?.find((item: any) => item.product._id === product._id);
+        const updatedItem = result.items?.find((item: any) => (item.product?._id || item.product?.id) === pid);
         if (updatedItem) {
           setQuantity(updatedItem.quantity);
           console.log('✅ QuickAdd: Updated local quantity to', updatedItem.quantity);
@@ -279,7 +285,7 @@ const QuickAddToCart: React.FC<QuickAddToCartProps> = ({
         
         // Dispatch custom event for other components to listen
         window.dispatchEvent(new CustomEvent('cartUpdated', { 
-          detail: { productId: product._id, action: 'update', result } 
+          detail: { productId: pid, action: 'update', result } 
         }));
       }
     } catch (error: any) {
@@ -464,7 +470,7 @@ const QuickAddToCart: React.FC<QuickAddToCartProps> = ({
         isOpen={showRecommendationsModal}
         onClose={() => setShowRecommendationsModal(false)}
         addedProduct={{
-          _id: product._id,
+          _id: (product as any)._id || (product as any).id || '',
           name: product.name,
           price: product.price,
           images: [{ url: product.image, alt: product.name }],

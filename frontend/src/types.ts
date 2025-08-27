@@ -185,6 +185,13 @@ export interface Product {
     freeDelivery: boolean;
     deliveryCharge: number;
   };
+  // Optional per-product payment acceptance rules
+  paymentAcceptance?: {
+    acceptAll?: boolean;
+    highValueThreshold?: number;
+    acceptedMethods?: PaymentProvider[];
+    acceptedMethodsAboveThreshold?: PaymentProvider[];
+  };
   isActive?: boolean;
   isFeatured?: boolean;
   createdAt?: string;

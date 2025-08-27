@@ -230,6 +230,10 @@ const productSchema = new mongoose.Schema({
       type: Number,
       default: 0
     },
+    clicks: {
+      type: Number,
+      default: 0
+    },
     purchases: {
       type: Number,
       default: 0
@@ -251,6 +255,20 @@ const productSchema = new mongoose.Schema({
     type: String,
     enum: ['in-stock', 'low-stock', 'out-of-stock', 'discontinued'],
     default: 'in-stock'
+  },
+
+  // Vendor payment acceptance configuration
+  paymentAcceptance: {
+    acceptAll: { type: Boolean, default: true },
+    acceptedMethods: [{
+      type: String,
+      enum: ['razorpay','phonepe','paypal','stripe','upi','paytm','googlepay','square','bitcoin','ethereum','cod']
+    }],
+    highValueThreshold: { type: Number, default: 30000 },
+    acceptedMethodsAboveThreshold: [{
+      type: String,
+      enum: ['razorpay','phonepe','paypal','stripe','upi','paytm','googlepay','square','bitcoin','ethereum','cod']
+    }]
   }
 }, {
   timestamps: true

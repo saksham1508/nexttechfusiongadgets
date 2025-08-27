@@ -11,7 +11,9 @@ import {
   Loader
 } from 'lucide-react';
 import QRCodeDisplay from './QRCodeDisplay';
+import PayPalPayment from './PayPalPayment';
 import paymentService from '../services/paymentService';
+import { PaymentProvider } from '../types';
 
 interface PaymentOption {
   id: string;
@@ -27,86 +29,61 @@ interface PaymentSelectorProps {
   currency?: string;
   onPaymentSuccess: (result: any) => void;
   onPaymentError: (error: string) => void;
+  // Restrict which providers to show; if undefined, show default set
+  allowedProviders?: PaymentProvider[];
 }
 
 const PaymentSelector: React.FC<PaymentSelectorProps> = ({
   amount,
   currency = 'INR',
   onPaymentSuccess,
-  onPaymentError
+  onPaymentError,
+  allowedProviders
 }) => {
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [step, setStep] = useState<'select' | 'details' | 'processing'>('select');
   const [paymentDetails, setPaymentDetails] = useState<any>({});
   const [loading, setLoading] = useState(false);
   const [qrData, setQrData] = useState<any>(null);
+  const [orderId, setOrderId] = useState<string | null>(null);
 
-  const paymentOptions: PaymentOption[] = [
-    {
-      id: 'googlepay',
-      name: 'Google Pay',
-      icon: <Smartphone className="w-8 h-8" />,
-      description: 'Pay using Google Pay UPI',
-      type: 'upi',
-      color: 'bg-green-500'
-    },
-    {
-      id: 'phonepe',
-      name: 'PhonePe',
-      icon: <Smartphone className="w-8 h-8" />,
-      description: 'Pay using PhonePe UPI',
-      type: 'upi',
-      color: 'bg-purple-500'
-    },
-    {
-      id: 'paytm',
-      name: 'Paytm',
-      icon: <Wallet className="w-8 h-8" />,
-      description: 'Pay using Paytm Wallet/UPI',
-      type: 'upi',
-      color: 'bg-blue-500'
-    },
-    {
-      id: 'upi',
-      name: 'UPI',
-      icon: <QrCode className="w-8 h-8" />,
-      description: 'Pay using any UPI app',
-      type: 'upi',
-      color: 'bg-orange-500'
-    },
-    {
-      id: 'razorpay',
-      name: 'Razorpay',
-      icon: <Wallet className="w-8 h-8" />,
-      description: 'UPI, Cards, NetBanking & more',
-      type: 'wallet',
-      color: 'bg-indigo-500'
-    },
-    {
-      id: 'card',
-      name: 'Credit/Debit Card',
-      icon: <CreditCard className="w-8 h-8" />,
-      description: 'Pay using your card',
-      type: 'card',
-      color: 'bg-blue-600'
-    },
-    {
-      id: 'paypal',
-      name: 'PayPal',
-      icon: <Globe className="w-8 h-8" />,
-      description: 'Pay using PayPal account',
-      type: 'wallet',
-      color: 'bg-blue-400'
-    },
-    {
-      id: 'cod',
-      name: 'Cash on Delivery',
-      icon: <Wallet className="w-8 h-8" />,
-      description: 'Pay with cash at the time of delivery',
-      type: 'cod',
-      color: 'bg-gray-600'
+  useEffect(() => {
+    // Create a fresh order id when user reaches details step
+    if (step === 'details' && !orderId) {
+      setOrderId(`order_${Date.now()}_${Math.random().toString(36).slice(2,8)}`);
     }
+  }, [step, orderId]);
+
+  const paymentOptionsAll: PaymentOption[] = [
+    { id: 'googlepay', name: 'Google Pay', icon: <Smartphone className="w-8 h-8" />, description: 'Pay using Google Pay UPI', type: 'upi', color: 'bg-green-500' },
+    { id: 'phonepe', name: 'PhonePe', icon: <Smartphone className="w-8 h-8" />, description: 'Pay using PhonePe UPI', type: 'upi', color: 'bg-purple-500' },
+    { id: 'paytm', name: 'Paytm', icon: <Wallet className="w-8 h-8" />, description: 'Pay using Paytm Wallet/UPI', type: 'upi', color: 'bg-blue-500' },
+    { id: 'upi', name: 'UPI', icon: <QrCode className="w-8 h-8" />, description: 'Pay using any UPI app', type: 'upi', color: 'bg-orange-500' },
+    { id: 'razorpay', name: 'Razorpay', icon: <Wallet className="w-8 h-8" />, description: 'UPI, Cards, NetBanking & more', type: 'wallet', color: 'bg-indigo-500' },
+    { id: 'card', name: 'Credit/Debit Card', icon: <CreditCard className="w-8 h-8" />, description: 'Pay using your card', type: 'card', color: 'bg-blue-600' },
+    { id: 'paypal', name: 'PayPal', icon: <Globe className="w-8 h-8" />, description: 'Pay using PayPal account', type: 'wallet', color: 'bg-blue-400' },
+    { id: 'cod', name: 'Cash on Delivery', icon: <Wallet className="w-8 h-8" />, description: 'Pay with cash at the time of delivery', type: 'cod', color: 'bg-gray-600' }
   ];
+
+  // Filter options according to allowedProviders if provided
+  const paymentOptions: PaymentOption[] = React.useMemo(() => {
+    if (!allowedProviders || !allowedProviders.length) return paymentOptionsAll;
+    const providerSet = new Set<PaymentProvider>(allowedProviders);
+
+    // Map optionId to PaymentProvider type to preserve typing
+    const mapOptionIdToProvider: Record<PaymentOption['id'], PaymentProvider> = {
+      googlepay: 'googlepay',
+      phonepe: 'phonepe',
+      paytm: 'paytm',
+      upi: 'upi',
+      razorpay: 'razorpay',
+      card: 'stripe',
+      paypal: 'paypal',
+      cod: 'cod'
+    } as const;
+
+    return paymentOptionsAll.filter(opt => providerSet.has(mapOptionIdToProvider[opt.id]));
+  }, [allowedProviders]);
 
   const handleOptionSelect = (optionId: string) => {
     setSelectedOption(optionId);
@@ -197,8 +174,8 @@ const PaymentSelector: React.FC<PaymentSelectorProps> = ({
         }
 
         case 'paypal': {
-          await paymentService.processPayPalPayment(amount, 'USD', []);
-          onPaymentSuccess({ paymentMethod: 'paypal', amount, currency: 'USD', transactionId: `pp_${Date.now()}` });
+          // For PayPal, do not auto-complete. Render the PayPal button UI below.
+          // We just stop here and let the PayPalPayment component drive the flow.
           return;
         }
 
@@ -537,24 +514,48 @@ const PaymentSelector: React.FC<PaymentSelectorProps> = ({
 
         {renderPaymentDetails()}
 
-        <button
-          onClick={handlePaymentSubmit}
-          disabled={!isDetailsValid() || loading}
-          className={`w-full mt-6 py-3 px-4 rounded-lg font-medium transition-colors ${
-            isDetailsValid() && !loading
-              ? 'bg-blue-600 hover:bg-blue-700 text-white'
-              : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-          }`}
-        >
-          {loading ? (
-            <div className="flex items-center justify-center">
-              <Loader className="w-5 h-5 animate-spin mr-2" />
-              Processing...
-            </div>
-          ) : (
-            `Pay ${currency} ${amount.toFixed(2)}`
-          )}
-        </button>
+        {/* For PayPal, render the PayPal button-based component instead of the generic submit */}
+        {selectedOption === 'paypal' ? (
+          <div className="mt-6">
+            {!process.env.REACT_APP_PAYPAL_CLIENT_ID ? (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center">
+                <AlertCircle className="h-5 w-5 text-red-500 mr-2" />
+                <span className="text-red-700">PayPal is not configured. Please set REACT_APP_PAYPAL_CLIENT_ID.</span>
+              </div>
+            ) : (
+              orderId && (
+                <PayPalPayment
+                  amount={amount}
+                  currency="USD"
+                  orderId={orderId}
+                  items={[]}
+                  onSuccess={(res) => onPaymentSuccess({ paymentMethod: 'paypal', amount, currency: 'USD', transactionId: res?.details?.id || res?.transactionId || `pp_${Date.now()}`, ...res })}
+                  onError={(err) => onPaymentError(err)}
+                  onCancel={() => setStep('select')}
+                />
+              )
+            )}
+          </div>
+        ) : (
+          <button
+            onClick={handlePaymentSubmit}
+            disabled={!isDetailsValid() || loading}
+            className={`w-full mt-6 py-3 px-4 rounded-lg font-medium transition-colors ${
+              isDetailsValid() && !loading
+                ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+            }`}
+          >
+            {loading ? (
+              <div className="flex items-center justify-center">
+                <Loader className="w-5 h-5 animate-spin mr-2" />
+                Processing...
+              </div>
+            ) : (
+              `Pay ${currency} ${amount.toFixed(2)}`
+            )}
+          </button>
+        )}
       </div>
     );
   }
