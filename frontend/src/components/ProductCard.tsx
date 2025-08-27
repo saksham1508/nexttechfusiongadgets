@@ -1,17 +1,3 @@
-<<<<<<< HEAD
-import React, { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { Star, ShoppingCart, Clock, Zap, Eye, Scale } from "lucide-react";
-import { useDispatch, useSelector } from "react-redux";
-import { AppDispatch, RootState } from "../store/store";
-import { addToCart } from "../store/slices/cartSlice";
-import QuickAddToCart from "./QuickAddToCart";
-import WishlistButton from "./WishlistButton";
-import CartRecommendationsModal from "./CartRecommendationsModal";
-import { checkAuthentication, clearAuthData } from "../utils/authHelpers";
-import toast from "react-hot-toast";
-import { Product as MainProduct } from "../types";
-=======
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Star, ShoppingCart, Clock, Zap, Eye, Scale } from 'lucide-react';
@@ -25,7 +11,6 @@ import { checkAuthentication, clearAuthData } from '../utils/authHelpers';
 import toast from 'react-hot-toast';
 import { Product as MainProduct } from '../types';
 import axiosInstance from '../utils/axiosConfig';
->>>>>>> aa8884e43974c8a3dff2f218d8b56bb1ec3c9f4a
 
 // Local Review interface to avoid import issues
 interface Review {
@@ -121,54 +106,15 @@ const ProductCard: React.FC<ProductCardProps> = ({
   };
 
   // Helper function to normalize product data for comparison
-<<<<<<< HEAD
-  const normalizeProductForComparison = (prod: Product) => {
-    const stockVal = prod.stock ?? prod.countInStock ?? prod.stockQuantity ?? 0;
-    const imgArray = Array.isArray(prod.images)
-      ? prod.images.map((img, index) =>
-          typeof img === "string"
-            ? { url: img, alt: prod.name, isPrimary: index === 0 }
-            : {
-                url: img.url,
-                alt: img.alt || prod.name,
-                isPrimary: index === 0,
-              }
-        )
-<<<<<<< HEAD
-      : [{ url: "/placeholder-image.jpg", alt: prod.name, isPrimary: true }];
-=======
-      : [{ url: '/placeholder-image.jpg', alt: prod.name, isPrimary: true }];
-=======
   const normalizeProductForComparison = (prod: Product): MainProduct => {
     const stockCount = prod.stock ?? prod.countInStock ?? prod.stockQuantity ?? 0;
->>>>>>> aa904e2 (feat(vendor-dashboard): richer add-product UI (highlights, seller, specifications, details), wider modal, no horizontal scroll; feat(products): compose description/specifications on create and offline fallback; fix(cart): consistent productId handling, product snapshot usage, robust guest/mock cart rehydration; chore: minor UI/UX tweaks)
->>>>>>> aa8884e43974c8a3dff2f218d8b56bb1ec3c9f4a
 
     return {
       _id: prod._id,
       name: prod.name,
-      description: prod.description ?? "No description provided",
+      description: prod.description ?? 'No description provided',
       price: prod.price,
       originalPrice: prod.originalPrice,
-<<<<<<< HEAD
-      category: prod.category ?? "General",
-=======
-<<<<<<< HEAD
-      category: prod.category ?? 'General',
->>>>>>> aa8884e43974c8a3dff2f218d8b56bb1ec3c9f4a
-      brand: prod.brand,
-      rating: typeof prod.rating === "number" ? prod.rating : 0,
-      reviews: typeof prod.numReviews === "number" ? prod.numReviews : 0,
-      numReviews: typeof prod.numReviews === "number" ? prod.numReviews : 0,
-      images: imgArray,
-      seller:
-        typeof prod.seller === "string"
-          ? prod.seller
-          : prod.seller?._id || undefined,
-      stock: stockVal,
-      stockQuantity: stockVal,
-      inStock: stockVal > 0,
-=======
       images: Array.isArray(prod.images)
         ? prod.images.map((img, index) =>
             typeof img === 'string'
@@ -185,23 +131,19 @@ const ProductCard: React.FC<ProductCardProps> = ({
       reviews: typeof prod.numReviews === 'number' ? prod.numReviews : 0,
       numReviews: typeof prod.numReviews === 'number' ? prod.numReviews : 0,
       seller: typeof prod.seller === 'string' ? prod.seller : prod.seller?._id || '',
->>>>>>> aa904e2 (feat(vendor-dashboard): richer add-product UI (highlights, seller, specifications, details), wider modal, no horizontal scroll; feat(products): compose description/specifications on create and offline fallback; fix(cart): consistent productId handling, product snapshot usage, robust guest/mock cart rehydration; chore: minor UI/UX tweaks)
       specifications: {},
       features: [],
       tags: [],
       lowStockThreshold: 5,
       deliveryInfo: {
-        estimatedTime: "2-3 days",
+        estimatedTime: '2-3 days',
         freeDelivery: true,
         deliveryCharge: 0,
       },
       isActive: prod.isActive ?? true,
       isFeatured: false,
-<<<<<<< HEAD
-=======
       createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
->>>>>>> aa8884e43974c8a3dff2f218d8b56bb1ec3c9f4a
+      updatedAt: new Date().toISOString(),
     };
   };
 
@@ -239,19 +181,11 @@ const ProductCard: React.FC<ProductCardProps> = ({
   const handleAddToCart = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-<<<<<<< HEAD
 
-    console.log("🛒 Add to cart clicked for product:", product._id);
-
-    const stockCount =
-      product.stock ?? product.countInStock ?? product.stockQuantity ?? 0;
-=======
-    
-    const pid = (product as any)._id || (product as any).id;
+    const pid = (product as any)._id || (product as any).id || product._id;
     console.log('🛒 Add to cart clicked for product:', pid);
-    
+
     const stockCount = product.stock ?? product.countInStock ?? product.stockQuantity ?? 0;
->>>>>>> aa8884e43974c8a3dff2f218d8b56bb1ec3c9f4a
     if (stockCount === 0) {
       toast.error("Product is out of stock");
       return;
@@ -275,21 +209,9 @@ const ProductCard: React.FC<ProductCardProps> = ({
       );
 
       try {
-<<<<<<< HEAD
-        console.log("🚀 Adding to authenticated cart:", {
-          productId: product._id,
-          quantity: 1,
-        });
-        console.log("📦 User data:", authResult.user);
-        console.log("🔑 Token:", authResult.token?.substring(0, 20) + "...");
-
-=======
-        const pid = (product as any)._id || (product as any).id;
         console.log('🚀 Adding to authenticated cart:', { productId: pid, quantity: 1 });
         console.log('📦 User data:', authResult.user);
         console.log('🔑 Token:', authResult.token?.substring(0, 20) + '...');
-        
->>>>>>> aa8884e43974c8a3dff2f218d8b56bb1ec3c9f4a
         // Save a snapshot so mock cart uses the correct name/price/images
         try {
           localStorage.setItem(
@@ -300,49 +222,27 @@ const ProductCard: React.FC<ProductCardProps> = ({
               price: product.price,
               images:
                 Array.isArray(product.images) && product.images.length
-                  ? typeof product.images[0] === "string"
-                    ? [{ url: product.images[0], alt: product.name }]
-<<<<<<< HEAD
-                    : [
-                        {
-                          url: product.images[0].url,
-                          alt: product.images[0].alt || product.name,
-                        },
-                      ]
-                  : [{ url: "/placeholder-image.jpg", alt: product.name }],
-              stock: product.stock ?? product.countInStock ?? 10,
-=======
-                    : [{ url: (product.images[0] as any).url, alt: (product.images[0] as any).alt || product.name }])
-                : [{ url: '/placeholder-image.jpg', alt: product.name }],
-              stock: product.stock ?? product.countInStock ?? product.stockQuantity ?? 10
->>>>>>> aa8884e43974c8a3dff2f218d8b56bb1ec3c9f4a
+                  ? (typeof product.images[0] === 'string'
+                      ? [{ url: product.images[0], alt: product.name }]
+                      : [{ url: (product.images[0] as any).url, alt: (product.images[0] as any).alt || product.name }])
+                  : [{ url: '/placeholder-image.jpg', alt: product.name }],
+              stock: product.stock ?? product.countInStock ?? product.stockQuantity ?? 10,
             })
           );
         } catch {}
 
-<<<<<<< HEAD
-        const result = await dispatch(
-          addToCart({ productId: product._id, quantity: 1 })
-        ).unwrap();
-        console.log("✅ Cart add result:", result);
-        toast.success("Added to cart successfully!", {
-=======
-        const result = await dispatch(addToCart({ productId: pid, quantity: 1 })).unwrap();
-        console.log('✅ Cart add result:', result);
-        toast.success('Added to cart successfully!', {
->>>>>>> aa8884e43974c8a3dff2f218d8b56bb1ec3c9f4a
+       const result = await dispatch(addToCart({ productId: pid, quantity: 1 })).unwrap();
+       console.log('✅ Cart add result:', result);
+       toast.success('Added to cart successfully!', {
           duration: 3000,
           icon: "🛒",
         });
 
-<<<<<<< HEAD
-=======
         // Notify other parts of app to refresh cart (e.g., Checkout)
         try {
           window.dispatchEvent(new CustomEvent('cartUpdated', { detail: { action: 'add', result } }));
         } catch {}
         
->>>>>>> aa8884e43974c8a3dff2f218d8b56bb1ec3c9f4a
         // Show smart recommendations modal
         setShowRecommendationsModal(true);
       } catch (error: any) {
@@ -391,50 +291,9 @@ const ProductCard: React.FC<ProductCardProps> = ({
 
         // Soft offline fallback: add to local mock cart to keep UX working
         try {
-          const existing = localStorage.getItem("mockCart");
+          const existing = localStorage.getItem('mockCart');
           const cart = existing ? JSON.parse(existing) : [];
-<<<<<<< HEAD
-          const idx = cart.findIndex(
-            (i: any) => i.product?._id === product._id
-          );
-          if (idx >= 0) cart[idx].quantity += 1;
-          else
-            cart.push({
-              product: {
-                _id: product._id,
-                name: product.name,
-                price: product.price,
-                images: [
-                  {
-                    url:
-                      Array.isArray(product.images) && product.images.length
-                        ? typeof product.images[0] === "string"
-                          ? product.images[0]
-                          : product.images[0].url
-                        : "/placeholder-image.jpg",
-                    alt: product.name,
-                  },
-                ],
-                stock:
-                  product.stock ??
-                  product.countInStock ??
-                  product.stockQuantity ??
-                  0,
-              },
-              quantity: 1,
-            });
-          localStorage.setItem("mockCart", JSON.stringify(cart));
-          window.dispatchEvent(
-            new CustomEvent("cartUpdated", {
-              detail: { productId: product._id, action: "add-offline" },
-            })
-          );
-          toast.success("Added to cart (offline mode)", {
-            duration: 2500,
-            icon: "🛒",
-          });
-=======
-          const pid = (product as any)._id || (product as any).id;
+          const pid = (product as any)._id || (product as any).id || product._id;
           const idx = cart.findIndex((i: any) => i.product?._id === pid);
           if (idx >= 0) {
             cart[idx].quantity += 1;
@@ -444,7 +303,14 @@ const ProductCard: React.FC<ProductCardProps> = ({
                 _id: pid,
                 name: product.name,
                 price: product.price,
-                images: [{ url: Array.isArray(product.images) && product.images.length ? (typeof product.images[0] === 'string' ? product.images[0] : (product.images[0] as any).url) : '/placeholder-image.jpg', alt: product.name }],
+                images: [
+                  {
+                    url: Array.isArray(product.images) && product.images.length
+                      ? (typeof product.images[0] === 'string' ? product.images[0] : (product.images[0] as any).url)
+                      : '/placeholder-image.jpg',
+                    alt: product.name,
+                  },
+                ],
                 stock: product.stock ?? product.countInStock ?? product.stockQuantity ?? 0,
               },
               quantity: 1,
@@ -453,7 +319,6 @@ const ProductCard: React.FC<ProductCardProps> = ({
           localStorage.setItem('mockCart', JSON.stringify(cart));
           window.dispatchEvent(new CustomEvent('cartUpdated', { detail: { productId: pid, action: 'add-offline' } }));
           toast.success('Added to cart (offline mode)', { duration: 2500, icon: '🛒' });
->>>>>>> aa8884e43974c8a3dff2f218d8b56bb1ec3c9f4a
         } catch (e) {
           toast.error(errorMessage, { duration: 4000, icon: "❌" });
         }
@@ -584,17 +449,8 @@ const ProductCard: React.FC<ProductCardProps> = ({
       {/* Product Image */}
       <div className="relative overflow-hidden">
         <Link
-<<<<<<< HEAD
-          to={
-            isVendor
-              ? `/vendor/products/${product._id}`
-              : `/products/${product._id}`
-          }
-          onClick={(e) => {
-=======
           to={isVendor ? `/vendor/products/${product._id}` : `/products/${product._id}`}
           onClick={async (e) => {
->>>>>>> aa8884e43974c8a3dff2f218d8b56bb1ec3c9f4a
             // If in compare select mode, intercept click to add to comparison and prevent navigation
             try {
               if (
@@ -612,18 +468,11 @@ const ProductCard: React.FC<ProductCardProps> = ({
                   list.push(normalized);
                 localStorage.setItem("comparePending", JSON.stringify(list));
                 // signal to reopen comparison modal on HomePage
-<<<<<<< HEAD
-                localStorage.setItem("compareReopen", "1");
-                localStorage.removeItem("compareSelectMode");
-                toast.success("Added to comparison");
-                navigate("/");
-=======
                 localStorage.setItem('compareReopen', '1');
                 localStorage.removeItem('compareSelectMode');
                 toast.success('Added to comparison');
                 navigate('/');
                 return;
->>>>>>> aa8884e43974c8a3dff2f218d8b56bb1ec3c9f4a
               }
             } catch {}
 

@@ -1,8 +1,4 @@
-<<<<<<< HEAD
-import React, { useState, useEffect } from 'react';
-=======
 import React, { useEffect, useState } from 'react';
->>>>>>> aa8884e43974c8a3dff2f218d8b56bb1ec3c9f4a
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, CheckCircle, AlertCircle } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
@@ -23,7 +19,6 @@ const PaymentPage: React.FC = () => {
   const [paymentResult, setPaymentResult] = useState<any>(null);
   const [errorMessage, setErrorMessage] = useState<string>('');
 
-<<<<<<< HEAD
   // Shipping address state (editable in checkout)
   const [shippingAddress, setShippingAddress] = useState({
     street: '', city: '', state: '', zipCode: '', country: 'India'
@@ -45,25 +40,20 @@ const PaymentPage: React.FC = () => {
     });
   };
 
-  // Sample order details - in real app, this would come from props/context
-=======
   // Use live cart data instead of static sample (already using items/totalAmount above)
-
   useEffect(() => {
     dispatch(fetchCart());
   }, [dispatch]);
-
->>>>>>> aa8884e43974c8a3dff2f218d8b56bb1ec3c9f4a
   const orderDetails = {
     amount: totalAmount,
     currency: 'INR',
     orderId: 'ORD_' + Date.now(),
-    items: cartItems.map((ci: any) => ({
+    items: items.map((ci: any) => ({
       name: ci.product?.name || 'Item',
       price: ci.product?.price || 0,
       quantity: ci.quantity || 1
     }))
-  };
+  } as const;
 
   const handlePaymentSuccess = async (result: any) => {
     console.log('Payment successful:', result);
@@ -374,7 +364,7 @@ const PaymentPage: React.FC = () => {
                 try {
                   const HIGH_VALUE = 30000;
                   const base = paymentService.getAvailablePaymentMethods();
-                  const perItemAllowed = cartItems.map((ci: any) => {
+                  const perItemAllowed = items.map((ci: any) => {
                     const p = ci.product;
                     const productAcceptance = p?.paymentAcceptance;
                     let acceptance = productAcceptance;
