@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import LoadingSpinner from '../components/LoadingSpinner';
 import ProductCard from '../components/ProductCard';
 import { Filter, Grid, List, ShoppingBag } from '../components/Icons';
+import axiosInstance from '../utils/axiosConfig';
 
 interface ProductImage {
   url: string;
@@ -24,6 +25,7 @@ interface Product {
   isActive: boolean;
   specifications?: Record<string, string>;
   features?: string[];
+  tags?: string[]; // e.g., ['quick-commerce','e-commerce']
 }
 
 const ProductsPage: React.FC = () => {
@@ -45,6 +47,9 @@ const ProductsPage: React.FC = () => {
     maxPrice: urlSearchParams.get('maxPrice') || '',
     pageNumber: parseInt(urlSearchParams.get('page') || '1'),
   });
+  // Channel toggle: true = Quick Commerce, false = E-commerce only
+  const [showQuickCommerce, setShowQuickCommerce] = useState<boolean>((urlSearchParams.get('channel') || 'quick') === 'quick');
+  const [initialFetchDone, setInitialFetchDone] = useState<boolean>(false);
 
   // Default fallback products if API fails (ensures UI still shows items)
   const allMockProducts: Product[] = [
@@ -96,36 +101,78 @@ const ProductsPage: React.FC = () => {
   ];
 
   useEffect(() => {
-    setIsLoading(true);
-    const pageSize = 12;
+    const controller = new AbortController();
+    const run = async () => {
+      setIsLoading(true);
+      const pageSize = 12;
+      try {
+        // Try fetching from backend first
+        const params = new URLSearchParams();
+        if (filters.keyword) params.set('keyword', filters.keyword);
+        if (filters.category) params.set('category', filters.category);
+        if (filters.minPrice) params.set('minPrice', filters.minPrice);
+        if (filters.maxPrice) params.set('maxPrice', filters.maxPrice);
+        params.set('page', String(filters.pageNumber || 1));
+        params.set('limit', String(pageSize));
+        // Channel filter -> use tags contains 'quick-commerce' OR default to e-com when not quick
+        if (showQuickCommerce) {
+          // hint to backend via keyword tag if supported; otherwise client will filter
+          params.set('tags', 'quick-commerce');
+        }
+        const res = await axiosInstance.get(`/products?${params.toString()}`, { signal: controller.signal });
+        const list: Product[] =
+          (res.data?.data?.products as any[]) ||
+          (res.data?.products as any[]) ||
+          [];
+        // Client-side channel filter to be safe
+        const filteredServer = list.filter((p: any) => {
+          const tags = (p.tags || []) as string[];
+          const hasQuick = tags.includes('quick-commerce');
+          const hasEcom = tags.includes('e-commerce') || tags.length === 0;
+          return showQuickCommerce ? hasQuick : hasEcom;
+        });
+        const pagination = res.data?.data?.pagination;
+        setProducts(filteredServer);
+        setTotal(pagination?.totalProducts ?? filteredServer.length);
+        setPages(pagination?.totalPages ?? 1);
+        setPage(pagination?.currentPage ?? (filters.pageNumber || 1));
+        setInitialFetchDone(true);
+      } catch (e) {
+        // Fallback to mock if backend not available
+        const pageSizeLocal = 12;
+        const filtered = allMockProducts.filter((p) => {
+          const keyword = (filters.keyword || '').toLowerCase();
+          const matchesKeyword =
+            !keyword ||
+            p.name.toLowerCase().includes(keyword) ||
+            (p.description || '').toLowerCase().includes(keyword);
+          const matchesCategory = !filters.category || p.category === filters.category;
+          const price = Number(p.price) || 0;
+          const minOk = !filters.minPrice || price >= Number(filters.minPrice);
+          const maxOk = !filters.maxPrice || price <= Number(filters.maxPrice);
 
-    // Client-side filtering over mock data only
-    const filtered = allMockProducts.filter((p) => {
-      const keyword = (filters.keyword || '').toLowerCase();
-      const matchesKeyword =
-        !keyword ||
-        p.name.toLowerCase().includes(keyword) ||
-        (p.description || '').toLowerCase().includes(keyword);
-      const matchesCategory = !filters.category || p.category === filters.category;
-      const price = Number(p.price) || 0;
-      const minOk = !filters.minPrice || price >= Number(filters.minPrice);
-      const maxOk = !filters.maxPrice || price <= Number(filters.maxPrice);
-      return matchesKeyword && matchesCategory && minOk && maxOk;
-    });
-
-    const totalCount = filtered.length;
-    const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
-    const currentPage = Math.min(Math.max(1, filters.pageNumber || 1), totalPages);
-    const start = (currentPage - 1) * pageSize;
-    const paged = filtered.slice(start, start + pageSize);
-
-    // Use local mock filtering and pagination for stability
-    setProducts(paged);
-    setTotal(totalCount);
-    setPages(totalPages);
-    setPage(currentPage);
-    setIsLoading(false);
-  }, [filters]);
+          const tags = (p.tags || []) as string[];
+          const hasQuick = tags.includes('quick-commerce');
+          const hasEcom = tags.includes('e-commerce') || tags.length === 0;
+          const matchesChannel = showQuickCommerce ? hasQuick : hasEcom;
+          return matchesKeyword && matchesCategory && minOk && maxOk && matchesChannel;
+        });
+        const totalCount = filtered.length;
+        const totalPages = Math.max(1, Math.ceil(totalCount / pageSizeLocal));
+        const currentPage = Math.min(Math.max(1, filters.pageNumber || 1), totalPages);
+        const start = (currentPage - 1) * pageSizeLocal;
+        const paged = filtered.slice(start, start + pageSizeLocal);
+        setProducts(paged);
+        setTotal(totalCount);
+        setPages(totalPages);
+        setPage(currentPage);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    run();
+    return () => controller.abort();
+  }, [filters, showQuickCommerce]);
 
   const handleFilterChange = (key: string, value: string) => {
     const newFilters = { ...filters, [key]: value, pageNumber: 1 };
@@ -331,10 +378,36 @@ const ProductsPage: React.FC = () => {
             </div>
           ) : (
             <>
-              <div className="mb-6 flex justify-between items-center">
+              <div className="mb-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
                 <p className="text-gray-700 text-lg">
                   Showing <span className="font-semibold">{products.length}</span> of <span className="font-semibold">{total}</span> products
                 </p>
+                {/* Channel Toggle */}
+                <div className="flex items-center gap-3 bg-white border border-gray-200 px-4 py-2 rounded-lg shadow-sm">
+                  <span className="text-sm text-gray-600">E-commerce</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowQuickCommerce(v => {
+                        const next = !v;
+                        try {
+                          const params = new URLSearchParams(window.location.search);
+                          params.set('channel', next ? 'quick' : 'ecom');
+                          window.history.replaceState({}, '', `${window.location.pathname}?${params.toString()}`);
+                        } catch {}
+                        return next;
+                      });
+                    }}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 ${showQuickCommerce ? 'bg-red-600' : 'bg-gray-300'}`}
+                    aria-pressed={showQuickCommerce}
+                    aria-label="Toggle channel"
+                  >
+                    <span
+                      className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform duration-200 ${showQuickCommerce ? 'translate-x-5' : 'translate-x-1'}`}
+                    />
+                  </button>
+                  <span className="text-sm text-gray-900 font-medium">Quick</span>
+                </div>
               </div>
 
               {products.length === 0 ? (

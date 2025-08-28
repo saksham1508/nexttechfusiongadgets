@@ -47,6 +47,7 @@ interface Product {
   isActive?: boolean;
   specifications?: Record<string, any>;
   features?: string[];
+  tags?: string[];
 }
 
 interface ProductCardProps {
@@ -488,8 +489,18 @@ const ProductCard: React.FC<ProductCardProps> = ({
           }}
         >
           <img
-            src={"/Icon.png"}
+            src={
+              Array.isArray(product.images) && product.images.length > 0
+                ? (typeof product.images[0] === 'string'
+                    ? (product.images[0] as string)
+                    : ((product.images[0] as any)?.url || '/Icon.png'))
+                : '/Icon.png'
+            }
             alt={product.name}
+            onError={(e) => {
+              const img = e.currentTarget as HTMLImageElement;
+              img.src = '/Icon.png';
+            }}
             className="w-full h-56 object-cover group-hover:scale-110 transition-transform duration-500"
           />
         </Link>
@@ -504,7 +515,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
               {discountPercentage}% OFF
             </span>
           )}
-          {showQuickCommerce && (
+          {(product.tags || []).includes('quick-commerce') && (
             <span className="bg-gradient-to-r from-green-500 to-emerald-600 text-white text-xs px-3 py-1 rounded-full font-bold flex items-center space-x-1 shadow-lg">
               <Zap className="h-3 w-3" />
               <span>15 min</span>
@@ -613,12 +624,12 @@ const ProductCard: React.FC<ProductCardProps> = ({
         )}
 
         {/* Delivery Info */}
-        {showQuickCommerce && (
+        {(product.tags || []).includes('quick-commerce') && (
           <div className="flex items-center space-x-2 mb-4 bg-green-50 px-3 py-2 rounded-xl">
             <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
             <Clock className="h-4 w-4 text-green-600" />
             <span className="text-sm font-semibold text-green-700">
-              Delivery in 10-15 min
+              Delivery in 15 min
             </span>
           </div>
         )}

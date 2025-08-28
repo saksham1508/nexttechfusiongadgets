@@ -109,6 +109,18 @@ const auth = async (req, res, next) => {
         return next();
       }
 
+      // Demo/mock Google token fallback (non-JWT)
+      if (token.startsWith('mock_google_token_')) {
+        // Use predefined mock Google user if available; fallback to a default customer
+        let user = mockUsers.find(u => u.authProvider === 'google')
+                  || mockUsers.find(u => u.role === 'customer')
+                  || mockUsers[0];
+        const { password, ...userWithoutPassword } = user;
+        req.user = userWithoutPassword;
+        req.isMockAuth = true;
+        return next();
+      }
+
       // Try to verify as JWT (still mock mode handler)
       const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret_key');
       

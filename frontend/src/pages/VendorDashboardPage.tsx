@@ -57,7 +57,10 @@ const VendorDashboardPage: React.FC = () => {
                       <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                     </svg>
                   </div>
-                  <span className="text-red-700">Large customer base</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-red-900 font-semibold">Large customer base</span>
+                    <span className="text-[10px] uppercase tracking-wide bg-red-600 text-white px-2 py-0.5 rounded-full">Important</span>
+                  </div>
                 </div>
                 <div className="flex items-start space-x-3">
                   <div className="flex-shrink-0 w-5 h-5 bg-red-600 rounded-full flex items-center justify-center mt-0.5">
@@ -65,7 +68,10 @@ const VendorDashboardPage: React.FC = () => {
                       <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                     </svg>
                   </div>
-                  <span className="text-red-700">Easy product management</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-red-900 font-semibold">Easy product management</span>
+                    <span className="text-[10px] uppercase tracking-wide bg-red-600 text-white px-2 py-0.5 rounded-full">Important</span>
+                  </div>
                 </div>
                 <div className="flex items-start space-x-3">
                   <div className="flex-shrink-0 w-5 h-5 bg-red-600 rounded-full flex items-center justify-center mt-0.5">
@@ -73,7 +79,10 @@ const VendorDashboardPage: React.FC = () => {
                       <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                     </svg>
                   </div>
-                  <span className="text-red-700">Secure payments</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-red-900 font-semibold">Secure payments</span>
+                    <span className="text-[10px] uppercase tracking-wide bg-red-600 text-white px-2 py-0.5 rounded-full">Important</span>
+                  </div>
                 </div>
                 <div className="flex items-start space-x-3">
                   <div className="flex-shrink-0 w-5 h-5 bg-red-600 rounded-full flex items-center justify-center mt-0.5">
@@ -81,7 +90,10 @@ const VendorDashboardPage: React.FC = () => {
                       <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                     </svg>
                   </div>
-                  <span className="text-red-700">24/7 support</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-red-900 font-semibold">24/7 support</span>
+                    <span className="text-[10px] uppercase tracking-wide bg-red-600 text-white px-2 py-0.5 rounded-full">Important</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -148,6 +160,9 @@ const VendorDashboardPage: React.FC = () => {
   const [newSellerInfo, setNewSellerInfo] = useState<string>(user?.name || '');
   const [newSpecs, setNewSpecs] = useState<Array<{ key: string; value: string }>>([{ key: '', value: '' }]);
   const [newDetails, setNewDetails] = useState<string>('');
+  // Sales channels selection
+  const [channelQuick, setChannelQuick] = useState<boolean>(false);
+  const [channelEcommerce, setChannelEcommerce] = useState<boolean>(false);
   
   // Guards to prevent repeated toasts and infinite sync loops
   const isSyncingRef = useRef(false);
@@ -423,6 +438,9 @@ const VendorDashboardPage: React.FC = () => {
         localStorage.setItem('token', fallbackToken);
         console.log('🔧 Added fallback vendor token before product create');
       }
+      const selectedChannels: string[] = [];
+      if (channelQuick) selectedChannels.push('quick-commerce');
+      if (channelEcommerce) selectedChannels.push('e-commerce');
       const productData = {
         name: newProduct.name,
         price: sellingPrice,
@@ -441,8 +459,10 @@ const VendorDashboardPage: React.FC = () => {
           stock: v.stock ? parseInt(v.stock) : undefined,
           sku: v.sku || undefined
         })) || [],
-        description: newProduct.description || 'No description provided'
-      };
+        description: newProduct.description || 'No description provided',
+        // Store channels in tags for backend compatibility
+        tags: selectedChannels
+      } as any;
 
       // Attach vendor payment acceptance for high-value items
       const HIGH_VALUE = 30000;
@@ -451,7 +471,7 @@ const VendorDashboardPage: React.FC = () => {
         : { acceptAll: true };
       // Build rich description and specifications
       const highlightsBlock = newHighlights
-        ? `\n\nHighlights:\n- ${newHighlights.split('\n').filter(Boolean).join('\n- ')}`
+        ? `\n\nHighlights (Important):\n- ${newHighlights.split('\n').filter(Boolean).map(s=>`[IMPORTANT] ${s}`).join('\n- ')}`
         : '';
       const sellerBlock = newSellerInfo ? `\n\nSeller: ${newSellerInfo}` : '';
       const detailsBlock = newDetails ? `\n\nProduct Details:\n${newDetails}` : '';
@@ -489,6 +509,8 @@ const VendorDashboardPage: React.FC = () => {
         setNewSellerInfo(user?.name || '');
         setNewSpecs([{ key: '', value: '' }]);
         setNewDetails('');
+        setChannelQuick(false);
+        setChannelEcommerce(false);
         setShowAddProduct(false);
         toast.success('Product added successfully!');
       }
@@ -500,13 +522,16 @@ const VendorDashboardPage: React.FC = () => {
         const saved = localStorage.getItem(localKey);
         const cached = saved ? JSON.parse(saved) : [];
         const highlightsBlock = newHighlights
-          ? `\n\nHighlights:\n- ${newHighlights.split('\n').filter(Boolean).join('\n- ')}`
+          ? `\n\nHighlights (Important):\n- ${newHighlights.split('\n').filter(Boolean).map(s=>`[IMPORTANT] ${s}`).join('\n- ')}`
           : '';
         const sellerBlock = newSellerInfo ? `\n\nSeller: ${newSellerInfo}` : '';
         const detailsBlock = newDetails ? `\n\nProduct Details:\n${newDetails}` : '';
         const composedOfflineDescription = `${newProduct.description || 'No description provided'}${highlightsBlock}${sellerBlock}${detailsBlock}`.trim();
         const specsMap: Record<string,string> = {};
         (newSpecs || []).forEach(row => { const k=(row.key||'').trim(); const v=(row.value||'').trim(); if(k && v) specsMap[k]=v; });
+        const selectedChannels: string[] = [];
+        if (channelQuick) selectedChannels.push('quick-commerce');
+        if (channelEcommerce) selectedChannels.push('e-commerce');
         const offlineProduct = {
           _id: `offline_${Date.now()}`,
           name: newProduct.name,
@@ -518,6 +543,7 @@ const VendorDashboardPage: React.FC = () => {
           images: productImages.filter(img => img).length > 0 ? productImages.filter(img => img) : ['https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=300'],
           description: composedOfflineDescription,
           specifications: Object.keys(specsMap).length ? specsMap : undefined,
+          tags: selectedChannels,
           seller: user?._id || 'vendor_1',
           isActive: true,
           createdAt: new Date().toISOString(),
@@ -533,6 +559,8 @@ const VendorDashboardPage: React.FC = () => {
         setNewSellerInfo(user?.name || '');
         setNewSpecs([{ key: '', value: '' }]);
         setNewDetails('');
+        setChannelQuick(false);
+        setChannelEcommerce(false);
         setNewProduct({
           name: '', price: '', originalPrice: '', sku: '', category: '', countInStock: '', description: '', brand: '', variants: []
         });
@@ -1258,7 +1286,9 @@ const VendorDashboardPage: React.FC = () => {
                   <p className="text-xs text-gray-500 mt-1">Upload up to 5 images (max 5MB each). First image will be the main product image.</p>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Highlights</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">\
+                    Highlights <span className="ml-2 text-[10px] uppercase tracking-wide bg-red-600 text-white px-2 py-0.5 rounded-full align-middle">Important</span>\
+                  </label>
                   <textarea
                     value={newHighlights}
                     onChange={(e) => setNewHighlights(e.target.value)}
@@ -1317,6 +1347,22 @@ const VendorDashboardPage: React.FC = () => {
                     placeholder="Detailed description, materials, care, package contents, etc."
                     rows={4}
                   />
+                </div>
+
+                {/* Sales Channels */}
+                <div className="border rounded-lg p-3 bg-gray-50">
+                  <div className="text-sm font-medium text-gray-800 mb-2">Sales Channels</div>
+                  <div className="flex flex-col sm:flex-row gap-4">
+                    <label className="inline-flex items-center gap-2 text-sm">
+                      <input type="checkbox" className="w-5 h-5 accent-red-600 scale-110" checked={channelQuick} onChange={(e)=> setChannelQuick(e.target.checked)} />
+                      <span className="text-base">Quick Commerce</span>
+                    </label>
+                    <label className="inline-flex items-center gap-2 text-sm">
+                      <input type="checkbox" className="w-5 h-5 accent-red-600 scale-110" checked={channelEcommerce} onChange={(e)=> setChannelEcommerce(e.target.checked)} />
+                      <span className="text-base">E-commerce</span>
+                    </label>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">Choose where this product should be available.</p>
                 </div>
               </div>
             </div>

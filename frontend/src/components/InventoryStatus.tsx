@@ -129,7 +129,7 @@ const InventoryStatus: React.FC<InventoryStatusProps> = ({
     if (availableStock <= threshold.critical) {
       return 'Express delivery available';
     }
-    return 'Fast delivery in 10-15 min';
+    return 'Fast delivery';
   };
 
   if (!showDetails) {

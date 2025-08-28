@@ -228,6 +228,22 @@ const CheckoutPage: React.FC = () => {
       return;
     }
 
+    // Require shipping details
+    const missing = [
+      { key: 'street', label: 'Street Address' },
+      { key: 'city', label: 'City' },
+      { key: 'state', label: 'State' },
+      { key: 'zipCode', label: 'ZIP/Postal Code' },
+      { key: 'country', label: 'Country' },
+    ].filter(f => !(shippingAddress as any)[f.key] || String((shippingAddress as any)[f.key]).trim() === '');
+    if (missing.length) {
+      toast.error(`Please fill shipping: ${missing.map(m => m.label).join(', ')}`);
+      // Focus first missing if possible
+      const first = missing[0]?.key;
+      try { (document.querySelector(`[name="${first}"]`) as HTMLInputElement)?.focus(); } catch {}
+      return;
+    }
+
     if (!selectedPaymentMethod && !selectedProvider) {
       toast.error('Please select a payment method');
       return;
@@ -287,7 +303,73 @@ const CheckoutPage: React.FC = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <div className="space-y-8">
             {/* Shipping Address */}
-            {/* ... (unchanged) ... */}
+            <div className="bg-white rounded-lg shadow-md p-6">
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">Shipping Address</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Street Address</label>
+                  <input
+                    type="text"
+                    name="street"
+                    value={shippingAddress.street}
+                    onChange={handleShippingChange}
+                    className="input"
+                    placeholder="123 Main St"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">City</label>
+                  <input
+                    type="text"
+                    name="city"
+                    value={shippingAddress.city}
+                    onChange={handleShippingChange}
+                    className="input"
+                    placeholder="City"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">State</label>
+                  <input
+                    type="text"
+                    name="state"
+                    value={shippingAddress.state}
+                    onChange={handleShippingChange}
+                    className="input"
+                    placeholder="State"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">ZIP/Postal Code</label>
+                  <input
+                    type="text"
+                    name="zipCode"
+                    value={shippingAddress.zipCode}
+                    onChange={handleShippingChange}
+                    className="input"
+                    placeholder="123456"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Country</label>
+                  <select
+                    name="country"
+                    value={shippingAddress.country}
+                    onChange={handleShippingChange}
+                    className="input"
+                    required
+                  >
+                    {countries.map((c) => (
+                      <option key={c.code} value={c.name}>{c.name}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </div>
 
             {/* Payment Section */}
             <div className="bg-white rounded-lg shadow-md p-6">
