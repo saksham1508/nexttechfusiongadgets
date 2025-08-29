@@ -195,6 +195,9 @@ const VendorDashboardPage: React.FC = () => {
   });
   // New: discount field for edit form
   const [editDiscount, setEditDiscount] = useState<string>('');
+  // Edit: sales channels selection
+  const [editChannelQuick, setEditChannelQuick] = useState<boolean>(false);
+  const [editChannelEcommerce, setEditChannelEcommerce] = useState<boolean>(false);
 
   // Fetch vendor's products on component mount.
   // IMPORTANT: Do not seed mock vendor tokens here; it forces mock analytics on the backend.
@@ -471,7 +474,7 @@ const VendorDashboardPage: React.FC = () => {
         : { acceptAll: true };
       // Build rich description and specifications
       const highlightsBlock = newHighlights
-        ? `\n\nHighlights (Important):\n- ${newHighlights.split('\n').filter(Boolean).map(s=>`[IMPORTANT] ${s}`).join('\n- ')}`
+        ? `\n\nHighlights:\n- ${newHighlights.split('\n').filter(Boolean).join('\n- ')}`
         : '';
       const sellerBlock = newSellerInfo ? `\n\nSeller: ${newSellerInfo}` : '';
       const detailsBlock = newDetails ? `\n\nProduct Details:\n${newDetails}` : '';
@@ -522,7 +525,7 @@ const VendorDashboardPage: React.FC = () => {
         const saved = localStorage.getItem(localKey);
         const cached = saved ? JSON.parse(saved) : [];
         const highlightsBlock = newHighlights
-          ? `\n\nHighlights (Important):\n- ${newHighlights.split('\n').filter(Boolean).map(s=>`[IMPORTANT] ${s}`).join('\n- ')}`
+          ? `\n\nHighlights:\n- ${newHighlights.split('\n').filter(Boolean).join('\n- ')}`
           : '';
         const sellerBlock = newSellerInfo ? `\n\nSeller: ${newSellerInfo}` : '';
         const detailsBlock = newDetails ? `\n\nProduct Details:\n${newDetails}` : '';
@@ -585,6 +588,9 @@ const VendorDashboardPage: React.FC = () => {
       if (!isNaN(mrp) && !isNaN(dPct)) {
         updatedPrice = Math.max(0, Math.round((mrp - (mrp * dPct) / 100) * 100) / 100);
       }
+      const selectedChannelsEdit: string[] = [];
+      if (editChannelQuick) selectedChannelsEdit.push('quick-commerce');
+      if (editChannelEcommerce) selectedChannelsEdit.push('e-commerce');
       const payload = {
         name: editProduct.name,
         price: isFinite(updatedPrice) ? updatedPrice : parseFloat(editProduct.price),
@@ -601,7 +607,8 @@ const VendorDashboardPage: React.FC = () => {
           stock: v.stock ? parseInt(v.stock) : undefined,
           sku: v.sku || undefined
         })),
-        description: editProduct.description || ''
+        description: editProduct.description || '',
+        tags: selectedChannelsEdit
       };
       // Prevent editing if the product does not belong to this vendor (UI-level guard)
       if (!products.find(p => p._id === editProduct.id)) {
@@ -906,14 +913,14 @@ const VendorDashboardPage: React.FC = () => {
                             id: product._id,
                             name: product.name,
                             price: String(product.price),
-                            originalPrice: String(product.originalPrice ?? ''),
-                            sku: String(product.sku ?? ''),
-                            category: product.category,
-                            countInStock: String(product.countInStock ?? 0),
-                            description: product.description || '',
-                            brand: product.brand || '',
-                            images: product.images || [],
-                            variants: (product.variants || []).map(v => ({
+                            originalPrice: String((product as any).originalPrice ?? ''),
+                            sku: String((product as any).sku ?? ''),
+                            category: (product as any).category,
+                            countInStock: String((product as any).countInStock ?? 0),
+                            description: (product as any).description || '',
+                            brand: (product as any).brand || '',
+                            images: ((product as any).images || []).map((img: any) => typeof img === 'string' ? img : img?.url).filter(Boolean),
+                            variants: ((product as any).variants || []).map((v: any) => ({
                               name: v.name,
                               value: v.value,
                               price: v.price != null ? String(v.price) : undefined,
@@ -921,6 +928,13 @@ const VendorDashboardPage: React.FC = () => {
                               sku: v.sku
                             }))
                           });
+                          // Initialize channel toggles from tags
+                          try {
+                            const rawTags = (product as any)?.tags ?? [];
+                            const tags = Array.isArray(rawTags) ? rawTags.map((t: any) => String(t).toLowerCase()) : [];
+                            setEditChannelQuick(tags.includes('quick-commerce'));
+                            setEditChannelEcommerce(tags.includes('e-commerce'));
+                          } catch {}
                           setShowEditProduct(true);
                         }}
                         className="flex-1 bg-blue-100 hover:bg-blue-200 text-blue-700 px-3 py-2 rounded-lg text-sm font-medium transition-all flex items-center justify-center space-x-1"
@@ -1286,13 +1300,11 @@ const VendorDashboardPage: React.FC = () => {
                   <p className="text-xs text-gray-500 mt-1">Upload up to 5 images (max 5MB each). First image will be the main product image.</p>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">\
-                    Highlights <span className="ml-2 text-[10px] uppercase tracking-wide bg-red-600 text-white px-2 py-0.5 rounded-full align-middle">Important</span>\
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Highlights</label>
                   <textarea
                     value={newHighlights}
                     onChange={(e) => setNewHighlights(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                     placeholder="Key features, bullet points (one per line)"
                     rows={3}
                   />
@@ -1414,6 +1426,20 @@ const VendorDashboardPage: React.FC = () => {
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     placeholder="Enter product name"
                   />
+                </div>
+                {/* Channels (Edit) */}
+                <div className="mb-3">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Sales Channels</label>
+                  <div className="flex items-center gap-6">
+                    <label className="inline-flex items-center gap-2 text-sm">
+                      <input type="checkbox" className="w-5 h-5 accent-red-600 scale-110" checked={editChannelQuick} onChange={(e)=> setEditChannelQuick(e.target.checked)} />
+                      <span className="text-base">Quick Commerce</span>
+                    </label>
+                    <label className="inline-flex items-center gap-2 text-sm">
+                      <input type="checkbox" className="w-5 h-5 accent-red-600 scale-110" checked={editChannelEcommerce} onChange={(e)=> setEditChannelEcommerce(e.target.checked)} />
+                      <span className="text-base">E-commerce</span>
+                    </label>
+                  </div>
                 </div>
                 {/* Pricing Section: MRP + Discount → Auto Price (Edit) */}
                 <div className="grid grid-cols-3 gap-3">

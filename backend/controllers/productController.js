@@ -106,6 +106,34 @@ const buildFilterQuery = (filters) => {
   if (filters.seller) {
     query.seller = filters.seller;
   }
+
+  // Map channel -> tags for convenience (supports /api/products?channel=quick)
+  if (filters.channel && !filters.tags) {
+    const ch = String(filters.channel).toLowerCase();
+    const mapped = ch === 'quick' || ch === 'quick-commerce' ? ['quick-commerce']
+                  : ch === 'ecom' || ch === 'e-commerce' || ch === 'ecommerce' ? ['e-commerce']
+                  : [];
+    if (mapped.length) {
+      query.tags = { $in: mapped };
+    }
+  }
+
+  // Filter by tags (e.g., quick-commerce, e-commerce)
+  if (filters.tags) {
+    const tagList = String(filters.tags)
+      .split(',')
+      .map((t) => t.trim().toLowerCase())
+      .filter(Boolean);
+    if (tagList.length) {
+      // Merge with any existing tags filter from channel mapping
+      if (query.tags && query.tags.$in) {
+        const merged = Array.from(new Set([...query.tags.$in, ...tagList]));
+        query.tags = { $in: merged };
+      } else {
+        query.tags = { $in: tagList };
+      }
+    }
+  }
   
   return query;
 };
@@ -301,7 +329,7 @@ const createProduct = asyncHandler(async (req, res) => {
   // Six Sigma: Define - Validate business rules
   const {
     name, description, price, category, brand, countInStock,
-    images, specifications, tags, features
+    images, specifications, tags, features, sku, originalPrice
   } = req.body;
   
   // Check for duplicate products (same name + brand + seller)
@@ -322,19 +350,50 @@ const createProduct = asyncHandler(async (req, res) => {
     });
   }
   
+  // Resolve category if a non-ObjectId string was provided (fallback by name)
+  let categoryId = category;
+  try {
+    if (category && !String(category).match(/^[0-9a-fA-F]{24}$/)) {
+      const Category = require('../models/Category');
+      const found = await Category.findOne({ name: new RegExp(`^${String(category)}$`, 'i') }).lean();
+      if (found?._id) categoryId = found._id;
+    }
+  } catch {}
+
+  // Normalize images: accept ['url'] or [{ url }]
+  const normalizedImages = Array.isArray(images)
+    ? images.map((img) => (typeof img === 'string' ? { url: img } : img))
+    : [];
+
+  // Normalize sales channel tags safely
+  const normalizeTags = (arr) => {
+    if (!Array.isArray(arr)) return [];
+    return Array.from(new Set(arr
+      .map((t) => String(t || '').toLowerCase().trim())
+      .filter(Boolean)
+      .map((t) => (t === 'quick' || t === 'quick commerce' ? 'quick-commerce' : t === 'ecommerce' ? 'e-commerce' : t))
+    ));
+  };
+  const normalizedTags = normalizeTags(tags);
+
+  // Ensure SKU exists (schema requires it)
+  const normalizedSku = String(sku || `${Date.now()}_${Math.random().toString(36).slice(2,8)}`).trim();
+
   // Agile: Process and enhance product data
   const productData = {
     name: name.trim(),
     description: description.trim(),
     price: Number(price),
-    category: category.trim(),
+    originalPrice: originalPrice ? Number(originalPrice) : undefined,
+    category: categoryId || category, // allow raw if not resolved
     brand: brand.trim(),
     countInStock: Number(countInStock),
     seller: req.user._id,
-    images: images || [],
+    images: normalizedImages,
     specifications: specifications || {},
-    tags: tags ? tags.map(tag => tag.toLowerCase().trim()) : [],
+    tags: normalizedTags,
     features: features || [],
+    sku: normalizedSku,
     isActive: true,
     // Auto-generate SEO-friendly slug
     slug: name.toLowerCase()
@@ -382,19 +441,78 @@ const updateProduct = async (req, res) => {
   try {
     const product = await Product.findById(req.params.id);
 
-    if (product) {
-      if (product.seller.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
-        return res.status(401).json({ message: 'Not authorized to update this product' });
-      }
-
-      Object.assign(product, req.body);
-      const updatedProduct = await product.save();
-      res.json(updatedProduct);
-    } else {
-      res.status(404).json({ message: 'Product not found' });
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        error: {
+          type: 'RESOURCE_NOT_FOUND',
+          message: 'Product not found',
+          timestamp: new Date().toISOString()
+        }
+      });
     }
+
+    if (product.seller.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
+      return res.status(401).json({
+        success: false,
+        error: {
+          type: 'AUTHORIZATION_ERROR',
+          message: 'Not authorized to update this product',
+          timestamp: new Date().toISOString()
+        }
+      });
+    }
+
+    const updates = { ...req.body };
+
+    // Normalize images if provided
+    if (Array.isArray(updates.images)) {
+      updates.images = updates.images.map((img) =>
+        typeof img === 'string' ? { url: img } : img
+      );
+    }
+
+    // Normalize tags: map quick/ecommerce aliases for consistency with creation
+    if (Array.isArray(updates.tags)) {
+      const normalizeTags = (arr) => {
+        return Array.from(new Set(arr
+          .map((t) => String(t || '').toLowerCase().trim())
+          .filter(Boolean)
+          .map((t) => (t === 'quick' || t === 'quick commerce' ? 'quick-commerce' : t === 'ecommerce' ? 'e-commerce' : t))
+        ));
+      };
+      updates.tags = normalizeTags(updates.tags);
+    }
+
+    // Optional: resolve category by name if not an ObjectId
+    if (updates.category && !String(updates.category).match(/^[0-9a-fA-F]{24}$/)) {
+      try {
+        const Category = require('../models/Category');
+        const found = await Category.findOne({ name: new RegExp(`^${String(updates.category)}$`, 'i') }).lean();
+        if (found?._id) {
+          updates.category = found._id;
+        }
+      } catch (_) {}
+    }
+
+    Object.assign(product, updates);
+    const updatedProduct = await product.save();
+
+    return res.json({
+      success: true,
+      data: { product: updatedProduct },
+      timestamp: new Date().toISOString(),
+      correlationId: req.correlationId
+    });
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    return res.status(400).json({
+      success: false,
+      error: {
+        type: 'BAD_REQUEST',
+        message: error.message || 'Failed to update product',
+        timestamp: new Date().toISOString()
+      }
+    });
   }
 };
 

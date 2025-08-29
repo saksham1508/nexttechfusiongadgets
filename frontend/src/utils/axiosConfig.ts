@@ -67,6 +67,25 @@ axiosInstance.interceptors.request.use(
       }
     }
 
+    // If this is a vendor-protected mutating request and user is a seller, force a vendor token
+    try {
+      const urlPath = (config.url || '').toString();
+      const method = (config.method || 'get').toLowerCase();
+      const isMutating = method !== 'get';
+      const targetsVendorApis = urlPath.startsWith('/products') || urlPath.startsWith('/vendor');
+      const raw = localStorage.getItem('user');
+      const parsed = raw ? JSON.parse(raw) : null;
+      const userObj = parsed?.user || parsed;
+      const isSeller = userObj?.role === 'seller';
+      const currentIsVendorToken = typeof token === 'string' && token.startsWith('mock_vendor_token_');
+      if (isMutating && targetsVendorApis && isSeller && !currentIsVendorToken) {
+        const vendorId = userObj._id || 'vendor_1';
+        token = `mock_vendor_token_${vendorId}`;
+        localStorage.setItem('token', token);
+        console.log('🛡️ Axios: Overriding token for vendor mutating request as seller:', vendorId, urlPath);
+      }
+    } catch {}
+
     // Add token to headers if available
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;

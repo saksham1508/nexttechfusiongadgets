@@ -28,6 +28,8 @@ const HomePage: React.FC = () => {
   const [selectedLocation, setSelectedLocation] = useState<Location | null>(null);
   const [showComparison, setShowComparison] = useState(false);
   const [comparisonProducts, setComparisonProducts] = useState<any[]>([]);
+  // Channel toggle: true = Quick Commerce, false = E-commerce only
+  const [showQuickCommerce, setShowQuickCommerce] = useState<boolean>((new URLSearchParams(window.location.search).get('channel') || 'quick') === 'quick');
 
   // Pull any pending compare items from localStorage when coming back from product selection
   useEffect(() => {
@@ -57,8 +59,14 @@ const HomePage: React.FC = () => {
   const [viewedProducts, setViewedProducts] = useState<any[]>([]);
 
   useEffect(() => {
-    dispatch(fetchProducts({ page: 1 }));
-  }, [dispatch]);
+    const params = new URLSearchParams(window.location.search);
+    const channel = showQuickCommerce ? 'quick' : 'ecom';
+    params.set('channel', channel);
+    try {
+      window.history.replaceState({}, '', `${window.location.pathname}?${params.toString()}`);
+    } catch {}
+    dispatch(fetchProducts({ page: 1, keyword: undefined } as any));
+  }, [dispatch, showQuickCommerce]);
 
   const categories = [
     { name: 'Smartphones', icon: Smartphone, link: '/products?category=smartphones' },
@@ -67,7 +75,23 @@ const HomePage: React.FC = () => {
     { name: 'Wearables', icon: Watch, link: '/products?category=wearables' },
   ];
 
-  const featuredProducts = products?.slice(0, 8) || [];
+  // Channel membership — product can belong to quick, ecom, or both; default to ecom when no metadata
+  const inChannel = (p: any, target: 'quick' | 'ecom'): boolean => {
+    const raw = (p as any)?.tags ?? (p as any)?.channels ?? (p as any)?.channel ?? [];
+    const arr = Array.isArray(raw) ? raw : [raw];
+    const norm = arr.map((t) => String(t).toLowerCase().trim()).filter(Boolean);
+    const quickTokens = new Set(['quick-commerce','quick','quickcommerce','quick_commerce','instant','express','qc']);
+    const ecomTokens = new Set(['e-commerce','ecommerce','e_commerce','e-comm','retail','standard','classic']);
+    if (norm.length === 0) return target === 'ecom';
+    const hasQuick = norm.some((t) => quickTokens.has(t));
+    const hasEcom = norm.some((t) => ecomTokens.has(t));
+    if (target === 'quick') return hasQuick;
+    return hasEcom || !hasQuick;
+  };
+
+  const filteredProducts = (products || []).filter((p: any) => inChannel(p, showQuickCommerce ? 'quick' : 'ecom'));
+
+  const featuredProducts = filteredProducts.slice(0, 8);
 
   // Mock flash sale data
   const flashSaleProducts = (products || []).slice(0, 4).map((product: any) => ({
@@ -148,6 +172,32 @@ const HomePage: React.FC = () => {
 
             {/* Action Buttons */}
             <div className="hidden lg:flex items-center space-x-3">
+              {/* <div className="flex items-center gap-3 bg-white border border-gray-200 px-4 py-2 rounded-lg shadow-sm">
+                <span className="text-sm text-gray-600">E-commerce</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowQuickCommerce(v => {
+                      const next = !v;
+                      try {
+                        const params = new URLSearchParams(window.location.search);
+                        params.set('channel', next ? 'quick' : 'ecom');
+                        window.history.replaceState({}, '', `${window.location.pathname}?${params.toString()}`);
+                      } catch {}
+                      return next;
+                    });
+                  }}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 ${showQuickCommerce ? 'bg-red-600' : 'bg-gray-300'}`}
+                  aria-pressed={showQuickCommerce}
+                  aria-label="Toggle channel"
+                >
+                  <span
+                    className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform duration-200 ${showQuickCommerce ? 'translate-x-5' : 'translate-x-1'}`}
+                  />
+                </button>
+                <span className="text-sm text-gray-900 font-medium">Quick-Commerce</span>
+              </div> */}
+
               {/* Comparison Button */}
               <button
                 type="button"
@@ -268,7 +318,8 @@ const HomePage: React.FC = () => {
                   <div key={product._id} className={delayClass}>
                     <ProductCard 
                       product={product} 
-                      showQuickCommerce={true}
+                      showQuickCommerce={showQuickCommerce}
+                      forceQuickBadge={showQuickCommerce}
                       onAddToComparison={addToComparison}
                     />
                   </div>

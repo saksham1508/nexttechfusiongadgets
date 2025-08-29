@@ -110,21 +110,33 @@ const QuickAddToCart: React.FC<QuickAddToCartProps> = ({
     const authResult = checkAuthentication(user);
     
     if (!authResult.isAuthenticated) {
-      // User not logged in - show login prompt
-      toast.error('Please log in to add items to cart', {
-        duration: 4000,
-        icon: '🔒',
-      });
-      
-      // Clear any invalid auth data
-      if (authResult.error) {
-        clearAuthData();
+      // Guest cart fallback - store in localStorage
+      try {
+        const existing = localStorage.getItem('mockCart');
+        const cart = existing ? JSON.parse(existing) : [];
+        const pid = (product as any)._id || (product as any).id;
+        const idx = cart.findIndex((i: any) => i.product?._id === pid);
+        if (idx >= 0) {
+          cart[idx].quantity += 1;
+        } else {
+          cart.push({
+            product: {
+              _id: pid,
+              name: product.name,
+              price: product.price,
+              images: [{ url: product.image, alt: product.name }],
+              stock: product.stock
+            },
+            quantity: 1,
+          });
+        }
+        localStorage.setItem('mockCart', JSON.stringify(cart));
+        window.dispatchEvent(new CustomEvent('cartUpdated', { detail: { productId: pid, action: 'add-guest' } }));
+        setQuantity(q => Math.max(q, 1));
+        toast.success('Added to cart!', { duration: 2500, icon: '🛒' });
+      } catch (e) {
+        toast.error('Failed to add item to cart. Please try again.', { duration: 4000, icon: '❌' });
       }
-      
-      // Optional: Redirect to login page after a delay
-      setTimeout(() => {
-        navigate('/login');
-      }, 2000);
       return;
     }
     

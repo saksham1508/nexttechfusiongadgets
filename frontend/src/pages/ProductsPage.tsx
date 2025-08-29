@@ -48,7 +48,7 @@ const ProductsPage: React.FC = () => {
     pageNumber: parseInt(urlSearchParams.get('page') || '1'),
   });
   // Channel toggle: true = Quick Commerce, false = E-commerce only
-  const [showQuickCommerce, setShowQuickCommerce] = useState<boolean>((urlSearchParams.get('channel') || 'quick') === 'quick');
+  const [showQuickCommerce, setShowQuickCommerce] = useState<boolean>((urlSearchParams.get('channel') || 'ecom') !== 'ecom');
   const [initialFetchDone, setInitialFetchDone] = useState<boolean>(false);
 
   // Default fallback products if API fails (ensures UI still shows items)
@@ -100,6 +100,21 @@ const ProductsPage: React.FC = () => {
     },
   ];
 
+  // Channel membership — product can belong to quick, ecom, or both; default to ecom when no metadata
+  const inChannel = (p: any, target: 'quick' | 'ecom'): boolean => {
+    const raw = p?.tags ?? p?.channels ?? p?.channel ?? [];
+    const arr = Array.isArray(raw) ? raw : [raw];
+    const norm = arr.map((t) => String(t).toLowerCase().trim()).filter(Boolean);
+    const quickTokens = new Set(['quick-commerce','quick','quickcommerce','quick_commerce','instant','express','qc']);
+    const ecomTokens = new Set(['e-commerce','ecommerce','e_commerce','e-comm','retail','standard','classic']);
+    if (norm.length === 0) return target === 'ecom';
+    const hasQuick = norm.some((t) => quickTokens.has(t));
+    const hasEcom = norm.some((t) => ecomTokens.has(t));
+    if (target === 'quick') return hasQuick; // show in quick only if quick tag present
+    // ecom: show when explicitly tagged ecom or not tagged quick at all
+    return hasEcom || !hasQuick;
+  };
+
   useEffect(() => {
     const controller = new AbortController();
     const run = async () => {
@@ -114,23 +129,15 @@ const ProductsPage: React.FC = () => {
         if (filters.maxPrice) params.set('maxPrice', filters.maxPrice);
         params.set('page', String(filters.pageNumber || 1));
         params.set('limit', String(pageSize));
-        // Channel filter -> use tags contains 'quick-commerce' OR default to e-com when not quick
-        if (showQuickCommerce) {
-          // hint to backend via keyword tag if supported; otherwise client will filter
-          params.set('tags', 'quick-commerce');
-        }
+        // Send channel to backend (it maps to tags) and still filter client-side for safety
+        params.set('channel', showQuickCommerce ? 'quick' : 'ecom');
         const res = await axiosInstance.get(`/products?${params.toString()}`, { signal: controller.signal });
         const list: Product[] =
           (res.data?.data?.products as any[]) ||
           (res.data?.products as any[]) ||
           [];
-        // Client-side channel filter to be safe
-        const filteredServer = list.filter((p: any) => {
-          const tags = (p.tags || []) as string[];
-          const hasQuick = tags.includes('quick-commerce');
-          const hasEcom = tags.includes('e-commerce') || tags.length === 0;
-          return showQuickCommerce ? hasQuick : hasEcom;
-        });
+        // Client-side channel filter — enforce vendor intent: quick shows only quick-tagged; ecom shows ecom or untagged
+        const filteredServer = list.filter((p: any) => inChannel(p, showQuickCommerce ? 'quick' : 'ecom'));
         const pagination = res.data?.data?.pagination;
         setProducts(filteredServer);
         setTotal(pagination?.totalProducts ?? filteredServer.length);
@@ -151,10 +158,7 @@ const ProductsPage: React.FC = () => {
           const minOk = !filters.minPrice || price >= Number(filters.minPrice);
           const maxOk = !filters.maxPrice || price <= Number(filters.maxPrice);
 
-          const tags = (p.tags || []) as string[];
-          const hasQuick = tags.includes('quick-commerce');
-          const hasEcom = tags.includes('e-commerce') || tags.length === 0;
-          const matchesChannel = showQuickCommerce ? hasQuick : hasEcom;
+          const matchesChannel = inChannel(p, showQuickCommerce ? 'quick' : 'ecom');
           return matchesKeyword && matchesCategory && minOk && maxOk && matchesChannel;
         });
         const totalCount = filtered.length;
@@ -186,6 +190,11 @@ const ProductsPage: React.FC = () => {
         newParams.delete(k);
       }
     });
+    // persist channel param too
+    newParams.set('channel', showQuickCommerce ? 'quick' : 'ecom');
+    try {
+      window.history.replaceState({}, '', `${window.location.pathname}?${newParams.toString()}`);
+    } catch {}
     setUrlSearchParams(newParams);
   };
 
@@ -306,6 +315,33 @@ const ProductsPage: React.FC = () => {
             <Filter className="h-4 w-4" />
             <span>Filters</span>
           </button>
+          {/* Channel Toggle */}
+          {/* <div className="hidden md:flex items-center gap-3 bg-white border border-gray-200 px-4 py-2 rounded-lg shadow-sm">
+            <span className="text-sm text-gray-600">E-commerce</span>
+            <button
+              type="button"
+              onClick={() => {
+                setShowQuickCommerce((v) => {
+                  const next = !v;
+                  try {
+                    const newParams = new URLSearchParams(window.location.search);
+                    newParams.set('channel', next ? 'quick' : 'ecom');
+                    window.history.replaceState({}, '', `${window.location.pathname}?${newParams.toString()}`);
+                    setUrlSearchParams(newParams);
+                  } catch {}
+                  return next;
+                });
+              }}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 ${showQuickCommerce ? 'bg-red-600' : 'bg-gray-300'}`}
+              aria-pressed={showQuickCommerce}
+              aria-label="Toggle channel"
+            >
+              <span
+                className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform duration-200 ${showQuickCommerce ? 'translate-x-5' : 'translate-x-1'}`}
+              />
+            </button>
+            <span className="text-sm text-gray-900 font-medium">Quick-Commerce</span>
+          </div> */}
         </div>
       </div>
 
@@ -406,7 +442,7 @@ const ProductsPage: React.FC = () => {
                       className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform duration-200 ${showQuickCommerce ? 'translate-x-5' : 'translate-x-1'}`}
                     />
                   </button>
-                  <span className="text-sm text-gray-900 font-medium">Quick</span>
+                  <span className="text-sm text-gray-900 font-medium">Quick-Commerce</span>
                 </div>
               </div>
 
@@ -443,6 +479,8 @@ const ProductsPage: React.FC = () => {
                       )}
                       <ProductCard
                         product={product as any}
+                        showQuickCommerce={showQuickCommerce}
+                        forceQuickBadge={showQuickCommerce}
                         onAddToComparison={(p: any) => {
                           try {
                             const existing = localStorage.getItem('comparePending');

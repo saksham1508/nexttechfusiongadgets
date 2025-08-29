@@ -36,7 +36,15 @@ const Footer: React.FC = () => {
             <div className="flex space-x-4">
               <Facebook className="h-5 w-5 text-gray-400 hover:text-white cursor-pointer" />
               <Twitter className="h-5 w-5 text-gray-400 hover:text-white cursor-pointer" />
-              <Instagram className="h-5 w-5 text-gray-400 hover:text-white cursor-pointer" />
+              <a
+                href="https://www.instagram.com/nexfuga?igsh=MXNpczM2OXM2dnFmcA=="
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Instagram"
+                title="Instagram"
+              >
+                <Instagram className="h-5 w-5 text-gray-400 hover:text-white cursor-pointer" />
+              </a>
               <a
                 href="https://www.youtube.com/channel/UCws8nhyYzZjWFzctc2msVyg"
                 target="_blank"

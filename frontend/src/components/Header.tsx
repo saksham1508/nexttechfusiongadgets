@@ -266,7 +266,7 @@ const Header: React.FC = () => {
                       <MapPin className="h-4 w-4" />
                       <span>Track Orders</span>
                     </Link>
-                    {/* {user.role === "seller" && (
+                    {user.role === 'seller' && (
                       <Link
                         to="/vendor/dashboard"
                         className="flex items-center space-x-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors duration-200"
@@ -275,14 +275,6 @@ const Header: React.FC = () => {
                         <span>Vendor Dashboard</span>
                       </Link>
                     )}
-                    {user.role === "admin" && (
-                      <Link
-                        to="/admin/dashboard"
-                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                      >
-                        Admin Dashboard
-                      </Link>
-                    )} */}
                     <hr className="my-1" />
                     <button
                       onClick={handleLogout}

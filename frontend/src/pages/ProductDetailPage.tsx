@@ -329,9 +329,9 @@ const ProductDetailPage: React.FC = () => {
         </div>
 
         {/* Info */}
-        <div>
-          <h1 className="text-2xl font-bold mb-2">{product.name}</h1>
-          <p className="text-sm text-gray-600 mb-4">Brand: {product.brand}</p>
+        <div className=' flex flex-col gap-4'>
+          <h1 className="text-2xl font-bold mb-2 capitalize">{product.name}</h1>
+          <p className="text-m text-gray-600 mb-4">Brand: {product.brand}</p>
 
           <div className="mb-4">
             <div className="flex items-center gap-2">
@@ -352,9 +352,7 @@ const ProductDetailPage: React.FC = () => {
             )}
           </div>
 
-          <p className="text-gray-700 mb-4">{product.description}</p>
-
-          <div className="flex items-center mb-4">
+          <div className="flex items-center mb-4 ">
             <label className="mr-2">Qty:</label>
             <input
               type="number"
@@ -367,12 +365,12 @@ const ProductDetailPage: React.FC = () => {
             <span className="ml-2 text-sm text-gray-500">{product.stockQuantity} in stock</span>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex flex-col gap-3">
             <button
               type="button"
               onClick={handleAddToCart}
               disabled={!product.inStock || product.stockQuantity === 0}
-              className={`px-6 py-3 rounded-lg font-semibold transition-all duration-300 ${
+              className={`px-24 py-3 rounded-lg font-semibold transition-all duration-300 ${
                 !product.inStock || product.stockQuantity === 0
                   ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
                   : 'bg-indigo-600 text-white hover:bg-indigo-700'
@@ -394,38 +392,182 @@ const ProductDetailPage: React.FC = () => {
               Buy Now
             </button>
 
-            <button
+            {/* <button
               type="button"
               onClick={() => navigate(`/products`)}
               className="px-6 py-3 rounded-lg font-semibold transition-all duration-300 bg-gray-100 text-gray-700 hover:bg-gray-200"
             >
               View More Products
-            </button>
+            </button> */}
           </div>
         </div>
       </div>
 
       {/* Features and Specs */}
       <div className="mt-10">
-        <h2 className="text-xl font-semibold mb-2">Features</h2>
+        {/* <h2 className="text-xl font-semibold mb-2">Features</h2> */}
         <ul className="list-disc list-inside text-gray-700 mb-6">
           {(product.features || []).map((f, i) => (
             <li key={i}>{f}</li>
           ))}
         </ul>
 
+        {/* Highlights inside Specifications */}
         <h2 className="text-xl font-semibold mb-2">Specifications</h2>
-        <table className="w-full text-sm text-left text-gray-700">
-          <tbody>
+        {(() => {
+          // Parse highlights from description (lines after "Highlights:")
+          const desc = product.description || '';
+          const hl: string[] = [];
+          try {
+            const lines = desc.split('\n');
+            let start = -1;
+            for (let i = 0; i < lines.length; i++) {
+              if (/^\s*Highlights\s*:?.*$/i.test(lines[i])) { start = i + 1; break; }
+            }
+            if (start !== -1) {
+              for (let i = start; i < lines.length; i++) {
+                const l = lines[i];
+                if (!l.trim()) break; // stop at blank line
+                if (/^(Seller:|Product Details:)/i.test(l)) break; // stop at next section
+                const m = l.match(/^\s*[-•]\s*(.*)$/) || l.match(/^\s*\*\s*(.*)$/);
+                if (m && m[1]) hl.push(m[1].trim());
+              }
+            }
+          } catch {}
+          const hasSpecs = product.specifications && Object.keys(product.specifications).length > 0;
+          return (
+            <div>
+              {hl.length > 0 && (
+                <div className="mb-4">
+                  <h3 className="text-base font-semibold text-gray-800 mb-2">Highlights</h3>
+                  <ul className="list-disc list-inside text-gray-700 grid grid-cols-1 sm:grid-cols-2 gap-1">
+                    {hl.slice(0, 6).map((h, i) => (<li key={i} className="text-sm">{h}</li>))}
+                  </ul>
+                </div>
+              )}
+              {hasSpecs ? (
+                <table className="w-full text-sm text-left text-gray-700">
+                  <tbody>
+                    {Object.entries(product.specifications).map(([key, val], i) => (
+                      <tr key={i} className="border-b">
+                        <th className="py-2 pr-4 capitalize">{key}</th>
+                        <td className="py-2">{String(val)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : (
+                hl.length === 0 && <p className="text-sm text-gray-500">No specifications available.</p>
+              )}
+            </div>
+          );
+        })()}
+        {/* <h2 className="text-xl font-semibold mb-2">Specifications</h2> */}
+        {/* <div className="mb-4">
+          <h3 className="text-base font-semibold text-gray-800 mb-2">Highlights</h3>
+          <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {Object.entries(product.specifications || {}).slice(0, 4).map(([key, val], idx) => (
+              <li key={idx} className="text-sm text-gray-700">
+                <span className="font-medium capitalize">{key}:</span> {val}
+              </li>
+            ))}
+            {Object.keys(product.specifications || {}).length === 0 && (
+              <li className="text-sm text-gray-500">No highlights available</li>
+            )}
+          </ul>
+        </div> */}
+
+        {/* <table className="w-full text-sm text-left text-gray-700">
+          {/* <tbody>
             {Object.entries(product.specifications || {}).map(([key, val], i) => (
               <tr key={i} className="border-b">
                 <th className="py-2 pr-4 capitalize">{key}</th>
                 <td className="py-2">{val}</td>
               </tr>
             ))}
-          </tbody>
-        </table>
+          </tbody> 
+        </table> */}
       </div>
+
+      {/* Description at bottom */}
+      {(() => {
+        const desc = product.description || '';
+        const lines = desc.split('\n');
+        const out: string[] = [];
+        let i = 0;
+        while (i < lines.length) {
+          const line = lines[i];
+          // Skip "Highlights" block and its bullet lines
+          if (/^\s*Highlights\s*:?.*$/i.test(line)) {
+            i += 1;
+            while (i < lines.length) {
+              const l = lines[i];
+              if (!l.trim() || /^(Seller:|About\s*the\s*Seller:|Product\s*Details:)/i.test(l)) break; // end of highlights block
+              i += 1; // skip highlight bullet line
+            }
+            // Skip following blank lines after highlights block
+            while (i < lines.length && !lines[i].trim()) i += 1;
+            continue;
+          }
+          // Skip any "Product Details" header line
+          if (/^\s*Product\s*Details\s*:?.*$/i.test(line)) { i += 1; continue; }
+          // Skip any "Seller" section and its lines
+          if (/^\s*(Seller|About\s*the\s*Seller)\s*:?.*$/i.test(line)) {
+            i += 1;
+            while (i < lines.length) {
+              const l = lines[i];
+              if (!l.trim() || /^(Highlights|Product\s*Details)\s*:?.*$/i.test(l)) break; // end of seller block
+              i += 1; // skip seller line
+            }
+            while (i < lines.length && !lines[i].trim()) i += 1; // skip trailing blanks
+            continue;
+          }
+          // Skip generic placeholder lines like "No description provided"
+          if (/no\s*description\s*provided/i.test(line)) { i += 1; continue; }
+          out.push(line);
+          i += 1;
+        }
+        const cleaned = out.join('\n').trim();
+        if (!cleaned) return null; // Hide section entirely when empty
+        return (
+          <div className="mt-10">
+            <h2 className="text-xl font-semibold mb-2">Description</h2>
+            <p className="text-gray-700 whitespace-pre-line">{cleaned}</p>
+          </div>
+        );
+      })()}
+
+      {/* Seller Information (separate section) */}
+      {(() => {
+        const desc = product.description || '';
+        const lines = desc.split('\n');
+        const out: string[] = [];
+        let i = 0;
+        let capturing = false;
+        while (i < lines.length) {
+          const line = lines[i];
+          if (!capturing && /^\s*(Seller|About\s*the\s*Seller)\s*:?.*$/i.test(line)) {
+            const after = line.replace(/^\s*(Seller|About\s*the\s*Seller)\s*:?\s*/i, '').trim();
+            if (after) out.push(after);
+            capturing = true;
+            i += 1;
+            continue;
+          }
+          if (capturing) {
+            if (!line.trim() || /^(Highlights|Product\s*Details)\s*:?.*$/i.test(line)) break; // end block
+            out.push(line);
+          }
+          i += 1;
+        }
+        const seller = out.join('\n').trim();
+        if (!seller) return null;
+        return (
+          <div className="mt-6">
+            <h2 className="text-xl font-semibold mb-2">About the Seller</h2>
+            <p className="text-gray-700 whitespace-pre-line">{seller}</p>
+          </div>
+        );
+      })()}
 
       {/* Smart Recommendations Modal */}
       {product && (

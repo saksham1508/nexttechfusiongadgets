@@ -387,6 +387,7 @@ const CategoriesPage: React.FC = () => {
                       key={product._id}
                       product={product}
                       showQuickCommerce={true}
+                      forceQuickBadge={true}
                     />
                   ))}
                 </div>

@@ -54,12 +54,14 @@ interface ProductCardProps {
   product: Product;
   showQuickCommerce?: boolean;
   onAddToComparison?: (product: MainProduct) => void;
+  forceQuickBadge?: boolean; // optionally force showing quick badge (e.g., in quick channel view)
 }
 
 const ProductCard: React.FC<ProductCardProps> = ({
   product,
   showQuickCommerce = true,
   onAddToComparison,
+  forceQuickBadge = false,
 }) => {
   const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
@@ -405,6 +407,13 @@ const ProductCard: React.FC<ProductCardProps> = ({
     : 0;
 
   const isVendor = user?.role === "seller";
+  // Determine quick-commerce badge visibility based on tags/channels (case-insensitive)
+  const hasQuickCommerce = (() => {
+    const raw: any = (product as any).tags ?? (product as any).channels ?? (product as any).channel ?? [];
+    const arr = Array.isArray(raw) ? raw : [raw];
+    const includesQuick = arr.map((t) => String(t).toLowerCase()).includes('quick-commerce');
+    return includesQuick || forceQuickBadge;
+  })();
 
   return (
     <div
@@ -515,7 +524,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
               {discountPercentage}% OFF
             </span>
           )}
-          {(product.tags || []).includes('quick-commerce') && (
+          {hasQuickCommerce && (
             <span className="bg-gradient-to-r from-green-500 to-emerald-600 text-white text-xs px-3 py-1 rounded-full font-bold flex items-center space-x-1 shadow-lg">
               <Zap className="h-3 w-3" />
               <span>15 min</span>
@@ -624,7 +633,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
         )}
 
         {/* Delivery Info */}
-        {(product.tags || []).includes('quick-commerce') && (
+        {hasQuickCommerce && (
           <div className="flex items-center space-x-2 mb-4 bg-green-50 px-3 py-2 rounded-xl">
             <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
             <Clock className="h-4 w-4 text-green-600" />
@@ -644,27 +653,45 @@ const ProductCard: React.FC<ProductCardProps> = ({
             <span>View Details</span>
           </Link>
         ) : showQuickCommerce ? (
-          <QuickAddToCart
-            product={{
-              _id: product._id,
-              name: product.name,
-              price: product.price,
-              image:
-                Array.isArray(product.images) && product.images.length > 0
-                  ? typeof product.images[0] === "string"
-                    ? product.images[0]
-                    : product.images[0]?.url || "/placeholder-image.jpg"
-                  : "/placeholder-image.jpg",
-              stock:
-                product.stock ??
-                product.countInStock ??
-                product.stockQuantity ??
-                0,
-            }}
-            cartQuantity={cartQuantity}
-            size="sm"
-            showQuickBuy={true}
-          />
+          <>
+            <QuickAddToCart
+              product={{
+                _id: product._id,
+                name: product.name,
+                price: product.price,
+                image:
+                  Array.isArray(product.images) && product.images.length > 0
+                    ? typeof product.images[0] === "string"
+                      ? product.images[0]
+                      : product.images[0]?.url || "/placeholder-image.jpg"
+                    : "/placeholder-image.jpg",
+                stock:
+                  product.stock ??
+                  product.countInStock ??
+                  product.stockQuantity ??
+                  0,
+              }}
+              cartQuantity={cartQuantity}
+              size="sm"
+              showQuickBuy={true}
+            />
+            {/* Standard Add to Cart button for quick commerce cards as well */}
+            <button
+              type="button"
+              onClick={handleAddToCart}
+              disabled={(product.stock ?? product.countInStock ?? product.stockQuantity ?? 0) === 0}
+              className={`mt-3 w-full flex items-center justify-center space-x-3 py-3 px-6 rounded-xl font-semibold transition-all duration-300 transform ${
+                (product.stock ?? product.countInStock ?? product.stockQuantity ?? 0) === 0
+                  ? "bg-gray-200 text-gray-500 cursor-not-allowed"
+                  : "btn-primary hover:shadow-colored active:scale-95"
+              }`}
+            >
+              <ShoppingCart className="h-5 w-5" />
+              <span>
+                {(product.stock ?? product.countInStock ?? product.stockQuantity ?? 0) === 0 ? "Out of Stock" : "Add to Cart"}
+              </span>
+            </button>
+          </>
         ) : (
           <div className="space-y-3">
             {/* Stock Status */}

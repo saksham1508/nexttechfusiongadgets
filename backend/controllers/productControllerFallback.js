@@ -213,6 +213,17 @@ const createProduct = asyncHandler(async (req, res) => {
   const autoSku = `${(brand || 'SKU').slice(0, 3).toUpperCase()}-${Date.now().toString().slice(-6)}`;
   const variants = Array.isArray(req.body.variants) ? req.body.variants : [];
 
+  // Normalize sales channels/tags from request (supports tags, channels, or single channel)
+  const rawChannels = Array.isArray(req.body.tags)
+    ? req.body.tags
+    : Array.isArray(req.body.channels)
+    ? req.body.channels
+    : (req.body.channel ? [req.body.channel] : []);
+  const normalizedChannels = rawChannels
+    .map((t) => String(t).toLowerCase().trim())
+    .filter(Boolean);
+  const productTags = normalizedChannels.length ? normalizedChannels : ['e-commerce'];
+
   const newProduct = {
     _id: `product_${Date.now()}`,
     name: name.trim(),
@@ -225,6 +236,7 @@ const createProduct = asyncHandler(async (req, res) => {
     countInStock: Number(countInStock) || 0,
     images: images || ['https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=300'],
     variants,
+    tags: productTags,
     seller: req.user._id,
     isActive: true,
     rating: 0,
@@ -283,6 +295,14 @@ const updateProduct = asyncHandler(async (req, res) => {
   const nextMrpRaw = req.body.originalPrice != null ? Number(req.body.originalPrice) : (product.originalPrice || nextPrice);
   const nextMrp = isNaN(nextMrpRaw) || nextMrpRaw < nextPrice ? nextPrice : nextMrpRaw;
 
+  // Normalize and preserve channels/tags
+  const rawChannels = Array.isArray(req.body.tags)
+    ? req.body.tags
+    : Array.isArray(req.body.channels)
+    ? req.body.channels
+    : (req.body.channel ? [req.body.channel] : product.tags || []);
+  const normalizedChannels = rawChannels.map((t) => String(t).toLowerCase().trim()).filter(Boolean);
+
   const updatedProduct = {
     ...product,
     ...req.body,
@@ -290,6 +310,7 @@ const updateProduct = asyncHandler(async (req, res) => {
     originalPrice: nextMrp,
     sku: (req.body.sku || product.sku || `${(product.brand || 'SKU').slice(0,3).toUpperCase()}-${product._id.slice(-6)}`).trim(),
     variants: Array.isArray(req.body.variants) ? req.body.variants : (product.variants || []),
+    tags: normalizedChannels.length ? normalizedChannels : (product.tags || ['e-commerce']),
     _id: product._id, // Preserve ID
     seller: product.seller, // Preserve seller
     updatedAt: new Date()
