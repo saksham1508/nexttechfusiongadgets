@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { BarChart3, TrendingUp, ShoppingCart, Eye, Percent, RotateCcw, IndianRupee } from 'lucide-react';
+import { BarChart3, TrendingUp, ShoppingCart, Eye, Percent, RotateCcw, IndianRupee, Download } from 'lucide-react';
 import vendorService, { VendorAnalyticsResponse } from '../services/vendorService';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, LineChart, Line, CartesianGrid } from 'recharts';
 
@@ -80,16 +80,101 @@ const VendorBusinessDashboard: React.FC<Props> = ({ className = '' }) => {
   const productVsOrders = topProducts.map(p => ({ name: p.name, Orders: p.orders, Views: p.views }));
 
   // Build stacked series: months on X, each product a line of quantity
-  const months = data.productMonthly[0]?.months || [];
-  const productMonthlySeries = data.productMonthly.map(p => ({ key: p.productId, name: p.name, series: p.series }));
+  // Enhance: rotate to show a rolling window where the current month appears last
+  const rawMonths = data.productMonthly[0]?.months || [];
+  const productMonthlySeriesRaw = data.productMonthly.map(p => ({ key: p.productId, name: p.name, series: p.series }));
+
+  // Helper: map month string to index 0-11
+  const monthIndexFromString = (s: string): number => {
+    const m = s.toLowerCase();
+    const keys = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
+    return keys.findIndex(k => m.includes(k));
+  };
+  const rotateLeft = <T,>(arr: T[], k: number): T[] => {
+    if (!arr || arr.length === 0) return arr;
+    const n = arr.length;
+    const shift = ((k % n) + n) % n;
+    return arr.slice(shift).concat(arr.slice(0, shift));
+  };
+
+  const currentMonthIdx = new Date().getMonth(); // 0-11
+  const providedMonthIdxs = rawMonths.map(monthIndexFromString);
+  const posOfCurrent = providedMonthIdxs.lastIndexOf(currentMonthIdx);
+
+  // Rotate so that the current month ends up at the last position
+  const rotateBy = rawMonths.length > 0 && posOfCurrent >= 0 ? ((posOfCurrent + 1) % rawMonths.length) : 0;
+  const months = rotateLeft(rawMonths, rotateBy);
+  const productMonthlySeries = productMonthlySeriesRaw.map(p => ({
+    ...p,
+    series: rotateLeft(p.series, rotateBy)
+  }));
+
   const monthlyChartData = months.map((m, i) => {
     const row: any = { month: m };
     productMonthlySeries.forEach(p => { row[p.name] = p.series[i] || 0; });
     return row;
   });
 
+  // Export report (CSV) utility with UTF-8 BOM for Excel (fixes ₹ rendering)
+  const downloadCSV = (rows: any[], filename: string) => {
+    const replacer = (key: string, value: any) => (value === null || value === undefined) ? '' : value;
+    const header = Object.keys(rows[0] || {});
+    const csv = [
+      header.join(','),
+      ...rows.map(row => header.map(field => JSON.stringify(row[field], replacer)).join(','))
+    ].join('\r\n');
+    const BOM = '\ufeff'; // UTF-8 BOM
+    const blob = new Blob([BOM + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', filename);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleDownloadReport = () => {
+    try {
+      // 1) Summary sheet
+      const summaryRows = summaryCards.map(c => ({ Metric: c.label, Value: String(c.value) }));
+
+      // 2) Top Products sheet (derive conversion rate from views/orders)
+      const topProductsRows = topProducts.map(p => ({
+        Product: p.name,
+        Orders: p.orders,
+        Views: p.views,
+        ConversionRate: p.views > 0 ? `${((p.orders / p.views) * 100).toFixed(2)}%` : '0%'
+      }));
+
+      // 3) Monthly sheet (wide table: month + product columns)
+      const monthlyRows = monthlyChartData.map((row: any) => row);
+
+      // Download multiple CSVs (one per section) with timestamp
+      const ts = new Date().toISOString().replace(/[:.]/g, '-');
+      downloadCSV(summaryRows, `vendor-summary-${ts}.csv`);
+      if (topProductsRows.length) downloadCSV(topProductsRows, `vendor-top-products-${ts}.csv`);
+      if (monthlyRows.length) downloadCSV(monthlyRows, `vendor-monthly-${ts}.csv`);
+    } catch (e) {
+      console.error('Failed to download report:', e);
+    }
+  };
+
   return (
     <div className={`space-y-6 ${className}`}>
+      {/* Header with Download button */}
+      <div className="flex items-center justify-between">
+        <h2 className="text-xl font-semibold text-gray-900">Business Insights</h2>
+        <button
+          onClick={handleDownloadReport}
+          className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-sm transition-colors"
+        >
+          <Download className="h-4 w-4 mr-2" />
+          Download Report
+        </button>
+      </div>
+
       {/* Summary */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
         {summaryCards.map((c) => (
