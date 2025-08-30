@@ -27,6 +27,7 @@ import VirtualTryOnPage from './pages/VirtualTryOnPage';
 import PaymentDashboard from './pages/PaymentDashboard';
 import AdminInventoryPage from './pages/AdminInventoryPage';
 import CookiePolicyPage from './pages/CookiePolicyPage';
+import ComingSoon from './pages/ComingSoon';
 import ProtectedRoute from './components/ProtectedRoute';
 import ConnectionStatus from './components/ConnectionStatus';
 import DevelopmentBanner from './components/DevelopmentBanner';
@@ -48,6 +49,7 @@ import PaymentDebugPage from './pages/PaymentDebugPage';
 import PaymentPage from './pages/PaymentPage';
 import PaymentTestLink from './components/PaymentTestLink';
 import QuickLogin from './components/QuickLogin';
+import OrderTrackingPage from './pages/OrderTrackingPage';
 
 
 // Optional: Use ApiStatusIndicator for enhanced connection feedback
@@ -125,6 +127,7 @@ function App() {
               <Routes>
                 <Route path="/" element={<HomePage />} />
                 <Route path="/products" element={<ProductsPage />} />
+                <Route path="/quick-coming-soon" element={<ComingSoon />} />
                 <Route path="/products/:id" element={<ProductDetailPage />} />
                 <Route
                   path="/vendor/products/:id"
@@ -204,6 +207,9 @@ function App() {
                 <Route path="/payment-debug" element={<PaymentDebugPage />} />
                 <Route path="/payment" element={<PaymentPage />} />
                 <Route path="/checkout" element={<PaymentPage />} />
+                {/* Order Tracking */}
+                <Route path="/order-tracking" element={<OrderTrackingPage />} />
+                <Route path="/order-tracking/:orderId" element={<OrderTrackingPage />} />
               </Routes>
             </ErrorBoundary>
           </main>

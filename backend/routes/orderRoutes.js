@@ -37,6 +37,7 @@ router.route('/')
 router.route('/myorders').get(auth, pick(real.getMyOrders, mock.getMyOrders));
 router.route('/create-payment-intent').post(auth, pick(real.createPaymentIntent, mock.createPaymentIntent));
 router.route('/:id').get(auth, pick(real.getOrderById, mock.getOrderById));
+router.route('/:id/track').get(auth, pick(real.trackOrder, mock.trackOrder));
 router.route('/:id/pay').put(auth, pick(real.updateOrderToPaid, mock.updateOrderToPaid));
 router.route('/:id/deliver').put(auth, adminAuth, pick(real.updateOrderToDelivered, mock.updateOrderToDelivered));
 

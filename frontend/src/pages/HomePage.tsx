@@ -65,6 +65,22 @@ const HomePage: React.FC = () => {
     try {
       window.history.replaceState({}, '', `${window.location.pathname}?${params.toString()}`);
     } catch {}
+
+    // Enforce location for quick commerce
+    if (channel === 'quick') {
+      try {
+        const raw = localStorage.getItem('selectedLocation');
+        const loc = raw ? JSON.parse(raw) : null;
+        if (!loc) {
+          window.location.href = '/quick-coming-soon';
+          return;
+        }
+      } catch {
+        window.location.href = '/quick-coming-soon';
+        return;
+      }
+    }
+
     dispatch(fetchProducts({ page: 1, keyword: undefined } as any));
   }, [dispatch, showQuickCommerce]);
 

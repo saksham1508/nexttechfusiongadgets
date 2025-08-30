@@ -116,6 +116,21 @@ const ProductsPage: React.FC = () => {
   };
 
   useEffect(() => {
+    // Enforce location for quick commerce
+    if (showQuickCommerce) {
+      try {
+        const raw = localStorage.getItem('selectedLocation');
+        const loc = raw ? JSON.parse(raw) : null;
+        if (!loc) {
+          window.location.href = '/quick-coming-soon';
+          return;
+        }
+      } catch {
+        window.location.href = '/quick-coming-soon';
+        return;
+      }
+    }
+
     const controller = new AbortController();
     const run = async () => {
       setIsLoading(true);

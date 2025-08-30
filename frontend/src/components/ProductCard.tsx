@@ -653,7 +653,6 @@ const ProductCard: React.FC<ProductCardProps> = ({
             <span>View Details</span>
           </Link>
         ) : showQuickCommerce ? (
-          <>
             <QuickAddToCart
               product={{
                 _id: product._id,
@@ -675,23 +674,6 @@ const ProductCard: React.FC<ProductCardProps> = ({
               size="sm"
               showQuickBuy={true}
             />
-            {/* Standard Add to Cart button for quick commerce cards as well */}
-            <button
-              type="button"
-              onClick={handleAddToCart}
-              disabled={(product.stock ?? product.countInStock ?? product.stockQuantity ?? 0) === 0}
-              className={`mt-3 w-full flex items-center justify-center space-x-3 py-3 px-6 rounded-xl font-semibold transition-all duration-300 transform ${
-                (product.stock ?? product.countInStock ?? product.stockQuantity ?? 0) === 0
-                  ? "bg-gray-200 text-gray-500 cursor-not-allowed"
-                  : "btn-primary hover:shadow-colored active:scale-95"
-              }`}
-            >
-              <ShoppingCart className="h-5 w-5" />
-              <span>
-                {(product.stock ?? product.countInStock ?? product.stockQuantity ?? 0) === 0 ? "Out of Stock" : "Add to Cart"}
-              </span>
-            </button>
-          </>
         ) : (
           <div className="space-y-3">
             {/* Stock Status */}

@@ -36,6 +36,13 @@ const Header: React.FC = () => {
   const { user } = useSelector((state: RootState) => state.auth);
   const { items } = useSelector((state: RootState) => state.cart);
   const [tempCartCount, setTempCartCount] = useState(0);
+  // Initialize selected location from localStorage
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('selectedLocation');
+      if (raw) setSelectedLocation(JSON.parse(raw));
+    } catch {}
+  }, []);
 
   // Load cart count from mock cart (for guest users) and Redux cart (for authenticated users)
   useEffect(() => {
@@ -392,6 +399,9 @@ const Header: React.FC = () => {
         isOpen={showLocationSelector}
         onClose={() => setShowLocationSelector(false)}
         onLocationSelect={(location) => {
+          try {
+            localStorage.setItem('selectedLocation', JSON.stringify(location));
+          } catch {}
           setSelectedLocation(location);
           setShowLocationSelector(false);
         }}

@@ -105,6 +105,28 @@ const getOrderById = async (req, res) => {
   }
 };
 
+// @desc    Track order status
+// @route   GET /api/orders/:id/track
+// @access  Private
+const trackOrder = async (req, res) => {
+  try {
+    const orderId = req.params.id;
+    res.json({
+      orderId,
+      status: 'in_transit',
+      timeline: [
+        { status: 'confirmed', timestamp: new Date(Date.now() - 10 * 60 * 1000).toISOString() },
+        { status: 'preparing', timestamp: new Date(Date.now() - 8 * 60 * 1000).toISOString() },
+        { status: 'picked_up', timestamp: new Date(Date.now() - 5 * 60 * 1000).toISOString() },
+        { status: 'in_transit', timestamp: new Date().toISOString() }
+      ],
+      etaMinutes: 12
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Tracking unavailable' });
+  }
+};
+
 // @desc    Update order to paid
 // @route   PUT /api/orders/:id/pay
 // @access  Private
@@ -211,5 +233,6 @@ module.exports = {
   getMyOrders,
   getOrders,
   updateOrderToDelivered,
-  createPaymentIntent
+  createPaymentIntent,
+  trackOrder
 };

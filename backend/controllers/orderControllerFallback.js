@@ -174,5 +174,20 @@ module.exports = {
   getMyOrders,
   getOrders,
   updateOrderToDelivered,
-  createPaymentIntent
+  createPaymentIntent,
+  // Provide a mock tracker to keep the route stable in dev
+  trackOrder: async (req, res) => {
+    const orderId = req.params.id;
+    return res.json({
+      orderId,
+      status: 'in_transit',
+      timeline: [
+        { status: 'confirmed', timestamp: new Date(Date.now() - 10 * 60 * 1000).toISOString() },
+        { status: 'preparing', timestamp: new Date(Date.now() - 8 * 60 * 1000).toISOString() },
+        { status: 'picked_up', timestamp: new Date(Date.now() - 5 * 60 * 1000).toISOString() },
+        { status: 'in_transit', timestamp: new Date().toISOString() }
+      ],
+      etaMinutes: 12
+    });
+  }
 };

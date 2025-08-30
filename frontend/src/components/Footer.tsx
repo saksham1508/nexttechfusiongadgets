@@ -34,7 +34,15 @@ const Footer: React.FC = () => {
               electronics.
             </p>
             <div className="flex space-x-4">
+              <a
+                href="https://www.instagram.com/nexfuga?igsh=MXNpczM2OXM2dnFmcA=="
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Instagram"
+                title="Instagram"
+              >
               <Facebook className="h-5 w-5 text-gray-400 hover:text-white cursor-pointer" />
+              </a>
               <Twitter className="h-5 w-5 text-gray-400 hover:text-white cursor-pointer" />
               <a
                 href="https://www.instagram.com/nexfuga?igsh=MXNpczM2OXM2dnFmcA=="
