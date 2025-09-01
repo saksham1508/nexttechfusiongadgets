@@ -5,6 +5,7 @@ const helmet = require('helmet');
 const morgan = require('morgan');
 const compression = require('compression');
 const dotenv = require('dotenv');
+const winston = require('winston');
 const passport = require('./config/passport');
 const connectDB = require('./config/database');
 const RedisConfig = require('./config/redis');
@@ -13,6 +14,24 @@ const { rateLimits, sanitizeInput, addCorrelationId } = require('./middleware/va
 
 // Load env vars
 dotenv.config();
+
+// Configure Winston console transport to avoid "no transports" warnings
+winston.configure({
+  level: process.env.LOG_LEVEL || 'info',
+  transports: [
+    new winston.transports.Console({
+      format: winston.format.combine(
+        winston.format.colorize(),
+        winston.format.timestamp(),
+        winston.format.printf(({ level, message, timestamp, ...meta }) => {
+          // Flatten meta object to avoid noisy JSON when empty
+          const metaStr = Object.keys(meta).length ? ` ${JSON.stringify(meta)}` : '';
+          return `${timestamp} ${level}: ${message}${metaStr}`;
+        })
+      )
+    })
+  ]
+});
 
 // Paytm configuration
 const MID = process.env.PAYTM_MID;
@@ -27,8 +46,12 @@ connectDB();
 const FallbackCacheService = require('./services/fallbackCacheService');
 const cacheService = new FallbackCacheService();
 
-// Test Redis connection on startup (non-blocking)
-RedisConfig.testConnection().then(isConnected => {
+// Respect Redis disable flags; skip test entirely when disabled
+if (process.env.DISABLE_REDIS === 'true' || process.env.REDIS_DISABLED === 'true') {
+  console.log('ℹ️  Redis disabled by configuration, skipping connection test');
+} else {
+  // Test Redis connection on startup (non-blocking)
+  RedisConfig.testConnection().then(isConnected => {
   if (isConnected) {
     console.log('✅ Redis connection verified on startup');
   } else {
@@ -39,6 +62,7 @@ RedisConfig.testConnection().then(isConnected => {
   console.warn('⚠️  Redis connection test error:', error.message);
   console.warn('   Application will continue with memory cache fallback');
 });
+}
 
 const app = express();
 
