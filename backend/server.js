@@ -5,6 +5,7 @@ const helmet = require('helmet');
 const morgan = require('morgan');
 const compression = require('compression');
 const dotenv = require('dotenv');
+const path = require('path');
 const winston = require('winston');
 const passport = require('./config/passport');
 const connectDB = require('./config/database');
@@ -12,8 +13,11 @@ const RedisConfig = require('./config/redis');
 const { errorHandler, getHealthMetrics } = require('./middleware/errorHandler');
 const { rateLimits, sanitizeInput, addCorrelationId } = require('./middleware/validation');
 
-// Load env vars
-dotenv.config();
+// Load env vars (prefer .env.<NODE_ENV> and fallback to .env)
+const envName = process.env.NODE_ENV || 'development';
+dotenv.config({ path: path.join(__dirname, `.env.${envName}`) });
+dotenv.config({ path: path.join(__dirname, '.env') }); // fallback
+if (!process.env.NODE_ENV) process.env.NODE_ENV = envName;
 
 // Configure Winston console transport to avoid "no transports" warnings
 winston.configure({
