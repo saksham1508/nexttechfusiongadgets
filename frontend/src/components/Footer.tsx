@@ -35,7 +35,7 @@ const Footer: React.FC = () => {
             </p>
             <div className="flex space-x-4">
               <a
-                href="https://www.instagram.com/nexfuga?igsh=MXNpczM2OXM2dnFmcA=="
+                href="https://www.facebook.com/share/16qJYTLWtG/"
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label="Instagram"
