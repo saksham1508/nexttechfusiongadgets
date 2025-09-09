@@ -717,11 +717,11 @@ const ProductCard: React.FC<ProductCardProps> = ({
       </div>
 
       {/* Smart Recommendations Modal */}
-      <CartRecommendationsModal
+      {/* <CartRecommendationsModal
         isOpen={showRecommendationsModal}
         onClose={() => setShowRecommendationsModal(false)}
         addedProduct={normalizeProductForModal(product)}
-      />
+      /> */}
     </div>
   );
 };

@@ -256,38 +256,8 @@ export const loginWithGoogle = createAsyncThunk(
       
       return response;
     } catch (error: any) {
-      // Fallback for development/demo
-      console.warn('Google auth API not available, using mock data');
-      const mockResponse = {
-        user: {
-          _id: 'google_mock_google_' + Date.now(),
-          name: googleUser.name || 'Demo Google User',
-          email: googleUser.email || 'demo.google@example.com',
-          role: 'customer',
-          avatar: googleUser.picture || 'https://via.placeholder.com/150/4285F4/FFFFFF?text=DG',
-          authProvider: 'google'
-        },
-        token: 'mock_google_token_' + Date.now()
-      };
-      
-      // Store both user data and token properly
-      localStorage.setItem('user', JSON.stringify(mockResponse));
-      localStorage.setItem('token', mockResponse.token);
-      
-      console.log('🔍 Google Auth Debug:');
-      console.log('Redux User ID:', mockResponse.user._id);
-      console.log('Redux User Name:', mockResponse.user.name);
-      console.log('Raw Token:', mockResponse.token ? '✅ Present' : '❌ None');
-      console.log('Raw User:', mockResponse.user ? '✅ Present' : '❌ None');
-      console.log('Parsed User Structure:');
-      console.log(JSON.stringify(mockResponse, null, 2));
-      console.log('Final Auth Result:', mockResponse.user && mockResponse.token ? '✅ Authenticated' : '❌ Failed');
-      console.log('Final User ID:', mockResponse.user._id);
-      console.log('Final User Name:', mockResponse.user.name);
-      console.log('Final Token:', mockResponse.token ? '✅ Present' : '❌ None');
-      console.log('Token Preview:', mockResponse.token ? mockResponse.token.substring(0, 20) + '...' : 'None');
-      
-      return mockResponse;
+      // Remove demo fallback - surface error to UI
+      return rejectWithValue(handleApiError(error));
     }
   }
 );
@@ -297,7 +267,8 @@ export const loginWithFacebook = createAsyncThunk(
   'auth/loginWithFacebook',
   async (token: string, { rejectWithValue }) => {
     try {
-      const response = await axiosInstance.post(API_ENDPOINTS.AUTH.FACEBOOK, { token });
+      // Backend expects 'accessToken' for the real Facebook auth controller
+      const response = await axiosInstance.post(API_ENDPOINTS.AUTH.FACEBOOK, { accessToken: token });
       localStorage.setItem('user', JSON.stringify(response.data));
       return response.data;
     } catch (error: any) {

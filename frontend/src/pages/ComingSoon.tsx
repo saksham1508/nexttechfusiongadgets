@@ -10,13 +10,7 @@ const ComingSoon: React.FC = () => {
   const [showLocationSelector, setShowLocationSelector] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState<Location | null>(null);
 
-  // Hydrate existing selection if any
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem('selectedLocation');
-      if (raw) setSelectedLocation(JSON.parse(raw));
-    } catch {}
-  }, []);
+  // Session-only selection; no persistence across reloads
 
   const backToQuickHome = () => {
     // Preserve channel=quick when returning home
@@ -71,7 +65,7 @@ const ComingSoon: React.FC = () => {
         isOpen={showLocationSelector}
         onClose={() => setShowLocationSelector(false)}
         onLocationSelect={(loc) => {
-          try { localStorage.setItem('selectedLocation', JSON.stringify(loc)); } catch {}
+          // Session-only: do not persist to localStorage
           setSelectedLocation(loc);
           setShowLocationSelector(false);
           // Go back to quick channel home right away

@@ -12,6 +12,23 @@ const CartPage: React.FC = () => {
   const { items, totalAmount, isLoading, error } = useSelector((state: RootState) => state.cart);
   const { user } = useSelector((state: RootState) => state.auth);
 
+  // Fallback to mock cart from localStorage when Redux cart is empty (guest mode)
+  const mockCartFallback: any[] = (() => {
+    try {
+      const raw = localStorage.getItem('mockCart');
+      return raw ? JSON.parse(raw) : [];
+    } catch {
+      return [];
+    }
+  })();
+  const usingMockCart = items.length === 0 && mockCartFallback.length > 0;
+  const displayItems: any[] = usingMockCart
+    ? mockCartFallback.map((i: any) => ({ product: i.product, quantity: i.quantity }))
+    : items;
+  const displayTotalAmount: number = usingMockCart
+    ? mockCartFallback.reduce((sum: number, i: any) => sum + ((i.product?.price || 0) * (i.quantity || 0)), 0)
+    : totalAmount;
+
   useEffect(() => {
     // Always attempt to fetch cart. Slice falls back to mock cart if 401/network.
     dispatch(fetchCart());
@@ -111,7 +128,7 @@ const CartPage: React.FC = () => {
     );
   }
 
-  if (items.length === 0) {
+  if (displayItems.length === 0) {
     return (
       <div className="min-h-screen bg-gray-50 py-8">
         <div className="max-w-4xl mx-auto px-4">
@@ -175,8 +192,8 @@ const CartPage: React.FC = () => {
             <div className="bg-white rounded-lg shadow-md">
               <div className="p-6">
                 <div className="space-y-6">
-                  {items.map((item) => (
-                    <div key={item.product._id} className="flex items-center space-x-4 pb-6 border-b border-gray-200 last:border-b-0">
+                  {displayItems.map((item) => (
+                    <div data-testid="cart-item" key={item.product._id} className="flex items-center space-x-4 pb-6 border-b border-gray-200 last:border-b-0">
                       {/* Product Image */}
                       <div className="w-20 h-20 bg-gray-200 rounded-lg overflow-hidden flex-shrink-0">
                         {item.product.images && item.product.images[0] ? (

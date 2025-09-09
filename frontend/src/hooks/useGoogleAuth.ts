@@ -14,6 +14,7 @@ interface GoogleUser {
   picture: string;
   given_name: string;
   family_name: string;
+  idToken?: string; // Google ID token for backend verification
 }
 
 interface UseGoogleAuthReturn {
@@ -97,6 +98,7 @@ const useGoogleAuth = (): UseGoogleAuthReturn => {
           picture: payload.picture,
           given_name: payload.given_name,
           family_name: payload.family_name,
+          idToken: response.credential,
         };
 
         setUser(googleUser);
@@ -112,26 +114,10 @@ const useGoogleAuth = (): UseGoogleAuthReturn => {
   }, [clientId]);
 
   const signIn = async (): Promise<GoogleUser | null> => {
-    // If Google Client ID is not configured, return mock user
-    if (!clientId || clientId === 'your-google-client-id' || clientId.includes('mock')) {
-      console.log('🔄 Using mock Google authentication');
-      
-      // Simulate loading delay for realistic experience
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      const mockGoogleUser: GoogleUser = {
-        id: 'mock_google_' + Date.now(),
-        name: 'Demo Google User',
-        email: 'demo.google@example.com',
-        picture: 'https://via.placeholder.com/150/4285F4/FFFFFF?text=DG',
-        given_name: 'Demo',
-        family_name: 'Google User',
-      };
-      
-      setUser(mockGoogleUser);
-      setIsSignedIn(true);
-      setError(null);
-      return mockGoogleUser;
+    // Require configured Client ID; no mock fallback
+    if (!clientId) {
+      setError('Google Client ID not configured');
+      throw new Error('Google Client ID not configured');
     }
 
     if (!isLoaded || !window.google) {

@@ -29,7 +29,7 @@ const HomePage: React.FC = () => {
   const [showComparison, setShowComparison] = useState(false);
   const [comparisonProducts, setComparisonProducts] = useState<any[]>([]);
   // Channel toggle: true = Quick Commerce, false = E-commerce only
-  const [showQuickCommerce, setShowQuickCommerce] = useState<boolean>((new URLSearchParams(window.location.search).get('channel') || 'quick') === 'quick');
+  const [showQuickCommerce, setShowQuickCommerce] = useState<boolean>((new URLSearchParams(window.location.search).get('channel') || 'ecom') === 'quick');
 
   // Pull any pending compare items from localStorage when coming back from product selection
   useEffect(() => {

@@ -76,10 +76,10 @@ const SocialAuth: React.FC<SocialAuthProps> = ({
           } else {
             toast.error('Facebook authentication failed');
           }
-        }, { scope: 'email,public_profile' });
+        }, { scope: 'public_profile' });
       } else {
         // Fallback: Open Facebook OAuth in popup
-        const facebookAuthUrl = `https://www.facebook.com/v18.0/dialog/oauth?client_id=${facebookAppId}&redirect_uri=${encodeURIComponent(window.location.origin + '/auth/facebook/callback')}&response_type=code&scope=email`;
+        const facebookAuthUrl = `https://www.facebook.com/v18.0/dialog/oauth?client_id=${facebookAppId}&redirect_uri=${encodeURIComponent(window.location.origin + '/auth/facebook/callback')}&response_type=code&scope=public_profile`;
         
         const popup = window.open(
           facebookAuthUrl,

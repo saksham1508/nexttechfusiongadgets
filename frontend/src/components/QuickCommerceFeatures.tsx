@@ -100,7 +100,7 @@ const QuickCommerceFeatures: React.FC = () => {
         <div className="container-modern">
           <div className="text-center mb-20 animate-fade-in">
             <h2 className="text-5xl font-black text-gray-900 mb-6">
-              🚀 Why Choose NexFuga Express?
+              🚀 Why Choose NexFuga ?
             </h2>
             <p className="text-2xl text-gray-600 max-w-3xl mx-auto font-medium">
               Experience the future of tech shopping with our lightning-fast delivery and premium service

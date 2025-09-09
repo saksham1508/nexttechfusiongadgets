@@ -6,6 +6,10 @@ const User = require('../models/User');
 const { protect } = require('../middleware/auth');
 const { OAuth2Client } = require('google-auth-library');
 
+// Load environment variables (ensures GOOGLE_CLIENT_SECRET is available)
+require('dotenv').config();
+const googleSecret = process.env.GOOGLE_CLIENT_SECRET;
+
 const router = express.Router();
 
 // Initialize Google OAuth client

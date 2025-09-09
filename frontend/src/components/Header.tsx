@@ -36,13 +36,7 @@ const Header: React.FC = () => {
   const { user } = useSelector((state: RootState) => state.auth);
   const { items } = useSelector((state: RootState) => state.cart);
   const [tempCartCount, setTempCartCount] = useState(0);
-  // Initialize selected location from localStorage
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem('selectedLocation');
-      if (raw) setSelectedLocation(JSON.parse(raw));
-    } catch {}
-  }, []);
+  // Selected location is session-only (no localStorage persistence)
 
   // Load cart count from mock cart (for guest users) and Redux cart (for authenticated users)
   useEffect(() => {
@@ -173,7 +167,14 @@ const Header: React.FC = () => {
                     </div>
                     <div className="text-m font-semibold truncate">
                       {selectedLocation
-                        ? selectedLocation.name
+                        ? (
+                          // Prefer 6-digit PIN; also handle "123 456" or "123-456"
+                          selectedLocation.address.match(/\b\d{3}[-\s]?\d{3}\b/)?.[0]?.replace(/[-\s]/g, '') ||
+                          selectedLocation.name.match(/\b\d{3}[-\s]?\d{3}\b/)?.[0]?.replace(/[-\s]/g, '') ||
+                          selectedLocation.address.match(/\b\d{5,6}\b/)?.[0] ||
+                          selectedLocation.name.match(/\b\d{5,6}\b/)?.[0] ||
+                          selectedLocation.name
+                        )
                         : "Select Location"}
                     </div>
                   </div>
@@ -399,9 +400,7 @@ const Header: React.FC = () => {
         isOpen={showLocationSelector}
         onClose={() => setShowLocationSelector(false)}
         onLocationSelect={(location) => {
-          try {
-            localStorage.setItem('selectedLocation', JSON.stringify(location));
-          } catch {}
+          // Session-only selection (no persistence)
           setSelectedLocation(location);
           setShowLocationSelector(false);
         }}

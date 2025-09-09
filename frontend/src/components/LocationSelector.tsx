@@ -74,16 +74,78 @@ const LocationSelector: React.FC<LocationSelectorProps> = ({
   const handleCurrentLocation = async () => {
     try {
       setIsLoading(true);
-      const position = await locationService.getCurrentLocation();
-      const address = await locationService.getAddressFromCoordinates(
+      // Quick permission pre-check to avoid hanging UI on denied/blocked
+      if (navigator.permissions && (navigator as any).permissions?.query) {
+        try {
+          const perm = await (navigator as any).permissions.query({ name: 'geolocation' as PermissionName });
+          if (perm.state === 'denied') {
+            toast.error('Location permission denied. Enable location in browser settings.');
+            setIsLoading(false);
+            return;
+          }
+        } catch {}
+      }
+
+      // Race geolocation with a timeout to prevent indefinite loading
+      const withTimeout = <T,>(p: Promise<T>, ms: number) => new Promise<T>((resolve, reject) => {
+        const t = setTimeout(() => reject(new Error('Location request timed out')), ms);
+        p.then(v => { clearTimeout(t); resolve(v); }).catch(e => { clearTimeout(t); reject(e); });
+      });
+
+      const position = await withTimeout(locationService.getCurrentLocation(), 12000);
+      const { address, components } = await locationService.getAddressDetailsFromCoordinates(
         position.coords.latitude,
         position.coords.longitude
       );
 
+      // Try to get PIN/ZIP code from components; fallback to extracting from address text
+      const componentPinRaw =
+        (components?.postcode as string | undefined) ||
+        (components?.postal_code as string | undefined) ||
+        (components?.postCode as string | undefined) ||
+        (components?.zip as string | undefined) ||
+        (components?.zip_code as string | undefined) || '';
+
+      // Normalize potential component value (e.g., "123 456" -> "123456")
+      const componentPin = String(componentPinRaw).replace(/[-\s]/g, '');
+
+      // Extract Indian PIN or generic postal code; allow space/hyphen in 3-3 pattern
+      const pinFromTextRaw =
+        address.match(/\b\d{3}[-\s]?\d{3}\b/)?.[0] ||
+        address.match(/\b\d{5,6}\b/)?.[0] ||
+        '';
+      const normalizedPin = pinFromTextRaw.replace(/[-\s]/g, '');
+
+      // Prefer component value; otherwise normalized text match. Ensure 5-6 digits only.
+      let pin = (componentPin || normalizedPin).match(/^\d{5,6}$/)?.[0] as string | undefined;
+
+      // Fallback: try Google Maps JS API reverse geocoding if available and pin still missing
+      if (!pin && (window as any)?.google?.maps?.Geocoder) {
+        try {
+          pin = await new Promise<string | undefined>((resolve) => {
+            const geocoder = new (window as any).google.maps.Geocoder();
+            geocoder.geocode(
+              { location: { lat: position.coords.latitude, lng: position.coords.longitude } },
+              (results: any[], status: string) => {
+                if (status === 'OK' && results?.length) {
+                  const r0 = results[0];
+                  const comp = r0.address_components || [];
+                  const postal = comp.find((c: any) => c.types?.includes('postal_code'))?.long_name || '';
+                  const normalized = String(postal).replace(/[-\s]/g, '');
+                  resolve(normalized.match(/^\d{5,6}$/)?.[0]);
+                } else {
+                  resolve(undefined);
+                }
+              }
+            );
+          });
+        } catch {}
+      }
+
       const currentLocation: Location = {
         id: 'current',
-        name: 'Current Location',
-        address,
+        name: pin ? `PIN ${pin}` : 'Current Location',
+        address: pin ? `${pin}, ${address}` : address,
         coordinates: {
           lat: position.coords.latitude,
           lng: position.coords.longitude
@@ -94,7 +156,7 @@ const LocationSelector: React.FC<LocationSelectorProps> = ({
 
       onLocationSelect(currentLocation);
       onClose();
-      toast.success('Current location selected');
+      toast.success(pin ? `PIN ${pin} selected` : 'Current location selected');
     } catch (error) {
       toast.error('Unable to get current location');
     } finally {

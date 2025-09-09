@@ -25,8 +25,8 @@ async function testFrontendCart() {
     // Check initial cart count (should be 0)
     console.log('3. Checking initial cart count...');
     const initialCartCount = await page.evaluate(() => {
-      const cartBadge = document.querySelector('.bg-gradient-to-r.from-red-500.to-pink-600');
-      return cartBadge ? cartBadge.textContent : '0';
+      const cartBadge = document.querySelector('a[href="/cart"] .bg-gradient-to-r.from-red-500.to-pink-600');
+      return cartBadge ? cartBadge.textContent.trim() : '0';
     });
     console.log('✅ Initial cart count:', initialCartCount);
     
@@ -37,13 +37,13 @@ async function testFrontendCart() {
       await addToCartButton.click();
       console.log('✅ Clicked Add to Cart button');
       
-      // Wait for toast notification
-      await page.waitForTimeout(2000);
+      // Wait briefly for UI updates
+      await new Promise(r => setTimeout(r, 2000));
       
       // Check if cart count updated
       const updatedCartCount = await page.evaluate(() => {
-        const cartBadge = document.querySelector('.bg-gradient-to-r.from-red-500.to-pink-600');
-        return cartBadge ? cartBadge.textContent : '0';
+        const cartBadge = document.querySelector('a[href="/cart"] .bg-gradient-to-r.from-red-500.to-pink-600');
+        return cartBadge ? cartBadge.textContent.trim() : '0';
       });
       console.log('✅ Updated cart count:', updatedCartCount);
       
@@ -60,7 +60,11 @@ async function testFrontendCart() {
     // Navigate to cart page
     console.log('5. Navigating to cart page...');
     await page.click('a[href="/cart"]');
-    await page.waitForTimeout(3000);
+    try {
+      await page.waitForSelector('.pb-6.border-b, [data-testid="cart-item"], .cart-item', { timeout: 10000 });
+    } catch (e) {
+      await new Promise(r => setTimeout(r, 2000));
+    }
     
     // Check if cart page shows items
     const cartItems = await page.evaluate(() => {

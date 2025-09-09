@@ -28,9 +28,17 @@ import PaymentDashboard from './pages/PaymentDashboard';
 import AdminInventoryPage from './pages/AdminInventoryPage';
 import CookiePolicyPage from './pages/CookiePolicyPage';
 import ComingSoon from './pages/ComingSoon';
+import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
+import TermsOfServicePage from './pages/TermsOfServicePage';
+import ReturnsPolicyPage from './pages/ReturnsPolicyPage';
+import ShippingPolicyPage from './pages/ShippingPolicyPage';
+import WarrantyPolicyPage from './pages/WarrantyPolicyPage';
+import FAQPage from './pages/FAQPage';
+import AboutPage from './pages/AboutPage';
+import ContactPage from './pages/ContactPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import ConnectionStatus from './components/ConnectionStatus';
-import DevelopmentBanner from './components/DevelopmentBanner';
+
 import CookieConsent from './components/CookieConsent';
 import EnvironmentBadge from './components/EnvironmentBadge';
 import EnvironmentInfo from './components/EnvironmentInfo';
@@ -47,8 +55,6 @@ import PaymentTestPage from './pages/PaymentTestPage';
 import PaymentMethodsDebug from './components/PaymentMethodsDebug';
 import PaymentDebugPage from './pages/PaymentDebugPage';
 import PaymentPage from './pages/PaymentPage';
-import PaymentTestLink from './components/PaymentTestLink';
-import QuickLogin from './components/QuickLogin';
 import OrderTrackingPage from './pages/OrderTrackingPage';
 
 
@@ -116,9 +122,7 @@ function App() {
     <ErrorBoundary>
       <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <div className="min-h-screen bg-gray-50 flex flex-col">
-          <ErrorBoundary>
-            <DevelopmentBanner />
-          </ErrorBoundary>
+
           <ErrorBoundary>
             <Header />
           </ErrorBoundary>
@@ -200,7 +204,18 @@ function App() {
                     </ProtectedRoute>
                   }
                 />
+                <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
+                <Route path="/privacy" element={<PrivacyPolicyPage />} />
+                <Route path="/terms-of-service" element={<TermsOfServicePage />} />
+                <Route path="/terms" element={<TermsOfServicePage />} />
                 <Route path="/cookie-policy" element={<CookiePolicyPage />} />
+                <Route path="/shipping" element={<ShippingPolicyPage />} />
+                <Route path="/returns" element={<ReturnsPolicyPage />} />
+                <Route path="/refunds-returns-cancellation" element={<ReturnsPolicyPage />} />
+                <Route path="/warranty" element={<WarrantyPolicyPage />} />
+                <Route path="/faq" element={<FAQPage />} />
+                <Route path="/about" element={<AboutPage />} />
+                <Route path="/contact" element={<ContactPage />} />
                 <Route path="/test-paypal" element={<PayPalTest />} />
                 <Route path="/test-payments" element={<PaymentTestPage />} />
                 <Route path="/debug-payments" element={<PaymentMethodsDebug />} />
@@ -233,12 +248,6 @@ function App() {
           </ErrorBoundary>
           <ErrorBoundary>
             <EnvironmentInfo />
-          </ErrorBoundary>
-          <ErrorBoundary>
-            <PaymentTestLink />
-          </ErrorBoundary>
-          <ErrorBoundary>
-            <QuickLogin />
           </ErrorBoundary>
           {/* Debug components removed for cleaner UI */}
           <Toaster

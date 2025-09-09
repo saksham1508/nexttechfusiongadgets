@@ -1,7 +1,7 @@
 declare global {
   interface Window {
     FB: any;
-    fbAsyncInit: () => void;
+    fbAsyncInit?: () => void;
   }
 }
 
@@ -77,7 +77,7 @@ class FacebookService {
         } else {
           reject(new Error('Facebook login failed'));
         }
-      }, { scope: 'email,public_profile' });
+      }, { scope: 'public_profile' });
     });
   }
 

@@ -435,7 +435,7 @@ const ProductsPage: React.FC = () => {
                 </p>
                 {/* Channel Toggle */}
                 <div className="flex items-center gap-3 bg-white border border-gray-200 px-4 py-2 rounded-lg shadow-sm">
-                  <span className="text-sm text-gray-600">E-commerce</span>
+                  <span className="text-sm text-gray-600">e-Commerce</span>
                   <button
                     type="button"
                     onClick={() => {

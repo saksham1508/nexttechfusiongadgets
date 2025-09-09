@@ -67,17 +67,18 @@ router.post('/login', authMiddleware(login, mockLogin));
 
 // Social authentication routes
 router.post('/google', authMiddleware(
-  async (req, res) => {
-    // Real Google auth would be handled by the main auth controller
-    res.status(501).json({ message: 'Google auth not implemented in real mode yet' });
+  async (req, res, next) => {
+    // Delegate to real controller googleAuth when Mongo is available
+    const { googleAuth } = require('../controllers/authController');
+    return googleAuth(req, res, next);
   },
   mockGoogleLogin
 ));
 
 router.post('/facebook', authMiddleware(
-  async (req, res) => {
-    // Real Facebook auth would be handled by the main auth controller
-    res.status(501).json({ message: 'Facebook auth not implemented in real mode yet' });
+  async (req, res, next) => {
+    const { facebookAuth } = require('../controllers/authController');
+    return facebookAuth(req, res, next);
   },
   mockFacebookLogin
 ));

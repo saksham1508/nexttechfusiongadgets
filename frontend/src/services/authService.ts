@@ -1,7 +1,6 @@
 import axios from 'axios';
 import { mockFirebaseAuth, MockRecaptchaVerifier } from '../config/firebase';
-
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+import { API_URL } from '../config/api';
 
 export interface AuthResponse {
   user: {
@@ -34,6 +33,8 @@ class AuthService {
   async loginWithGoogle(googleUser: any): Promise<AuthResponse> {
     try {
       const response = await axios.post(`${API_URL}/auth/google`, {
+        idToken: googleUser.idToken, // send ID token for verification
+        // Keep fields for potential backend fallbacks/logging
         googleId: googleUser.id,
         email: googleUser.email,
         name: googleUser.name,
@@ -43,19 +44,9 @@ class AuthService {
       });
       return response.data;
     } catch (error: any) {
-      // Mock response for development
-      console.warn('Google auth API not available, using mock data');
-      return {
-        user: {
-          _id: 'google_' + googleUser.id,
-          name: googleUser.name,
-          email: googleUser.email,
-          role: 'customer',
-          avatar: googleUser.picture,
-          authProvider: 'google'
-        },
-        token: 'mock_google_token_' + Date.now()
-      };
+      // Remove mock fallback: fail fast
+      const msg = error.response?.data?.message || 'Google authentication failed';
+      throw new Error(msg);
     }
   }
 

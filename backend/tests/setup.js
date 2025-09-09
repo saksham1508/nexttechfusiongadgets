@@ -48,27 +48,64 @@ const createTestUser = (overrides = {}) => ({
   name: 'Test User',
   email: 'test@example.com',
   password: 'TestPassword123!',
-  role: 'user',
+  role: 'customer', // align with User.role enum ['customer','seller','admin']
   isVerified: true,
   ...overrides
 });
 
-const createTestProduct = (overrides = {}) => ({
-  name: 'Test Product',
-  description: 'This is a test product description',
-  price: 99.99,
-  category: 'Electronics',
-  brand: 'TestBrand',
-  countInStock: 10,
-  isActive: true,
-  images: ['test-image.jpg'],
-  specifications: {
-    color: 'Black',
-    weight: '1kg'
-  },
-  tags: ['test', 'electronics'],
-  ...overrides
-});
+const createTestProduct = (overrides = {}) => {
+  // Base defaults
+  const base = {
+    name: 'Test Product',
+    description: 'This is a test product description',
+    price: 99.99,
+    category: new mongoose.Types.ObjectId(), // default ObjectId
+    brand: 'TestBrand',
+    stock: 10,
+    countInStock: 10,
+    isActive: true,
+    images: [{ url: 'test-image.jpg', alt: 'Test Image' }],
+    seller: new mongoose.Types.ObjectId(),
+    sku: `SKU-${Date.now()}-${Math.floor(Math.random()*100000)}`,
+    specifications: {
+      color: 'Black',
+      weight: '1kg'
+    },
+    tags: ['test', 'electronics']
+  };
+
+  // Merge overrides first
+  const data = { ...base, ...overrides };
+
+  // Normalize fields to satisfy schema
+  // 1) Category: convert non-ObjectId strings to ObjectId placeholder (tests don't rely on Category population)
+  if (typeof data.category === 'string' && !data.category.match(/^[0-9a-fA-F]{24}$/)) {
+    data.category = new mongoose.Types.ObjectId();
+  }
+
+  // 2) Images: map strings to { url }
+  if (Array.isArray(data.images)) {
+    data.images = data.images.map(img => typeof img === 'string' ? { url: img } : img);
+  } else {
+    data.images = [{ url: 'test-image.jpg', alt: 'Test Image' }];
+  }
+
+  // 3) Ensure seller exists
+  if (!data.seller) {
+    data.seller = new mongoose.Types.ObjectId();
+  }
+
+  // 4) Ensure SKU exists
+  if (!data.sku) {
+    data.sku = `SKU-${Date.now()}-${Math.floor(Math.random()*100000)}`;
+  }
+
+  // 5) Ensure stock/countInStock numbers
+  data.stock = typeof data.stock === 'number' ? data.stock : 10;
+  data.countInStock = typeof data.countInStock === 'number' ? data.countInStock : 10;
+
+  return data;
+};
 
 const createTestOrder = (userId, productId, overrides = {}) => ({
   user: userId,

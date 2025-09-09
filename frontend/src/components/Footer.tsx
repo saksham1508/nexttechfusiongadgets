@@ -5,6 +5,7 @@ import {
   Twitter,
   Instagram,
   Youtube,
+  Linkedin,
   Mail,
   Phone,
   MapPin,
@@ -22,8 +23,8 @@ const Footer: React.FC = () => {
           {/* Company Info */}
           <div>
             <div className="flex items-center space-x-2 mb-4">
-              <div className="w-8 h-8 bg-gradient-to-r from-[#F4A300] to-[#1F1F1F] rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-sm">N</span>
+              <div className="w-12 h-12  flex items-center justify-center shadow-lg">
+                <img src="/Icon.png" alt="NexFuga Logo" className="h-7 w-7"/>
               </div>
               <span className="text-xl font-bold">
                 NextTechFusionGadgets Pvt. Ltd.
@@ -43,7 +44,15 @@ const Footer: React.FC = () => {
               >
               <Facebook className="h-5 w-5 text-gray-400 hover:text-white cursor-pointer" />
               </a>
-              <Twitter className="h-5 w-5 text-gray-400 hover:text-white cursor-pointer" />
+              <a
+               href="https://www.linkedin.com/company/nexfuga"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Instagram"
+                title="Instagram"
+                >
+              <Linkedin  className="h-5 w-5 text-gray-400 hover:text-white cursor-pointer" />
+              </a>
               <a
                 href="https://www.instagram.com/nexfuga?igsh=MXNpczM2OXM2dnFmcA=="
                 target="_blank"
@@ -109,7 +118,7 @@ const Footer: React.FC = () => {
             <ul className="space-y-2">
               <li>
                 <Link to="/shipping" className="text-gray-400 hover:text-white">
-                  Shipping Info
+                  Shipping & Delivery Policy
                 </Link>
               </li>
               <li>
@@ -137,7 +146,7 @@ const Footer: React.FC = () => {
               <div className="flex items-center space-x-2">
                 <Mail className="h-4 w-4 text-gray-400" />
                 <span className="text-gray-400">
-                  info@nextfugafusiongadgets.com
+                  info@nexfuga.com
                 </span>
               </div>
               <div className="flex items-center space-x-2">

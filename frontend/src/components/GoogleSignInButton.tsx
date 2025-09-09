@@ -40,7 +40,8 @@ const GoogleSignInButton: React.FC<GoogleSignInButtonProps> = ({
   }, [error, onError]);
 
   useEffect(() => {
-    if (isLoaded && buttonRef.current && window.google) {
+    // Do not render the button if there is a config error (e.g., missing client ID)
+    if (isLoaded && !error && buttonRef.current && window.google) {
       try {
         window.google.accounts.id.renderButton(buttonRef.current, {
           type: 'standard',
@@ -55,7 +56,7 @@ const GoogleSignInButton: React.FC<GoogleSignInButtonProps> = ({
         onError('Failed to render Google Sign-In button');
       }
     }
-  }, [isLoaded, theme, size, text, shape, width, onError]);
+  }, [isLoaded, error, theme, size, text, shape, width, onError]);
 
   const handleManualSignIn = async () => {
     if (disabled || isSigningIn) return;

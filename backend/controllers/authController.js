@@ -648,11 +648,313 @@ const appleAuth = asyncHandler(async (req, res) => {
   }
 });
 
+// @desc    Google OAuth login (ID token verification)
+// @route   POST /api/auth/google
+// @access  Public
+const googleAuth = asyncHandler(async (req, res) => {
+  try {
+    const { idToken } = req.body || {};
+
+    if (!idToken) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          type: 'VALIDATION_ERROR',
+          message: 'Missing Google ID token',
+          timestamp: new Date().toISOString()
+        }
+      });
+    }
+
+    // Verify ID token via Google tokeninfo endpoint
+    // Using node-fetch dynamically to avoid global import changes
+    const fetch = require('node-fetch');
+    const resp = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(idToken)}`);
+    if (!resp.ok) {
+      return res.status(401).json({
+        success: false,
+        error: {
+          type: 'AUTHENTICATION_ERROR',
+          message: 'Invalid Google ID token',
+          timestamp: new Date().toISOString()
+        }
+      });
+    }
+
+    const payload = await resp.json();
+
+    // Validate audience (must match backend GOOGLE_CLIENT_ID)
+    const expectedAud = process.env.GOOGLE_CLIENT_ID;
+    if (!expectedAud || payload.aud !== expectedAud) {
+      return res.status(401).json({
+        success: false,
+        error: {
+          type: 'AUTHENTICATION_ERROR',
+          message: 'Google token audience mismatch. Check GOOGLE_CLIENT_ID.',
+          timestamp: new Date().toISOString()
+        }
+      });
+    }
+
+    // Basic issuer/email verification
+    const validIssuers = ['accounts.google.com', 'https://accounts.google.com'];
+    if (!validIssuers.includes(payload.iss)) {
+      return res.status(401).json({
+        success: false,
+        error: {
+          type: 'AUTHENTICATION_ERROR',
+          message: 'Invalid Google token issuer',
+          timestamp: new Date().toISOString()
+        }
+      });
+    }
+
+    const emailVerified = payload.email_verified === true || payload.email_verified === 'true';
+    if (!emailVerified) {
+      return res.status(401).json({
+        success: false,
+        error: {
+          type: 'AUTHENTICATION_ERROR',
+          message: 'Google email not verified',
+          timestamp: new Date().toISOString()
+        }
+      });
+    }
+
+    // Extract user info
+    const googleId = payload.sub;
+    const email = (payload.email || '').toLowerCase();
+    const name = payload.name || `${payload.given_name || ''} ${payload.family_name || ''}`.trim();
+    const picture = payload.picture || '';
+
+    // Find or create user
+    const User = require('../models/User');
+    let user = await User.findOne({ $or: [{ email }, { googleId }] });
+
+    if (user) {
+      // Update google fields if missing
+      const updates = {};
+      if (!user.googleId) updates.googleId = googleId;
+      if (!user.avatar && picture) updates.avatar = picture;
+      if (user.authProvider !== 'google') updates.authProvider = 'google';
+      if (Object.keys(updates).length) {
+        await User.findByIdAndUpdate(user._id, updates);
+        user = await User.findById(user._id);
+      }
+    } else {
+      user = await User.create({
+        googleId,
+        name: name || 'Google User',
+        email,
+        avatar: picture,
+        authProvider: 'google',
+        isEmailVerified: true,
+        firstName: payload.given_name,
+        lastName: payload.family_name
+      });
+    }
+
+    // Issue tokens
+    const accessToken = generateToken(user._id);
+    const refreshToken = generateRefreshToken(user._id);
+
+    // Set secure refresh cookie
+    res.cookie('refreshToken', refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 7 * 24 * 60 * 60 * 1000
+    });
+
+    return res.json({
+      user: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        avatar: user.avatar,
+        authProvider: user.authProvider
+      },
+      token: accessToken
+    });
+  } catch (error) {
+    console.error('Google auth error:', error);
+    return res.status(500).json({
+      success: false,
+      error: {
+        type: 'INTERNAL_SERVER_ERROR',
+        message: 'Google authentication failed',
+        timestamp: new Date().toISOString()
+      }
+    });
+  }
+});
+
+// @desc    Facebook OAuth login (Access token verification)
+// @route   POST /api/auth/facebook
+// @access  Public
+const facebookAuth = asyncHandler(async (req, res) => {
+  try {
+    const { accessToken, userID } = req.body || {};
+
+    if (!accessToken) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          type: 'VALIDATION_ERROR',
+          message: 'Missing Facebook access token',
+          timestamp: new Date().toISOString()
+        }
+      });
+    }
+
+    const appId = process.env.FACEBOOK_APP_ID;
+    const appSecret = process.env.FACEBOOK_APP_SECRET;
+    if (!appId || !appSecret) {
+      return res.status(500).json({
+        success: false,
+        error: {
+          type: 'CONFIG_ERROR',
+          message: 'Facebook app credentials are not configured',
+          timestamp: new Date().toISOString()
+        }
+      });
+    }
+
+    const fetch = require('node-fetch');
+    const appAccessToken = `${appId}|${appSecret}`;
+
+    // Validate the token with Facebook debug endpoint
+    const debugResp = await fetch(
+      `https://graph.facebook.com/debug_token?input_token=${encodeURIComponent(accessToken)}&access_token=${encodeURIComponent(appAccessToken)}`
+    );
+
+    if (!debugResp.ok) {
+      return res.status(401).json({
+        success: false,
+        error: {
+          type: 'AUTHENTICATION_ERROR',
+          message: 'Invalid Facebook access token',
+          timestamp: new Date().toISOString()
+        }
+      });
+    }
+
+    const debugData = await debugResp.json();
+    const data = debugData?.data;
+    if (!data?.is_valid || data.app_id !== appId) {
+      return res.status(401).json({
+        success: false,
+        error: {
+          type: 'AUTHENTICATION_ERROR',
+          message: 'Facebook token validation failed',
+          timestamp: new Date().toISOString()
+        }
+      });
+    }
+
+    if (userID && data.user_id && userID !== data.user_id) {
+      return res.status(401).json({
+        success: false,
+        error: {
+          type: 'AUTHENTICATION_ERROR',
+          message: 'Facebook user mismatch',
+          timestamp: new Date().toISOString()
+        }
+      });
+    }
+
+    // Fetch user profile from Facebook
+    const profileResp = await fetch(
+      `https://graph.facebook.com/v19.0/me?fields=id,name,email,picture&access_token=${encodeURIComponent(accessToken)}`
+    );
+
+    if (!profileResp.ok) {
+      return res.status(401).json({
+        success: false,
+        error: {
+          type: 'AUTHENTICATION_ERROR',
+          message: 'Failed to fetch Facebook profile',
+          timestamp: new Date().toISOString()
+        }
+      });
+    }
+
+    const profile = await profileResp.json();
+    const facebookId = profile.id;
+    const email = (profile.email || '').toLowerCase();
+    const name = profile.name || 'Facebook User';
+    const avatar = profile?.picture?.data?.url || '';
+
+    // Find or create user
+    const query = [{ facebookId }];
+    if (email) query.push({ email });
+
+    let user = await User.findOne({ $or: query });
+
+    if (user) {
+      const updates = {};
+      if (!user.facebookId) updates.facebookId = facebookId;
+      if (!user.avatar && avatar) updates.avatar = avatar;
+      if (user.authProvider !== 'facebook') updates.authProvider = 'facebook';
+      if (Object.keys(updates).length) {
+        await User.findByIdAndUpdate(user._id, updates);
+        user = await User.findById(user._id);
+      }
+    } else {
+      user = await User.create({
+        facebookId,
+        name,
+        email,
+        avatar,
+        authProvider: 'facebook',
+        isEmailVerified: !!email
+      });
+    }
+
+    // Issue tokens
+    const access = generateToken(user._id);
+    const refresh = generateRefreshToken(user._id);
+
+    // Set secure refresh cookie
+    res.cookie('refreshToken', refresh, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 7 * 24 * 60 * 60 * 1000
+    });
+
+    return res.json({
+      user: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        avatar: user.avatar,
+        authProvider: user.authProvider
+      },
+      token: access
+    });
+  } catch (error) {
+    console.error('Facebook auth error:', error);
+    return res.status(500).json({
+      success: false,
+      error: {
+        type: 'INTERNAL_SERVER_ERROR',
+        message: 'Facebook authentication failed',
+        timestamp: new Date().toISOString()
+      }
+    });
+  }
+});
+
 module.exports = {
   register,
   login,
   getProfile,
   updateProfile,
   appleAuthCallback,
-  appleAuth
+  appleAuth,
+  googleAuth,
+  facebookAuth
 };

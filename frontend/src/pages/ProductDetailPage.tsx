@@ -570,7 +570,7 @@ const ProductDetailPage: React.FC = () => {
       })()}
 
       {/* Smart Recommendations Modal */}
-      {product && (
+      {/*{product && (
         <CartRecommendationsModal
           isOpen={showRecommendationsModal}
           onClose={() => setShowRecommendationsModal(false)}
@@ -585,7 +585,7 @@ const ProductDetailPage: React.FC = () => {
             brand: product.brand
           }}
         />
-      )}
+      )}*/}
     </div>
   );
 };

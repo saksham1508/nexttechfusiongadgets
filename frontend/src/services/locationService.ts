@@ -80,6 +80,44 @@ class LocationService {
     }
   }
 
+  // Reverse geocoding with components (returns address and parsed components)
+  async getAddressDetailsFromCoordinates(lat: number, lng: number): Promise<{ address: string; components: any }> {
+    const tryFetch = async (base: string) => {
+      const url = `${base.replace(/\/$/, '')}/user/geocode/reverse`;
+      return axios.get(url, { params: { lat, lng }, timeout: 10000 });
+    };
+
+    try {
+      // Primary attempt using configured baseURL
+      let response = await tryFetch(this.baseURL);
+      // If network fails (e.g., backend on different port), retry with common alternate localhost ports
+      if (!response?.data) throw new Error('Empty response');
+      const address = response.data?.address || `Location: ${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+      const components = response.data?.components || {};
+      return { address, components };
+    } catch (primaryError: any) {
+      // Only retry on network-level issues (connection refused, CORS blocked, etc.)
+      const errMsg = String(primaryError?.message || primaryError);
+      const isNetwork = primaryError?.code === 'ERR_NETWORK' || /Network Error|ECONNREFUSED|CORS/i.test(errMsg);
+      if (isNetwork) {
+        const alternates = ['http://localhost:5000/api', 'http://127.0.0.1:5000/api'];
+        for (const alt of alternates) {
+          try {
+            const resp = await axios.get(`${alt}/user/geocode/reverse`, { params: { lat, lng }, timeout: 8000 });
+            const address = resp.data?.address || `Location: ${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+            const components = resp.data?.components || {};
+            return { address, components };
+          } catch {}
+        }
+      }
+      console.error('Error getting address details (proxy):', primaryError);
+      return {
+        address: `Location: ${lat.toFixed(4)}, ${lng.toFixed(4)}`,
+        components: {}
+      };
+    }
+  }
+
   // Get saved addresses (returns [] if not authenticated)
   async getSavedAddresses(): Promise<Location[]> {
     try {

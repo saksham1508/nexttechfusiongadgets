@@ -273,7 +273,7 @@ const LoginPage: React.FC = () => {
           <SocialAuth
             onEmailAuth={handleEmailAuth}
             onGoogleAuth={handleGoogleAuth}
-            onFacebookAuth={handleFacebookAuth}
+            onFacebookAuth={(token) => dispatch(loginWithFacebook(token))}
             onAppleAuth={handleAppleAuth}
             onPhoneAuth={handlePhoneAuth}
             isLoading={isLoading}
