@@ -1,36 +1,56 @@
----
-# cPanel Git Deployment configuration
-# This template builds the React frontend and deploys it to public_html,
-# and deploys the Node.js backend to a Passenger (Node) app directory.
-# Update USERNAME, PUBLIC_HTML, and API_PATH as needed for your server.
+# ---
+# # cPanel Git Deployment configuration
+# # This template builds the React frontend and deploys it to public_html,
+# # and deploys the Node.js backend to a Passenger (Node) app directory.
+# # Update USERNAME, PUBLIC_HTML, and API_PATH as needed for your server.
 
+# deployment:
+#   tasks:
+#     # 1) Update these paths for your cPanel account
+#     - export USERNAME=""
+#     - export PUBLIC_HTML="/home/$USERNAME/public_html"
+#     - export API_PATH="/home/$USERNAME/nodeapps/nexttechfusiongadgets-api"
+#     - export REPOPATH="$(pwd)"
+#     - echo "Using PUBLIC_HTML=$PUBLIC_HTML"
+#     - echo "Using API_PATH=$API_PATH"
+
+#     # 2) Frontend: build and publish to public_html
+#     - echo "Building frontend..."
+#     - cd "$REPOPATH/frontend"
+#     - npm ci
+#     - npm run build
+#     - echo "Deploying frontend to public_html..."
+#     - /bin/rm -rf "$PUBLIC_HTML"/*
+#     - /bin/cp -a "$REPOPATH/frontend/build/." "$PUBLIC_HTML/"
+
+#     # 3) Backend: install dependencies and deploy to Node app directory
+#     - echo "Deploying backend..."
+#     - /bin/mkdir -p "$API_PATH"
+#     # Use rsync to sync files while excluding sensitive or unnecessary items
+#     - rsync -a --delete --exclude ".env" --exclude "node_modules" --exclude ".git" "$REPOPATH/backend/" "$API_PATH/"
+#     - cd "$API_PATH"
+#     - npm ci --omit=dev
+#     # Restart Passenger (Node.js) app if managed via cPanel Application Manager
+#     - /bin/mkdir -p tmp
+#     - /usr/bin/touch tmp/restart.txt
+#     - echo "Deployment finished."
+
+
+---
 deployment:
   tasks:
-    # 1) Update these paths for your cPanel account
-    - export USERNAME="your_cpanel_username"
-    - export PUBLIC_HTML="/home/$USERNAME/public_html"
-    - export API_PATH="/home/$USERNAME/nodeapps/nexttechfusiongadgets-api"
-    - export REPOPATH="$(pwd)"
-    - echo "Using PUBLIC_HTML=$PUBLIC_HTML"
-    - echo "Using API_PATH=$API_PATH"
+    # Deployment paths
+    - export DEPLOYPATH=/home/nexfugac/public_html/
+    - export BACKENDPATH=/home/nexfugac/backend/
 
-    # 2) Frontend: build and publish to public_html
-    - echo "Building frontend..."
-    - cd "$REPOPATH/frontend"
-    - npm ci
+    # ===== FRONTEND (React) =====
+    - cd frontend
+    - npm install
     - npm run build
-    - echo "Deploying frontend to public_html..."
-    - /bin/rm -rf "$PUBLIC_HTML"/*
-    - /bin/cp -a "$REPOPATH/frontend/build/." "$PUBLIC_HTML/"
+    - /bin/cp -R build/* $DEPLOYPATH
 
-    # 3) Backend: install dependencies and deploy to Node app directory
-    - echo "Deploying backend..."
-    - /bin/mkdir -p "$API_PATH"
-    # Use rsync to sync files while excluding sensitive or unnecessary items
-    - rsync -a --delete --exclude ".env" --exclude "node_modules" --exclude ".git" "$REPOPATH/backend/" "$API_PATH/"
-    - cd "$API_PATH"
-    - npm ci --omit=dev
-    # Restart Passenger (Node.js) app if managed via cPanel Application Manager
-    - /bin/mkdir -p tmp
-    - /usr/bin/touch tmp/restart.txt
-    - echo "Deployment finished."
+    # ===== BACKEND (Express.js) =====
+    - /bin/mkdir -p $BACKENDPATH
+    - /bin/cp -R backend/* $BACKENDPATH
+    - cd $BACKENDPATH
+    - npm install --production
