@@ -173,17 +173,24 @@ class PaymentService {
       }
 
       if (!razorpay) {
-        // Return mock data for development
-        console.log('🔄 Using mock Razorpay order for development');
+        // In non-production, allow a mock order to unblock local testing
+        if (process.env.NODE_ENV !== 'production') {
+          console.log('🔄 Using mock Razorpay order for development');
+          return {
+            success: true,
+            data: {
+              orderId: `order_mock_${Date.now()}`,
+              amount: Math.round(amount * 100),
+              currency,
+              receipt: receipt || `receipt_${Date.now()}`,
+              status: 'created'
+            }
+          };
+        }
+        // In production, never return mock orders
         return {
-          success: true,
-          data: {
-            orderId: `order_mock_${Date.now()}`,
-            amount: Math.round(amount * 100),
-            currency,
-            receipt: receipt || `receipt_${Date.now()}`,
-            status: 'created'
-          }
+          success: false,
+          error: 'Razorpay is not configured. Set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET in the environment.'
         };
       }
 

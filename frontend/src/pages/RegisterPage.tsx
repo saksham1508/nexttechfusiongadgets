@@ -26,10 +26,7 @@ const RegisterPage: React.FC = () => {
       navigate('/');
     }
     if (error) {
-      // Don't show Google Client ID configuration errors as they're expected in demo mode
-      if (!error.includes('Google Client ID not configured') && !error.includes('not configured')) {
-        toast.error(error);
-      }
+      toast.error(error);
       dispatch(reset());
     }
   }, [user, error, navigate, dispatch]);

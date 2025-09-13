@@ -86,7 +86,7 @@ const GoogleSignInButton: React.FC<GoogleSignInButtonProps> = ({
     );
   }
 
-  if (error && error.includes('not configured')) {
+  if (process.env.NODE_ENV !== 'production' && error && error.includes('not configured')) {
     return (
       <button
         onClick={handleManualSignIn}

@@ -6,9 +6,10 @@ const passport = require('../config/passport');
 const mongoose = require('mongoose');
 const isMongoConnected = mongoose.connection.readyState === 1;
 
-// Use appropriate controller and middleware based on MongoDB availability
+// Use appropriate controller and middleware (no mock in production)
 let authController, auth;
-if (isMongoConnected) {
+const inProd = process.env.NODE_ENV === 'production';
+if (inProd || isMongoConnected) {
   authController = require('../controllers/authController');
   auth = require('../middleware/auth').auth;
 } else {
@@ -19,7 +20,7 @@ if (isMongoConnected) {
 
 let register, login, getProfile, updateProfile, appleAuthCallback, appleAuth;
 
-if (isMongoConnected) {
+if (inProd || isMongoConnected) {
   ({ register, login, getProfile, updateProfile, appleAuthCallback, appleAuth } = authController);
 } else {
   // Map mock functions to expected names

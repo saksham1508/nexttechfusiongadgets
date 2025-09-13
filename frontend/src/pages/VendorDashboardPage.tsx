@@ -436,10 +436,10 @@ const VendorDashboardPage: React.FC = () => {
       setLoading(true);
       // Ensure token exists for seller in dev/mock mode
       let token = localStorage.getItem('token');
-      if (!token && user && user.role === 'seller') {
+      if (process.env.NODE_ENV !== 'production' && !token && user && user.role === 'seller') {
         const fallbackToken = `mock_vendor_token_${user._id || 'vendor_1'}`;
         localStorage.setItem('token', fallbackToken);
-        console.log('🔧 Added fallback vendor token before product create');
+        console.log('🔧 Added fallback vendor token before product create (dev only)');
       }
       const selectedChannels: string[] = [];
       if (channelQuick) selectedChannels.push('quick-commerce');

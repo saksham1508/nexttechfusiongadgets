@@ -62,16 +62,25 @@ const AppleSignInButton: React.FC<AppleSignInButtonProps> = ({
       const redirectURI = process.env.REACT_APP_APPLE_REDIRECT_URI || `${window.location.origin}/auth/apple/callback`;
 
       // Check if Apple configuration is available
-      if (!clientId || clientId === 'your-apple-client-id' || clientId.includes('mock')) {
-        console.log('🔄 Apple ID SDK loaded but using mock configuration');
+      if (process.env.NODE_ENV !== 'production' && (!clientId || clientId === 'your-apple-client-id' || clientId.includes('mock'))) {
+        console.log('🔄 Apple ID SDK loaded but using mock configuration (dev only)');
         setIsAppleSDKLoaded(true);
         return;
       }
 
+      // Ensure required config is present in non-dev builds
+      if (!clientId) {
+        throw new Error('Apple Sign-In client ID is not configured');
+      }
+
+      // After validation, assert non-null for TypeScript
+      const requiredClientId = clientId as string;
+      const requiredRedirectURI = redirectURI as string;
+
       window.AppleID.auth.init({
-        clientId: clientId,
+        clientId: requiredClientId,
         scope: 'name email',
-        redirectURI: redirectURI,
+        redirectURI: requiredRedirectURI,
         state: 'apple-signin-' + Date.now(),
         usePopup: true
       });
@@ -93,8 +102,8 @@ const AppleSignInButton: React.FC<AppleSignInButtonProps> = ({
       const clientId = process.env.REACT_APP_APPLE_CLIENT_ID;
 
       // Check if Apple configuration is properly set up
-      if (!clientId || clientId === 'your-apple-client-id' || clientId.includes('mock')) {
-        console.log('🔄 Using mock Apple authentication');
+      if (process.env.NODE_ENV !== 'production' && (!clientId || clientId === 'your-apple-client-id' || clientId.includes('mock'))) {
+        console.log('🔄 Using mock Apple authentication (dev only)');
         
         // Create mock Apple response
         const mockAppleData = {

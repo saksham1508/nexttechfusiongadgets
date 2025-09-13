@@ -1,7 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
-const { auth } = require('../middleware/authFallback'); // Use fallback auth
+const inProd = process.env.NODE_ENV === 'production';
+const { auth } = inProd ? require('../middleware/auth') : require('../middleware/authFallback');
 const axios = require('axios');
 
 // Check if MongoDB is available

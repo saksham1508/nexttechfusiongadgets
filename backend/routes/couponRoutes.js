@@ -1,8 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const Coupon = require('../models/Coupon');
-// Use fallback auth to work in both real and mock modes
-const { auth } = require('../middleware/authFallback');
+const inProd = process.env.NODE_ENV === 'production';
+const { auth } = inProd ? require('../middleware/auth') : require('../middleware/authFallback');
 
 // Check if MongoDB is available (fallback to mock data when not)
 const isMongoAvailable = () => {

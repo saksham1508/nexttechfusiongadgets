@@ -23,7 +23,8 @@ const {
   mockUpdateProfile
 } = require('../controllers/mockAuthController');
 
-const { auth } = require('../middleware/authFallback');
+const inProd = process.env.NODE_ENV === 'production';
+const { auth } = inProd ? require('../middleware/auth') : require('../middleware/authFallback');
 
 const router = express.Router();
 
@@ -138,7 +139,7 @@ router.get('/status', (req, res) => {
       ? 'Using real authentication with MongoDB' 
       : 'Using mock authentication (MongoDB not available)',
     timestamp: new Date().toISOString(),
-    testCredentials: mongoAvailable ? null : {
+    testCredentials: (process.env.NODE_ENV === 'production' || mongoAvailable) ? null : {
       customer: {
         email: 'test@example.com',
         password: 'testpassword'

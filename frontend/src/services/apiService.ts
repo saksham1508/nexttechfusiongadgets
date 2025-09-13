@@ -83,7 +83,7 @@ class ApiService {
           const userObj = parsed.user || parsed; // support wrapped or direct shapes
           if (userObj?.token) token = userObj.token;
           // Dev fallback: generate mock vendor token if seller (keeps parity with axios path)
-          if (!token && userObj?.role === 'seller') {
+          if (process.env.NODE_ENV !== 'production' && !token && userObj?.role === 'seller') {
             const vendorId = userObj._id || 'vendor_1';
             token = `mock_vendor_token_${vendorId}`;
             localStorage.setItem('token', token);

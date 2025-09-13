@@ -34,16 +34,20 @@ const vendorService = {
             const parsed = JSON.parse(raw);
             const userObj = (parsed as any).user || parsed;
             if (userObj && userObj.role === 'seller') {
-              const vendorId = userObj._id || 'vendor_1';
-              token = `mock_vendor_token_${vendorId}`;
-              localStorage.setItem('token', token);
+              if (process.env.NODE_ENV !== 'production') {
+                const vendorId = userObj._id || 'vendor_1';
+                token = `mock_vendor_token_${vendorId}`;
+                localStorage.setItem('token', token);
+              }
             }
           } else {
             // Seed minimal seller for dev if missing
-            const seed = { _id: 'vendor_1', role: 'seller', name: 'Acme Supplies' } as any;
-            localStorage.setItem('user', JSON.stringify(seed));
-            token = `mock_vendor_token_${seed._id}`;
-            localStorage.setItem('token', token);
+            if (process.env.NODE_ENV !== 'production') {
+              const seed = { _id: 'vendor_1', role: 'seller', name: 'Acme Supplies' } as any;
+              localStorage.setItem('user', JSON.stringify(seed));
+              token = `mock_vendor_token_${seed._id}`;
+              localStorage.setItem('token', token);
+            }
           }
         } catch {}
       }

@@ -1,7 +1,8 @@
 const express = require('express');
 const real = require('../controllers/orderController');
 const mock = require('../controllers/orderControllerFallback');
-const { auth, adminAuth } = require('../middleware/authFallback');
+const inProd = process.env.NODE_ENV === 'production';
+const { auth, adminAuth } = inProd ? require('../middleware/auth') : require('../middleware/authFallback');
 
 const router = express.Router();
 

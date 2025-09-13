@@ -88,10 +88,9 @@ export const login = createAsyncThunk(
   'auth/login',
   async ({ email, password }: { email: string; password: string }, { rejectWithValue }) => {
     try {
-      // Check if this is a vendor login attempt with demo credentials
-      if (email === 'vendor1@example.com' && password === 'Vendor@123') {
-        console.log('Using mock vendor login for demo credentials');
-        // Create mock vendor user data aligned with backend mock vendor
+      // Check if this is a vendor login attempt with demo credentials (dev only)
+      if (process.env.NODE_ENV !== 'production' && email === 'vendor1@example.com' && password === 'Vendor@123') {
+        console.log('Using mock vendor login for demo credentials (dev only)');
         const mockVendorData = {
           user: {
             _id: 'vendor_1',
@@ -102,11 +101,8 @@ export const login = createAsyncThunk(
           },
           token: 'mock_vendor_token_vendor_1'
         };
-        
-        // Store both user data and token
         localStorage.setItem('user', JSON.stringify(mockVendorData));
         localStorage.setItem('token', mockVendorData.token);
-        
         return mockVendorData;
       }
       
@@ -122,10 +118,9 @@ export const login = createAsyncThunk(
       
       return userData;
     } catch (error: any) {
-      // If API call fails but it's the demo vendor credentials, use mock data
-      if (email === 'vendor1@example.com' && password === 'Vendor@123') {
-        console.log('API call failed but using mock vendor login for demo credentials');
-        // Create mock vendor user data aligned with backend mock vendor
+      // If API call fails but it's the demo vendor credentials, use mock data (dev only)
+      if (process.env.NODE_ENV !== 'production' && email === 'vendor1@example.com' && password === 'Vendor@123') {
+        console.log('API call failed but using mock vendor login for demo credentials (dev only)');
         const mockVendorData = {
           user: {
             _id: 'vendor_1',
@@ -136,11 +131,8 @@ export const login = createAsyncThunk(
           },
           token: 'mock_vendor_token_vendor_1'
         };
-        
-        // Store both user data and token
         localStorage.setItem('user', JSON.stringify(mockVendorData));
         localStorage.setItem('token', mockVendorData.token);
-        
         return mockVendorData;
       }
       

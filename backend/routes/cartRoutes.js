@@ -6,7 +6,8 @@ const isMongoConnected = mongoose.connection.readyState === 1;
 
 // Use appropriate middleware and controller based on MongoDB availability
 let auth, cartController;
-if (isMongoConnected) {
+const inProd = process.env.NODE_ENV === 'production';
+if (inProd || isMongoConnected) {
   auth = require('../middleware/auth').auth;
   cartController = require('../controllers/cartController');
 } else {

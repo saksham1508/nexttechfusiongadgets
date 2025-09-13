@@ -56,43 +56,8 @@ const GooglePayPayment: React.FC<GooglePayPaymentProps> = ({
       try {
         googlePayData = await paymentService.createGooglePayPayment(amount, currency, orderId);
       } catch (backendError) {
-        console.warn('Backend Google Pay endpoint not available, using fallback configuration');
-        // Fallback configuration when backend is not available
-        googlePayData = {
-          paymentData: {
-            apiVersion: 2,
-            apiVersionMinor: 0,
-            allowedPaymentMethods: [
-              {
-                type: 'CARD',
-                parameters: {
-                  allowedAuthMethods: ['PAN_ONLY', 'CRYPTOGRAM_3DS'],
-                  allowedCardNetworks: ['AMEX', 'DISCOVER', 'JCB', 'MASTERCARD', 'VISA']
-                },
-                tokenizationSpecification: {
-                  type: 'PAYMENT_GATEWAY',
-                  parameters: {
-                    gateway: process.env.REACT_APP_GOOGLE_PAY_GATEWAY || 'example',
-                    gatewayMerchantId: process.env.REACT_APP_GOOGLE_PAY_GATEWAY_MERCHANT_ID || 'exampleGatewayMerchantId'
-                  }
-                }
-              }
-            ],
-            merchantInfo: {
-              merchantId: process.env.REACT_APP_GOOGLE_PAY_MERCHANT_ID || 'BCR2DN4T2QVQJQVQ',
-              merchantName: process.env.REACT_APP_GOOGLE_PAY_MERCHANT_NAME || merchantInfo.name
-            },
-            transactionInfo: {
-              totalPriceStatus: 'FINAL',
-              totalPrice: amount.toString(),
-              currencyCode: currency,
-              countryCode: currency === 'INR' ? 'IN' : 'US'
-            }
-          },
-          orderId,
-          amount,
-          currency
-        };
+        console.warn('Backend Google Pay endpoint not available');
+        throw backendError;
       }
       
       setPaymentData(googlePayData);
@@ -209,22 +174,6 @@ const GooglePayPayment: React.FC<GooglePayPaymentProps> = ({
         providerResponse: response
       };
     } catch (error: any) {
-      // Fallback to demo mode if backend processing fails
-      if (testMode) {
-        return new Promise((resolve) => {
-          setTimeout(() => {
-            resolve({
-              success: true,
-              paymentMethod: 'googlepay',
-              transactionId: `gp_demo_${Date.now()}`,
-              amount: amount,
-              currency: currency,
-              paymentData: paymentData,
-              testMode: true
-            });
-          }, 2000);
-        });
-      }
       throw error;
     }
   };

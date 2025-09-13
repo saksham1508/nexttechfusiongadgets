@@ -5,12 +5,11 @@ import { AppDispatch } from '../store/store';
 import { syncFromLocalStorage } from '../store/slices/authSlice';
 import toast from 'react-hot-toast';
 import GoogleSignInButton from './GoogleSignInButton';
-import AppleSignInButton from './AppleSignInButton';
 
 interface SocialAuthProps {
   onGoogleAuth: (googleUser: any) => void;
   onFacebookAuth?: (token: string) => void; // optional
-  onAppleAuth: (appleData: any) => void;
+  onAppleAuth?: (appleData: any) => void; // removed Apple button; keep handler optional for compatibility
   onPhoneAuth: (phone: string, otp: string) => void;
   onEmailAuth: (email: string, password: string) => void;
   isLoading: boolean;
@@ -148,7 +147,7 @@ const SocialAuth: React.FC<SocialAuthProps> = ({
     }
     
     // For demo purposes, allow test@example.com with testpassword
-    if (formData.email === 'test@example.com' && formData.password === 'testpassword') {
+    if (process.env.NODE_ENV !== 'production' && formData.email === 'test@example.com' && formData.password === 'testpassword') {
       try {
         // Use the backend mock auth endpoint to get a proper JWT token
         const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000/api'}/auth/login`, {
@@ -254,12 +253,7 @@ const SocialAuth: React.FC<SocialAuthProps> = ({
       {/* Email Authentication */}
       {authMethod === 'email' && (
         <form onSubmit={(e) => { e.preventDefault(); handleEmailSubmit(); }} className="space-y-4">
-          {/* Demo Login Notice */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
-            <p className="text-sm text-blue-700">
-              <strong>Demo Login:</strong> Use <code className="bg-blue-100 px-1 rounded">test@example.com</code> with password <code className="bg-blue-100 px-1 rounded">testpassword</code> to test the functionality.
-            </p>
-          </div>
+
           
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
@@ -326,8 +320,7 @@ const SocialAuth: React.FC<SocialAuthProps> = ({
               type="button"
               className="text-sm text-blue-600 hover:text-blue-700 font-medium"
               onClick={() => {
-                // Handle forgot password
-                toast.success('Password reset link sent to your email (demo)');
+                toast.success('Password reset link sent to your email');
               }}
             >
               Forgot password?
@@ -462,7 +455,6 @@ const SocialAuth: React.FC<SocialAuthProps> = ({
       {/* Social Authentication */}
       {authMethod === 'social' && (
         <div className="space-y-4">
-          {/* Demo Notice */}
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
             <p className="text-sm text-blue-700">
               <strong>Demo Mode:</strong> Social authentication is currently in demo mode. Click any button below to test the authentication flow.
@@ -509,22 +501,7 @@ const SocialAuth: React.FC<SocialAuthProps> = ({
             </button>
           )}
 
-          <div className="w-full flex justify-center">
-            <AppleSignInButton
-              onSuccess={onAppleAuth}
-              onError={(error) => {
-                // Don't show error toast for configuration issues in demo mode
-                if (!error.includes('not configured')) {
-                  toast.error(error);
-                }
-              }}
-              text="continue"
-              theme="black"
-              size="large"
-              width={400}
-              disabled={isLoading}
-            />
-          </div>
+
 
           <div className="relative">
             <div className="absolute inset-0 flex items-center">
