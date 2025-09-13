@@ -1,4 +1,5 @@
 const OpenAI = require('openai');
+const { generateWithGemini } = require('./geminiClient');
 
 // Create OpenAI client only if API key is present
 let openai = null;
@@ -64,6 +65,21 @@ Available product categories: Smartphones, Laptops, Tablets, Smartwatches, Headp
   }
 
   async generateResponse(userMessage, context = {}) {
+    // Prefer Gemini in production when key is present
+    if (process.env.NODE_ENV === 'production' && process.env.GEMINI_API_KEY) {
+      try {
+        const contextBits = [];
+        if (context.userHistory) contextBits.push(`User context: ${JSON.stringify(context.userHistory)}`);
+        if (context.currentProducts) contextBits.push(`Current products: ${JSON.stringify(context.currentProducts)}`);
+        const prompt = `${this.systemPrompt}\n${contextBits.join('\n')}\nUser: ${userMessage}`;
+        const message = await generateWithGemini({ text: prompt });
+        return { success: true, message };
+      } catch (err) {
+        console.warn('Gemini failed, falling back to OpenAI/fallback:', err.message);
+        // continue to OpenAI/fallback below
+      }
+    }
+
     // Fallback response without OpenAI
     if (!openai) {
       const parts = [];
@@ -102,7 +118,15 @@ Available product categories: Smartphones, Laptops, Tablets, Smartwatches, Headp
       return { success: true, message: response.choices[0].message.content.trim(), usage: response.usage };
     } catch (error) {
       console.error('AI Service Error:', error);
-      return { success: false, message: "I'm having trouble processing your request right now. Please try again.", error: error.message };
+      const parts = [];
+      if (context && context.currentProducts && context.currentProducts.length) {
+        parts.push(`I see ${context.currentProducts.length} related products available.`);
+      }
+      if (context && context.userHistory && context.userHistory.recentOrders && context.userHistory.recentOrders.length) {
+        parts.push(`I also found ${context.userHistory.recentOrders.length} recent orders in your account.`);
+      }
+      const base = `Thanks for your message. I can help with product recommendations, orders, and support. ${parts.join(' ')}`.trim();
+      return { success: true, message: base, fallback: true, error: error.message };
     }
   }
 
@@ -192,6 +216,9 @@ Available product categories: Smartphones, Laptops, Tablets, Smartwatches, Headp
       };
     }
   }
+
+
 }
+
 
 module.exports = new AIService();

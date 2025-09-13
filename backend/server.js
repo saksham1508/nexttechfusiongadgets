@@ -7,6 +7,7 @@ const compression = require('compression');
 const dotenv = require('dotenv');
 const path = require('path');
 const winston = require('winston');
+const mongoose = require('mongoose');
 const passport = require('./config/passport');
 const connectDB = require('./config/database');
 const RedisConfig = require('./config/redis');
@@ -172,6 +173,8 @@ app.use('/api/cart', rateLimits.api, require('./routes/cartRoutes'));
 app.use('/api/wishlist', rateLimits.api, require('./routes/wishlistRoutes'));
 app.use('/api/orders', rateLimits.api, require('./routes/orderRoutes'));
 app.use('/api/payment-methods', rateLimits.api, require('./routes/paymentRoutes'));
+// InstaMojo payment endpoints
+app.use('/api/payments/instamojo', rateLimits.api, require('./routes/instamojoRoutes'));
 app.use('/api/delivery', rateLimits.api, require('./routes/deliveryRoutes'));
 app.use('/api/flash-sales', rateLimits.api, require('./routes/flashSaleRoutes'));
 app.use('/api/coupons', rateLimits.api, require('./routes/couponRoutes'));
@@ -187,16 +190,20 @@ const Order = require('./models/Order');
 const { optional } = require('./middleware/auth');
 
 // @desc    Send message to AI chatbot
-// @route   POST /api/chat/message
+// @route   POST /api/chat/message | GET /api/chat/message
 // @access  Public
 const sendMessage = async (req, res) => {
   try {
-    const { message, sessionId } = req.body;
+    // Accept from JSON body (POST) or query string (GET)
+    const message = req.body?.message || req.query?.message;
+    const sessionId = req.body?.sessionId || req.query?.sessionId;
     const userId = req.user ? req.user._id : null;
 
     if (!message || !sessionId) {
-      res.status(400);
-      throw new Error('Message and session ID are required');
+      return res.status(400).json({
+        success: false,
+        message: 'Message and session ID are required'
+      });
     }
 
     // Analyze user intent
@@ -239,26 +246,36 @@ const sendMessage = async (req, res) => {
     // Generate AI response
     const aiResponse = await aiService.generateResponse(message, context);
 
-    // Save chat message
-    const chatMessage = new Chat({
-      sessionId,
-      user: userId,
-      message,
-      response: aiResponse.message,
-      intent: intent.intent,
-      category: intent.category,
-      urgency: intent.urgency,
-      requiresHuman: intent.requiresHuman
-    });
-
-    await chatMessage.save();
+    // Save chat message only if DB is connected; otherwise skip persist
+    let persisted = false;
+    if (mongoose.connection?.readyState === 1) {
+      const chatMessage = new Chat({
+        sessionId,
+        user: userId,
+        message,
+        response: aiResponse.message,
+        intent: intent.intent,
+        category: intent.category,
+        urgency: intent.urgency,
+        requiresHuman: intent.requiresHuman
+      });
+      try {
+        await chatMessage.save();
+        persisted = true;
+      } catch (e) {
+        console.warn('Chat persist skipped (DB issue):', e.message);
+      }
+    } else {
+      console.warn('Chat persist skipped: MongoDB not connected');
+    }
 
     res.json({
       success: true,
       response: aiResponse.message,
       intent,
       requiresHuman: intent.requiresHuman,
-      sessionId
+      sessionId,
+      persisted
     });
   } catch (error) {
     console.error('Chat Error:', error);
@@ -277,6 +294,11 @@ const getChatHistory = asyncHandler(async (req, res) => {
   const { sessionId } = req.params;
   const { limit = 50 } = req.query;
 
+  if (mongoose.connection?.readyState !== 1) {
+    // DB not available; return empty history gracefully
+    return res.json({ success: true, history: [] });
+  }
+
   const chatHistory = await Chat.find({ sessionId })
     .sort({ createdAt: -1 })
     .limit(parseInt(limit))
@@ -289,6 +311,7 @@ const getChatHistory = asyncHandler(async (req, res) => {
 });
 
 app.post('/api/chat/message', optional, asyncHandler(sendMessage));
+app.get('/api/chat/message', optional, asyncHandler(sendMessage));
 app.get('/api/chat/history/:sessionId', getChatHistory);
 
 // Six Sigma: Measure - Comprehensive health and monitoring endpoints

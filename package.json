@@ -15,6 +15,7 @@
     "concurrently": "^8.2.2"
   },
   "dependencies": {
+    "instamojo-nodejs": "^0.0.5",
     "puppeteer": "^24.19.0"
   }
 }

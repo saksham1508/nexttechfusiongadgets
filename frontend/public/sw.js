@@ -154,11 +154,15 @@ async function staleWhileRevalidate(request) {
   const cachedResponse = await cache.match(request);
   
   const fetchPromise = fetch(request).then((networkResponse) => {
-    if (networkResponse.ok) {
+    if (networkResponse && networkResponse.ok) {
       cache.put(request, networkResponse.clone());
     }
     return networkResponse;
-  }).catch(() => cachedResponse);
+  }).catch(() => {
+    if (cachedResponse) return cachedResponse;
+    // Ensure we always return a Response to avoid "Failed to convert value to 'Response'"
+    return new Response('You are offline', { status: 503 });
+  });
   
   return cachedResponse || fetchPromise;
 }
@@ -172,8 +176,11 @@ function isStaticAsset(request) {
 }
 
 function isAPIRequest(request) {
-  return request.url.includes('/api/') || 
-         API_ENDPOINTS.some(endpoint => request.url.includes(endpoint));
+  const url = new URL(request.url);
+  const pathMatch = request.url.includes('/api/') || API_ENDPOINTS.some(endpoint => request.url.includes(endpoint));
+  // Treat our API host as API even if path doesn’t include /api
+  const isKnownApiHost = url.hostname === 'api.nexttechfusiongadgets.com';
+  return pathMatch || isKnownApiHost || url.pathname === '/health';
 }
 
 function isImageRequest(request) {

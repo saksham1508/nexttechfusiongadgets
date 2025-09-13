@@ -21,6 +21,14 @@ const PaymentConfig: React.FC = () => {
       supportedCountries: ['IN'],
       fees: { percentage: 2.0, fixed: 0 }
     },
+    instamojo: {
+      provider: 'instamojo',
+      enabled: true,
+      testMode: true,
+      supportedCurrencies: ['INR'],
+      supportedCountries: ['IN'],
+      fees: { percentage: 2.0, fixed: 0 }
+    },
     paypal: {
       provider: 'paypal',
       enabled: true,

@@ -69,7 +69,7 @@ const ChatBot: React.FC = () => {
             <LucideIcons.MessageCircle className="w-4 h-4" />
           </div>
           <div>
-            <h3 className="font-semibold">NexFuga Assistant</h3>
+            <h3 className="font-semibold">Zyra</h3>
             <p className="text-xs text-blue-100">
               {isTyping ? 'Typing...' : 'Online • Ready to help'}
             </p>

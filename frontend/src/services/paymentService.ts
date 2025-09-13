@@ -9,6 +9,39 @@ import { UPIPayment } from '../types';
 const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 const RAZORPAY_KEY = process.env.REACT_APP_RAZORPAY_KEY_ID || 'rzp_test_dev_key_id';
 
+// Instamojo: initiate payment on backend and redirect user to gateway
+export async function processInstamojoPayment(
+  amount: number,
+  purpose: string,
+  buyer: { name?: string; email: string; phone?: string },
+  redirectUrl: string = `${window.location.origin}/checkout`
+) {
+  const payload = {
+    amount,
+    purpose,
+    buyer_name: buyer?.name,
+    email: buyer.email,
+    phone: buyer?.phone,
+    redirectUrl,
+  };
+
+  const resp = await axios.post(`${API_BASE}/payments/instamojo/pay`, payload, { withCredentials: true });
+  const data = resp.data || {};
+  const paymentUrl = data.payment_url || data?.payment_request?.longurl;
+  if (!paymentUrl) throw new Error('Failed to get Instamojo payment URL');
+
+  // Redirect to Instamojo hosted page
+  window.location.href = paymentUrl;
+}
+
+export async function verifyInstamojoPayment(paymentRequestId: string) {
+  // Calls backend verify endpoint to fetch/verify payment details
+  const resp = await axios.get(`${API_BASE}/payments/instamojo/verify/${encodeURIComponent(paymentRequestId)}`, {
+    withCredentials: true,
+  });
+  return resp.data;
+}
+
 function loadRazorpay(): Promise<void> {
   return new Promise((resolve, reject) => {
     if ((window as any).Razorpay) return resolve();
@@ -122,13 +155,14 @@ import { PaymentProvider, GooglePayPayment as GooglePayPaymentType, UPIPayment a
 
 export function getAvailablePaymentMethods(): PaymentProvider[] {
   // Basic set for development
-  const methods: PaymentProvider[] = ['cod', 'razorpay', 'paypal', 'stripe', 'upi', 'googlepay'];
+  const methods: PaymentProvider[] = ['cod', 'razorpay', 'instamojo', 'paypal', 'stripe', 'upi', 'googlepay'];
   return methods;
 }
 
 export function getPaymentMethodInfo(provider: PaymentProvider): { name: string; description: string } {
   const map: Record<PaymentProvider, { name: string; description: string }> = {
     razorpay: { name: 'Razorpay', description: 'UPI, Card, Netbanking' },
+    instamojo: { name: 'Instamojo', description: 'Hosted payments (INR)' },
     paypal: { name: 'PayPal', description: 'Pay via PayPal wallet' },
     stripe: { name: 'Card (Stripe)', description: 'Credit/Debit cards' },
     upi: { name: 'UPI', description: 'Pay via UPI apps' },
@@ -293,6 +327,8 @@ export async function createUPIPayment(amount: number, upiId: string, orderId: s
 }
 
 export default {
+  processInstamojoPayment,
+  verifyInstamojoPayment,
   processRazorpayPayment,
   getAvailablePaymentMethods,
   getPaymentMethodInfo,

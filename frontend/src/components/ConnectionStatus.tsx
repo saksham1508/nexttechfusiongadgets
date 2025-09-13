@@ -22,7 +22,8 @@ const ConnectionStatus: React.FC = () => {
   useEffect(() => {
     const checkApiStatus = async () => {
       try {
-        const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+        const { API_URL } = await import('../config/api');
+        const apiUrl = API_URL;
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 3000); // Reduced timeout
         

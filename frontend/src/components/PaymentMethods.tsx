@@ -182,6 +182,17 @@ const PaymentMethods: React.FC<PaymentMethodsProps> = ({
           }
           break;
 
+        case 'instamojo':
+          // Initiate Instamojo hosted payment: backend returns a payment URL and we redirect
+          await paymentService.processInstamojoPayment(
+            selectedAmount,
+            `Order ${orderId || Date.now()}`,
+            { name: userDetails.name, email: userDetails.email, phone: userDetails.contact },
+            `${window.location.origin}/checkout`
+          );
+          // The call above redirects away; no further code runs here pre-redirect
+          break;
+
         case 'upi':
           // For UPI, we need to collect UPI ID
           const upiId = prompt('Enter your UPI ID:');
@@ -282,6 +293,8 @@ const PaymentMethods: React.FC<PaymentMethodsProps> = ({
         return <CreditCard className="h-6 w-6" />;
       case 'razorpay':
         return <Wallet className="h-6 w-6 text-blue-600" />;
+      case 'instamojo':
+        return <Wallet className="h-6 w-6 text-pink-600" />;
       case 'paypal':
         return <Globe className="h-6 w-6 text-blue-500" />;
       case 'googlepay':
@@ -311,6 +324,8 @@ const PaymentMethods: React.FC<PaymentMethodsProps> = ({
         return 'border-purple-200 hover:border-purple-300 bg-purple-50';
       case 'razorpay':
         return 'border-blue-200 hover:border-blue-300 bg-blue-50';
+      case 'instamojo':
+        return 'border-pink-200 hover:border-pink-300 bg-pink-50';
       case 'paypal':
         return 'border-blue-200 hover:border-blue-300 bg-blue-50';
       case 'googlepay':

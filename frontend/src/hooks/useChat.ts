@@ -1,4 +1,5 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
+import chatService from '../services/chatService';
 
 // Define interfaces for chat state and messages
 interface ChatMessage {
@@ -17,30 +18,6 @@ interface ChatState {
   isLoading: boolean;
 }
 
-// This is a simplified mock for a chat API or service
-const mockChatService = {
-  sendMessage: async (messageText: string): Promise<ChatMessage> => {
-    // Simulate API call delay
-    await new Promise(resolve => setTimeout(resolve, 500));
-    const botResponseText = `Echo: ${messageText}`;
-    return {
-      id: `bot-${Date.now()}`,
-      sender: 'bot',
-      text: botResponseText,
-      timestamp: new Date().toISOString(),
-    };
-  },
-  loadHistory: async (): Promise<ChatMessage[]> => {
-    // Simulate API call delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    return [
-      { id: 'hist1', sender: 'bot', text: 'Welcome to the chat!', timestamp: new Date(Date.now() - 60000).toISOString() },
-      { id: 'hist2', sender: 'user', text: 'Hello there!', timestamp: new Date(Date.now() - 50000).toISOString() },
-      { id: 'hist3', sender: 'bot', text: 'How can I help you today?', timestamp: new Date(Date.now() - 40000).toISOString() },
-    ];
-  },
-};
-
 // Simplified custom hook for chat functionality
 const useChat = () => {
   const [chatState, setChatState] = useState<ChatState>({
@@ -52,7 +29,16 @@ const useChat = () => {
     isLoading: false,
   });
 
-  // Function to send a message
+  // Persist a sessionId across messages in this session
+  const sessionId = useMemo(() => {
+    const existing = sessionStorage.getItem('chat_session_id');
+    if (existing) return existing;
+    const sid = chatService.generateSessionId();
+    sessionStorage.setItem('chat_session_id', sid);
+    return sid;
+  }, []);
+
+  // Function to send a message using backend API
   const handleSendMessage = useCallback(async (text: string) => {
     if (!text.trim()) return;
 
@@ -67,14 +53,21 @@ const useChat = () => {
       ...prevState,
       messages: [...prevState.messages, newMessage],
       isLoading: true,
-      isTyping: true, // Simulate bot typing after user sends message
+      isTyping: true,
+      error: null,
     }));
 
     try {
-      const botResponse = await mockChatService.sendMessage(text);
+      const result = await chatService.sendMessage(text, sessionId);
+      const botMessage: ChatMessage = {
+        id: `bot-${Date.now()}`,
+        sender: 'bot',
+        text: result.response,
+        timestamp: new Date().toISOString(),
+      };
       setChatState(prevState => ({
         ...prevState,
-        messages: [...prevState.messages, botResponse],
+        messages: [...prevState.messages, botMessage],
         isLoading: false,
         isTyping: false,
       }));
@@ -86,16 +79,21 @@ const useChat = () => {
         isTyping: false,
       }));
     }
-  }, []);
+  }, [sessionId]);
 
-  // Function to load chat history
+  // Function to load chat history from backend
   const handleLoadHistory = useCallback(async () => {
     setChatState(prevState => ({ ...prevState, isLoadingHistory: true, error: null }));
     try {
-      const history = await mockChatService.loadHistory();
+      const history = await chatService.getChatHistory(sessionId);
       setChatState(prevState => ({
         ...prevState,
-        messages: history,
+        messages: history.map((h) => ({
+          id: h.id || `hist-${Date.now()}`,
+          sender: (h as any).sender || 'bot',
+          text: h.response || h.message || '',
+          timestamp: (h as any).timestamp || new Date().toISOString(),
+        })),
         isLoadingHistory: false,
       }));
     } catch (err: any) {
@@ -105,7 +103,7 @@ const useChat = () => {
         isLoadingHistory: false,
       }));
     }
-  }, []);
+  }, [sessionId]);
 
   // Functions to control chat UI state
   const handleOpenChat = useCallback(() => {

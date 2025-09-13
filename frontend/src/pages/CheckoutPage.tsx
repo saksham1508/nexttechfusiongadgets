@@ -486,6 +486,13 @@ const CheckoutPage: React.FC = () => {
                     </button>
                   )}
 
+                  {selectedProvider === 'instamojo' && (
+                    <div className="w-full">
+                      {/* Reuse shared button */}
+                      {React.createElement(require('../components/PaymentButton').default, { label: 'Pay with Instamojo', className: 'btn-primary w-full' })}
+                    </div>
+                  )}
+
                   {selectedProvider === 'cod' && (
                     <button
                       type="button"

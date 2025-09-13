@@ -4,7 +4,7 @@ export const getApiUrl = (): string => {
   
   switch (env) {
     case 'production':
-      return process.env.REACT_APP_API_URL || 'https://api.nexttechfusiongadgets.com';
+      return process.env.REACT_APP_API_URL || 'https://api.nexttechfusiongadgets.com/api';
     case 'development':
       return process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
     case 'test':

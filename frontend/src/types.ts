@@ -78,7 +78,7 @@ export interface GooglePayPayment {
   paymentData?: any;
 }
 
-export type PaymentProvider = 'razorpay' | 'phonepe' | 'paypal' | 'stripe' | 'upi' | 'paytm' | 'googlepay' | 'square' | 'bitcoin' | 'ethereum' | 'cod';
+export type PaymentProvider = 'razorpay' | 'instamojo' | 'phonepe' | 'paypal' | 'stripe' | 'upi' | 'paytm' | 'googlepay' | 'square' | 'bitcoin' | 'ethereum' | 'cod';
 
 export interface PaymentMethod {
   _id: string;
