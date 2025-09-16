@@ -8,19 +8,14 @@
     "@fortawesome/free-regular-svg-icons": "^7.0.0",
     "@fortawesome/free-solid-svg-icons": "^7.0.0",
     "@fortawesome/react-fontawesome": "^0.2.3",
-    "@google-cloud/local-auth": "^3.0.1",
     "@paypal/react-paypal-js": "^8.8.3",
     "@reduxjs/toolkit": "^1.9.7",
     "@stripe/react-stripe-js": "^3.7.0",
     "@stripe/stripe-js": "^7.4.0",
-    "@types/react": "^18.3.23",
-    "@types/react-dom": "^18.3.7",
     "axios": "^1.6.2",
     "framer-motion": "^10.18.0",
-    "googleapis": "^152.0.0",
     "jspdf": "^3.0.1",
     "lucide-react": "^0.525.0",
-    "nexttechfusiongadgets": "file:..",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-hot-toast": "^2.5.2",
@@ -34,18 +29,17 @@
     "recharts": "^3.1.0",
     "redux-logger": "^3.0.6",
     "redux-persist": "^6.0.0",
-    "socket.io-client": "^4.8.1",
-    "typescript": "4.9.5"
+    "socket.io-client": "^4.8.1"
   },
   "scripts": {
     "start": "react-scripts start",
-    "start:dev": "REACT_APP_ENV=development react-scripts start",
-    "start:test": "REACT_APP_ENV=test react-scripts start",
-    "start:prod": "REACT_APP_ENV=production react-scripts start",
+    "start:dev": "cross-env REACT_APP_ENV=development react-scripts start",
+    "start:test": "cross-env REACT_APP_ENV=test react-scripts start",
+    "start:prod": "cross-env REACT_APP_ENV=production react-scripts start",
     "build": "react-scripts build",
-    "build:dev": "REACT_APP_ENV=development react-scripts build",
-    "build:test": "REACT_APP_ENV=test react-scripts build",
-    "build:prod": "REACT_APP_ENV=production react-scripts build",
+    "build:dev": "cross-env REACT_APP_ENV=development react-scripts build",
+    "build:test": "cross-env REACT_APP_ENV=test react-scripts build",
+    "build:prod": "cross-env REACT_APP_ENV=production react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
   },
@@ -63,11 +57,15 @@
   },
   "devDependencies": {
     "@types/node": "^24.0.10",
+    "@types/react": "^18.3.23",
+    "@types/react-dom": "^18.3.7",
     "@types/redux-logger": "^3.0.9",
     "ajv": "^6.12.6",
     "ajv-keywords": "^3.5.2",
     "autoprefixer": "^10.4.16",
+    "cross-env": "^7.0.3",
     "postcss": "^8.4.31",
-    "tailwindcss": "^3.3.0"
+    "tailwindcss": "^3.3.0",
+    "typescript": "4.9.5"
   }
 }
