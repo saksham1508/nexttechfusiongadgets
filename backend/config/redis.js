@@ -1,78 +1,30 @@
 const redis = require('redis');
 const winston = require('winston');
 
-/**
- * Redis Configuration Module
- * Supports both REDIS_URL and individual Redis environment variables
- */
-
 class RedisConfig {
   static getConnectionOptions() {
     // Priority 1: Use REDIS_URL if provided
     if (process.env.REDIS_URL && process.env.REDIS_URL !== 'your_redis_connection_string') {
-      try {
-        const url = new URL(process.env.REDIS_URL);
-        return {
-          socket: {
-            host: url.hostname,
-            port: parseInt(url.port) || 6379,
-          },
-          password: url.password || undefined,
-          database: url.pathname ? parseInt(url.pathname.slice(1)) : 0,
-          retry_strategy: this.getRetryStrategy()
-        };
-      } catch (error) {
-        winston.warn('Invalid REDIS_URL format, falling back to individual variables:', error.message);
-      }
+      return {
+        url: process.env.REDIS_URL, // ✅ Directly use URL for Redis v4
+      };
     }
 
     // Priority 2: Use individual environment variables
-    return {
-      socket: {
-        host: process.env.REDIS_HOST || 'localhost',
-        port: parseInt(process.env.REDIS_PORT) || 6379,
-      },
-      password: process.env.REDIS_PASSWORD || undefined,
-      database: parseInt(process.env.REDIS_DB) || 0,
-      retry_strategy: this.getRetryStrategy()
-    };
-  }
+    const host = process.env.REDIS_HOST || 'localhost';
+    const port = process.env.REDIS_PORT || 6379;
+    const password = process.env.REDIS_PASSWORD ? `:${process.env.REDIS_PASSWORD}@` : '';
+    const db = process.env.REDIS_DB || 0;
 
-  static getRetryStrategy() {
-    return (retries, cause) => {
-      if (cause && cause.code === 'ECONNREFUSED') {
-        // Only log in development mode to avoid spam
-        if (process.env.NODE_ENV === 'development') {
-          winston.warn('Redis server connection refused - Redis may not be running');
-        }
-        return new Error('Redis server connection refused');
-      }
-      
-      if (retries > 2) { // Reduced retry attempts to fail faster
-        if (process.env.NODE_ENV === 'development') {
-          winston.warn('Redis retry attempts exhausted - falling back to memory-only cache');
-        }
-        return new Error('Redis retry attempts exhausted');
-      }
-      
-      // Exponential backoff with jitter
-      const delay = Math.min(retries * 200 + Math.random() * 100, 1000);
-      if (process.env.NODE_ENV === 'development') {
-        winston.info(`Redis reconnecting in ${delay}ms (attempt ${retries})`);
-      }
-      return delay;
+    return {
+      url: `redis://${password}${host}:${port}/${db}`,
     };
   }
 
   static async createClient() {
     const options = this.getConnectionOptions();
-    
-    winston.info('Creating Redis client with options:', {
-      host: options.socket.host,
-      port: options.socket.port,
-      database: options.database,
-      hasPassword: !!options.password
-    });
+
+    winston.info('Creating Redis client with options:', options);
 
     const client = redis.createClient(options);
 
@@ -101,7 +53,6 @@ class RedisConfig {
   }
 
   static async testConnection() {
-    // Skip Redis connection test if explicitly disabled
     if (process.env.REDIS_DISABLED === 'true' || process.env.DISABLE_REDIS === 'true') {
       console.log('ℹ️  Redis disabled by configuration, using memory cache only');
       return false;
@@ -110,20 +61,19 @@ class RedisConfig {
     let client = null;
     try {
       client = await this.createClient();
-      
-      // Set a short timeout for connection test
+
       const connectPromise = client.connect();
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Connection timeout')), 2000)
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Connection timeout')), 5000) // ⬆️ timeout thoda zyada rakha
       );
-      
+
       await Promise.race([connectPromise, timeoutPromise]);
-      
+
       // Test basic operations
       await client.set('test:connection', 'success', { EX: 10 });
       const result = await client.get('test:connection');
       await client.del('test:connection');
-      
+
       if (result === 'success') {
         console.log('✅ Redis connection test successful');
         return true;
@@ -139,7 +89,7 @@ class RedisConfig {
       if (client) {
         try {
           await client.quit();
-        } catch (error) {
+        } catch {
           // Ignore cleanup errors
         }
       }
