@@ -1,21 +1,21 @@
 import axios from 'axios';
+import { API_URL } from '../config/api';
 
 // Function to get API URL with fallback
 const getApiUrl = () => {
   const envApiUrl = process.env.REACT_APP_API_URL;
-  const fallbackUrl = 'http://localhost:5000/api';
-  
+
   console.log('🔧 Environment Variables Check:', {
     REACT_APP_API_URL: envApiUrl,
     NODE_ENV: process.env.NODE_ENV,
     allEnvVars: Object.keys(process.env).filter(key => key.startsWith('REACT_APP_'))
   });
-  
+
   if (!envApiUrl || envApiUrl === 'undefined' || envApiUrl.trim() === '') {
-    console.warn('⚠️ REACT_APP_API_URL is not set or invalid, using fallback:', fallbackUrl);
-    return fallbackUrl;
+    console.warn('⚠️ REACT_APP_API_URL is not set or invalid, using config fallback:', API_URL);
+    return API_URL;
   }
-  
+
   console.log('✅ Using API URL from environment:', envApiUrl);
   return envApiUrl;
 };

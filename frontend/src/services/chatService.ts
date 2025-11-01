@@ -1,20 +1,8 @@
 import axios from 'axios';
-
-declare const process: { env: { NODE_ENV: string; REACT_APP_API_URL: string } };
+import { API_URL } from '../config/api';
 
 const getApiUrl = (): string => {
-  const env = process.env.NODE_ENV;
-  
-  switch (env) {
-    case 'production':
-      return process.env.REACT_APP_API_URL || 'https://api.nexttechfusiongadgets.com';
-    case 'development':
-      return process.env.REACT_APP_API_URL || 'http://localhost:3000/api';
-    case 'test':
-      return 'http://localhost:3001/api';
-    default:
-      return 'http://localhost:3000/api';
-  }
+  return API_URL.replace('/api', ''); // Remove /api suffix for chat service
 };
 
 const API_URL = getApiUrl();

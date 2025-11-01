@@ -1,4 +1,6 @@
 // Enhanced API Service with Error Handling and TypeScript Support
+import { API_URL } from '../config/api';
+
 interface ApiResponse<T = any> {
   success: boolean;
   data?: T;
@@ -20,7 +22,7 @@ class ApiService {
   private retryDelay: number = 1000;
 
   constructor() {
-    this.baseURL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+    this.baseURL = API_URL;
   }
 
   // Check if API is available
