@@ -1,6 +1,6 @@
-# 🚀 NextTechFusionGadgets Express - Ultra-Fast Tech Commerce Platform
+# 🚀 NextTechFusionGadgets(NexFuga) - Ultra-Fast Tech Uni -Commerce Platform
 
-A cutting-edge **Quick Commerce Platform** built with React, TypeScript, Node.js, and MongoDB. Featuring **10-15 minute delivery**, real-time tracking, AI-powered search, and all the advanced features used by industry leaders like **Blinkit, Zepto, and Instamart** - specifically designed for tech products and gadgets.
+A cutting-edge **Quick Commerce Platform**and **e-Commerce Platform** **built with React, TypeScript, Node.js, and MongoDB. Featuring **10-15 minute delivery** and **7-15 days delivery**, real-time tracking, AI-powered search, and all the advanced features used by industry leaders like **Blinkit, Zepto, and Instamart** - specifically designed for tech products and gadgets.
 
 ![NextTech Express](https://img.shields.io/badge/Delivery-10--15%20Minutes-brightgreen) ![Tech Stack](https://img.shields.io/badge/Stack-React%20%7C%20Node.js%20%7C%20MongoDB-blue) ![Status](https://img.shields.io/badge/Status-Production%20Ready-success) ![Environments](https://img.shields.io/badge/Environments-Dev%20%7C%20Test%20%7C%20Prod-orange)
 
@@ -454,7 +454,7 @@ npm run deploy     # Deploys to your preferred platform
 
 ## 🎉 **Ready to Launch Your Quick Commerce Platform?**
 
-**NextTechFusionGadgets Express** is production-ready and includes everything you need to compete with industry leaders. With **complete feature parity** and **tech-focused specialization**, you're ready to capture the growing quick commerce market!
+**NextTechFusionGadgets(NexFuga)** is production-ready and includes everything you need to compete with industry leaders. With **complete feature parity** and **tech-focused specialization**, you're ready to capture the growing quick commerce and e-commerce market!
 
 ### **🚀 What's Next?**
 1. **🔧 Customize** - Adapt the platform to your specific needs
@@ -463,4 +463,4 @@ npm run deploy     # Deploys to your preferred platform
 4. **🚀 Deploy** - Launch on your preferred cloud platform
 5. **📈 Scale** - Grow your quick commerce business
 
-**Happy Quick Commerce! ⚡🚀**
+**Happy Quick Commerce and e-Commerce! ⚡🚀**
