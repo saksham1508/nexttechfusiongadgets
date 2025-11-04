@@ -1,5 +1,4 @@
 import axios from 'axios';
-import { API_URL } from '../config/api';
 
 // Function to get API URL with fallback
 const getApiUrl = () => {
@@ -12,8 +11,8 @@ const getApiUrl = () => {
   });
 
   if (!envApiUrl || envApiUrl === 'undefined' || envApiUrl.trim() === '') {
-    console.warn('⚠️ REACT_APP_API_URL is not set or invalid, using config fallback:', API_URL);
-    return API_URL;
+    console.warn('⚠️ REACT_APP_API_URL is not set or invalid, using default fallback');
+    return 'http://localhost:5001/api';
   }
 
   console.log('✅ Using API URL from environment:', envApiUrl);

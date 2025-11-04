@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "target": "es2021", // Or "esnext" for the latest features
+    "target": "es2021",
     "lib": ["dom", "dom.iterable", "esnext"],
     "allowJs": true,
     "skipLibCheck": true,
@@ -8,27 +8,18 @@
     "allowSyntheticDefaultImports": true,
     "strict": true,
     "forceConsistentCasingInFileNames": true,
-    "noFallthroughCasesInSwitch": true, // Recommended for better code quality
-    "module": "esnext", // Or "commonjs" if you are not using a bundler that supports ES Modules
-    "moduleResolution": "node",
+    "noFallthroughCasesInSwitch": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "noEmit": true, // True if using a bundler like Webpack, Vite, or Parcel
-    "jsx": "react-jsx", // For React 17+
-    "outDir": "./dist", // Output directory for compiled files (if noEmit is false)
-    "rootDir": "./src", // Root directory of your source files
-    "baseUrl": "./",
-    "paths": {
-      "@/*": ["src/*"] // Example for path aliases
-    },
-    "incremental": true, // Enable incremental compilation for faster rebuilds
-    "tsBuildInfoFile": "./node_modules/.tsbuildinfo", // Location for build info file
-    "types": ["node"] // Include necessary type definitions
+    "noEmit": true,
+    "jsx": "react-jsx",
+    "types": ["node"]
   },
   "include": [
-    "src/**/*", // Include all files in the src directory
-    "src/global.d.ts", // Global type declarations
-    "declaration.d.ts" // If you have global declaration files
+    "src/**/*",
+    "src/global.d.ts"
   ],
   "exclude": [
     "node_modules",
