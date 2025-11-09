@@ -22,7 +22,7 @@ const coupons = [
     userRestrictions: { newUsersOnly: false, premiumUsersOnly: false, specificUsers: [] },
     paymentMethods: [],
     isActive: true,
-    priority: 10,
+    priority: 10
   },
   {
     code: 'UPI50',
@@ -43,7 +43,7 @@ const coupons = [
     userRestrictions: { newUsersOnly: false, premiumUsersOnly: false, specificUsers: [] },
     paymentMethods: ['upi'],
     isActive: true,
-    priority: 8,
+    priority: 8
   },
   {
     code: 'LOYALTY100',
@@ -64,7 +64,7 @@ const coupons = [
     userRestrictions: { newUsersOnly: false, premiumUsersOnly: false, specificUsers: [] },
     paymentMethods: [],
     isActive: true,
-    priority: 9,
+    priority: 9
   }
 ];
 

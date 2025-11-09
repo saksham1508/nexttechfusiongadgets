@@ -64,7 +64,7 @@ class CacheOptimizer {
   // O(1) - Get from cache with fallback strategy
   async get(key, options = {}) {
     const { useCompression = this.compressionEnabled } = options;
-    
+
     try {
       // Level 1: Memory cache (fastest)
       let value = this.memoryCache.get(key);
@@ -97,10 +97,10 @@ class CacheOptimizer {
   // O(1) - Set in cache with compression
   async set(key, value, ttl = 900, options = {}) {
     const { useCompression = this.compressionEnabled, priority = 'normal' } = options;
-    
+
     try {
       const serializedValue = this.serializeValue(value, useCompression);
-      
+
       // Set in memory cache
       this.memoryCache.set(key, serializedValue, ttl * 1000);
 
@@ -122,7 +122,7 @@ class CacheOptimizer {
   async delete(key) {
     try {
       this.memoryCache.delete(key);
-      
+
       if (this.redisClient) {
         await this.redisClient.del(key);
       }
@@ -141,7 +141,7 @@ class CacheOptimizer {
       // Clear memory cache entries matching pattern
       const memoryKeys = [...this.memoryCache.keys()];
       const regex = new RegExp(pattern.replace('*', '.*'));
-      
+
       memoryKeys.forEach(key => {
         if (regex.test(key)) {
           this.memoryCache.delete(key);
@@ -167,7 +167,7 @@ class CacheOptimizer {
   memoize(fn, keyGenerator, ttl = 900) {
     return async (...args) => {
       const key = keyGenerator ? keyGenerator(...args) : `memoized:${fn.name}:${JSON.stringify(args)}`;
-      
+
       // Try to get from cache
       let result = await this.get(key);
       if (result !== null) {
@@ -177,7 +177,7 @@ class CacheOptimizer {
       // Execute function and cache result
       result = await fn(...args);
       await this.set(key, result, ttl, { priority: 'high' });
-      
+
       return result;
     };
   }
@@ -187,7 +187,7 @@ class CacheOptimizer {
     const promises = warmingStrategies.map(async (strategy) => {
       try {
         const { key, dataFetcher, ttl = 3600, priority = 'normal' } = strategy;
-        
+
         // Check if already cached
         const existing = await this.get(key);
         if (existing !== null) {
@@ -197,7 +197,7 @@ class CacheOptimizer {
         // Fetch and cache data
         const data = await dataFetcher();
         await this.set(key, data, ttl, { priority });
-        
+
         console.log(`✅ Cache warmed: ${key}`);
       } catch (error) {
         console.error(`Cache warming failed for ${strategy.key}:`, error);
@@ -227,7 +227,7 @@ class CacheOptimizer {
     if (this.redisClient && missingKeys.length > 0) {
       try {
         const redisValues = await this.redisClient.mGet(missingKeys);
-        
+
         missingKeys.forEach((key, index) => {
           const value = redisValues[index];
           if (value !== null) {
@@ -253,10 +253,10 @@ class CacheOptimizer {
 
   // O(n) - Batch set operations
   async mset(keyValuePairs, ttl = 900) {
-    const promises = Object.entries(keyValuePairs).map(([key, value]) => 
+    const promises = Object.entries(keyValuePairs).map(([key, value]) =>
       this.set(key, value, ttl)
     );
-    
+
     const results = await Promise.allSettled(promises);
     return results.every(result => result.status === 'fulfilled' && result.value);
   }
@@ -265,14 +265,14 @@ class CacheOptimizer {
   serializeValue(value, useCompression = false) {
     try {
       let serialized = JSON.stringify(value);
-      
+
       if (useCompression && serialized.length > 1024) {
         // Use simple compression for large objects
         const zlib = require('zlib');
         serialized = zlib.gzipSync(serialized).toString('base64');
         return `compressed:${serialized}`;
       }
-      
+
       return serialized;
     } catch (error) {
       console.error('Serialization error:', error);
@@ -289,7 +289,7 @@ class CacheOptimizer {
         const decompressed = zlib.gunzipSync(Buffer.from(compressed, 'base64')).toString();
         return JSON.parse(decompressed);
       }
-      
+
       return JSON.parse(serialized);
     } catch (error) {
       console.error('Deserialization error:', error);
@@ -305,7 +305,7 @@ class CacheOptimizer {
   // O(1) - Get cache statistics
   getStats() {
     this.updateMemoryUsage();
-    
+
     return {
       ...this.cacheStats,
       hitRate: this.cacheStats.hits / (this.cacheStats.hits + this.cacheStats.misses) || 0,
@@ -315,7 +315,7 @@ class CacheOptimizer {
         usage: this.cacheStats.memoryUsage
       },
       redis: {
-        connected: !!this.redisClient,
+        connected: Boolean(this.redisClient),
         status: this.redisClient ? 'connected' : 'disconnected'
       }
     };
@@ -324,7 +324,7 @@ class CacheOptimizer {
   // O(1) - Clear all caches
   async clear() {
     this.memoryCache.clear();
-    
+
     if (this.redisClient) {
       await this.redisClient.flushDb();
     }
@@ -342,7 +342,7 @@ class CacheOptimizer {
   // O(1) - Cache health check
   async healthCheck() {
     const stats = this.getStats();
-    
+
     return {
       status: 'healthy',
       memoryCache: {

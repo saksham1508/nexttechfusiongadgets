@@ -53,6 +53,6 @@ const deliveryZoneSchema = new mongoose.Schema({
 });
 
 // Index for geospatial queries
-deliveryZoneSchema.index({ "coordinates.center": "2dsphere" });
+deliveryZoneSchema.index({ 'coordinates.center': '2dsphere' });
 
 module.exports = mongoose.model('DeliveryZone', deliveryZoneSchema);

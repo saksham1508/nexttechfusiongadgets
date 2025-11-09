@@ -5,7 +5,7 @@ const getApiUrl = (): string => {
   return API_URL.replace('/api', ''); // Remove /api suffix for chat service
 };
 
-const API_URL = getApiUrl();
+const CHAT_API_URL = getApiUrl();
 
 export interface ChatMessage {
   id: string;
@@ -38,7 +38,7 @@ class ChatService {
   async sendMessage(message: string, sessionId: string): Promise<ChatResponse> {
     try {
       const response = await axios.post(
-        `${API_URL}/chat/message`,
+        `${CHAT_API_URL}/chat/message`,
         { message, sessionId },
         { headers: this.getAuthHeader() }
       );
@@ -51,7 +51,7 @@ class ChatService {
   async getChatHistory(sessionId: string): Promise<ChatMessage[]> {
     try {
       const response = await axios.get(
-        `${API_URL}/chat/history/${sessionId}`,
+        `${CHAT_API_URL}/chat/history/${sessionId}`,
         { headers: this.getAuthHeader() }
       );
       return response.data.history;

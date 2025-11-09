@@ -12,7 +12,7 @@ class FallbackCacheService {
     this.memoryCache = new Map();
     this.defaultTTL = 3600; // 1 hour
     this.maxMemoryItems = 1000; // Prevent memory overflow
-    
+
     this.initializeRedis();
   }
 
@@ -45,13 +45,13 @@ class FallbackCacheService {
 
       // Try to connect with timeout
       const connectPromise = this.redisClient.connect();
-      const timeoutPromise = new Promise((_, reject) => 
+      const timeoutPromise = new Promise((_, reject) =>
         setTimeout(() => reject(new Error('Redis connection timeout')), 2000)
       );
 
       await Promise.race([connectPromise, timeoutPromise]);
       console.log('✅ Redis connected successfully for fallback cache service');
-      
+
     } catch (error) {
       console.log('⚠️ Redis initialization failed for cache service, using memory cache only:', error.message);
       this.isRedisConnected = false;
@@ -74,10 +74,10 @@ class FallbackCacheService {
 
   _setMemoryCache(key, value, ttl) {
     this._cleanupMemoryCache();
-    
+
     const expiresAt = Date.now() + (ttl * 1000);
     this.memoryCache.set(key, { value, expiresAt });
-    
+
     // Set cleanup timer
     setTimeout(() => {
       this.memoryCache.delete(key);
@@ -86,13 +86,13 @@ class FallbackCacheService {
 
   _getMemoryCache(key) {
     const item = this.memoryCache.get(key);
-    if (!item) return null;
-    
+    if (!item) {return null;}
+
     if (Date.now() > item.expiresAt) {
       this.memoryCache.delete(key);
       return null;
     }
-    
+
     return item.value;
   }
 
@@ -110,7 +110,7 @@ class FallbackCacheService {
       winston.warn('Redis get error, falling back to memory cache:', error.message);
       this.isRedisConnected = false;
     }
-    
+
     // Fallback to memory cache
     const memValue = this._getMemoryCache(key);
     return memValue;
@@ -119,7 +119,7 @@ class FallbackCacheService {
   async set(key, value, ttl = this.defaultTTL) {
     const serialized = JSON.stringify(value);
     let redisSuccess = false;
-    
+
     try {
       // Try Redis first
       if (this.isRedisConnected && this.redisClient) {
@@ -130,10 +130,10 @@ class FallbackCacheService {
       winston.warn('Redis set error, using memory cache only:', error.message);
       this.isRedisConnected = false;
     }
-    
+
     // Always set in memory cache as backup
     this._setMemoryCache(key, value, ttl);
-    
+
     return true; // Always return success since we have memory fallback
   }
 
@@ -147,7 +147,7 @@ class FallbackCacheService {
       winston.warn('Redis delete error:', error.message);
       this.isRedisConnected = false;
     }
-    
+
     // Always delete from memory cache
     this.memoryCache.delete(key);
     return true;
@@ -164,7 +164,7 @@ class FallbackCacheService {
       winston.warn('Redis exists error:', error.message);
       this.isRedisConnected = false;
     }
-    
+
     // Fallback to memory cache
     return this.memoryCache.has(key) && this._getMemoryCache(key) !== null;
   }
@@ -200,21 +200,21 @@ class FallbackCacheService {
       if (this.isRedisConnected && this.redisClient) {
         const key = `rate_limit:${identifier}`;
         const current = await this.redisClient.incr(key);
-        
+
         if (current === 1) {
           await this.redisClient.expire(key, window);
         }
-        
+
         const remaining = Math.max(0, limit - current);
         const allowed = current <= limit;
-        
+
         return { allowed, remaining, current };
       }
     } catch (error) {
       winston.warn('Redis rate limit error, allowing request:', error.message);
       this.isRedisConnected = false;
     }
-    
+
     // Fallback: allow all requests when Redis is unavailable
     return { allowed: true, remaining: limit, current: 0 };
   }
@@ -224,7 +224,7 @@ class FallbackCacheService {
     return {
       redis: {
         connected: this.isRedisConnected,
-        client: !!this.redisClient
+        client: Boolean(this.redisClient)
       },
       memoryCache: {
         size: this.memoryCache.size,

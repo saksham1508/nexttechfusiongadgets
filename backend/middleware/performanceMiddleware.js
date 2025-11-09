@@ -16,7 +16,7 @@ class PerformanceMiddleware {
     return (req, res, next) => {
       const startTime = process.hrtime.bigint();
       const startMemory = process.memoryUsage();
-      
+
       req.startTime = startTime;
       req.startMemory = startMemory;
       this.activeRequests++;
@@ -26,9 +26,9 @@ class PerformanceMiddleware {
         const endTime = process.hrtime.bigint();
         const duration = Number(endTime - startTime) / 1000000; // Convert to ms
         const endMemory = process.memoryUsage();
-        
+
         this.activeRequests--;
-        
+
         // O(1) - Store metrics
         const metrics = {
           method: req.method,
@@ -40,11 +40,11 @@ class PerformanceMiddleware {
         };
 
         this.recordMetrics(req.url, metrics);
-        
+
         // O(1) - Add performance headers
         res.setHeader('X-Response-Time', `${duration.toFixed(2)}ms`);
         res.setHeader('X-Memory-Usage', `${(endMemory.heapUsed / 1024 / 1024).toFixed(2)}MB`);
-        
+
         // Warn about slow queries
         if (duration > this.slowQueryThreshold) {
           console.warn(`Slow query detected: ${req.method} ${req.url} took ${duration.toFixed(2)}ms`);
@@ -70,7 +70,7 @@ class PerformanceMiddleware {
       }
 
       const userRequests = requests.get(key);
-      
+
       // O(k) where k is requests in window - Remove old requests
       const validRequests = userRequests.filter(timestamp => timestamp > windowStart);
       requests.set(key, validRequests);
@@ -100,12 +100,12 @@ class PerformanceMiddleware {
 
       if (heapUsedRatio > this.memoryThreshold) {
         console.warn(`High memory usage: ${(heapUsedRatio * 100).toFixed(2)}%`);
-        
+
         // O(1) - Trigger garbage collection if available
         if (global.gc) {
           global.gc();
         }
-        
+
         // O(1) - Clear expired caches
         cacheOptimizer.clearExpiredCache();
       }
@@ -119,16 +119,16 @@ class PerformanceMiddleware {
   compressionOptimizer() {
     return (req, res, next) => {
       const originalSend = res.send;
-      
+
       res.send = function(data) {
         // O(1) - Compress large responses
         if (typeof data === 'string' && data.length > 1024) {
           const acceptEncoding = req.headers['accept-encoding'] || '';
-          
+
           if (acceptEncoding.includes('gzip')) {
             const zlib = require('zlib');
             const compressed = zlib.gzipSync(data);
-            
+
             if (compressed.length < data.length * 0.8) { // Only if 20% smaller
               res.setHeader('Content-Encoding', 'gzip');
               res.setHeader('Content-Length', compressed.length);
@@ -136,7 +136,7 @@ class PerformanceMiddleware {
             }
           }
         }
-        
+
         return originalSend.call(this, data);
       };
 
@@ -173,7 +173,7 @@ class PerformanceMiddleware {
       }
 
       const cacheKey = `route:${req.originalUrl}`;
-      
+
       try {
         // O(1) - Check cache
         const cached = await cacheOptimizer.get(cacheKey);
@@ -190,7 +190,7 @@ class PerformanceMiddleware {
           if (res.statusCode === 200) {
             cacheOptimizer.set(cacheKey, data, ttl);
           }
-          
+
           res.setHeader('X-Cache', 'MISS');
           res.setHeader('Cache-Control', `public, max-age=${ttl}`);
           return originalJson.call(this, data);
@@ -210,7 +210,7 @@ class PerformanceMiddleware {
 
     return (req, res, next) => {
       const key = `${req.method}:${req.route?.path || req.url}`;
-      
+
       if (!circuits.has(key)) {
         circuits.set(key, {
           failures: 0,
@@ -242,7 +242,7 @@ class PerformanceMiddleware {
         if (res.statusCode >= 500) {
           circuit.failures++;
           circuit.lastFailure = now;
-          
+
           if (circuit.failures >= failureThreshold) {
             circuit.state = 'OPEN';
             console.warn(`Circuit breaker opened for ${key}`);
@@ -261,7 +261,7 @@ class PerformanceMiddleware {
   // O(k) - Optimize query parameters
   optimizeQueryParams(query) {
     const optimized = {};
-    
+
     for (const [key, value] of Object.entries(query)) {
       // O(1) - Type conversion and validation
       if (key === 'page' || key === 'limit') {
@@ -277,7 +277,7 @@ class PerformanceMiddleware {
         optimized[key] = value;
       }
     }
-    
+
     return optimized;
   }
 
@@ -285,22 +285,22 @@ class PerformanceMiddleware {
   validateSortParam(sortParam) {
     const allowedFields = ['name', 'price', 'rating', 'createdAt', 'updatedAt'];
     const allowedOrders = ['asc', 'desc', '1', '-1'];
-    
+
     if (typeof sortParam === 'string') {
       const [field, order = 'asc'] = sortParam.split(':');
-      
+
       if (allowedFields.includes(field) && allowedOrders.includes(order)) {
         return `${field}:${order}`;
       }
     }
-    
+
     return 'createdAt:desc'; // Default sort
   }
 
   // O(1) - Record performance metrics
   recordMetrics(url, metrics) {
     const key = `${metrics.method}:${url}`;
-    
+
     if (!this.requestMetrics.has(key)) {
       this.requestMetrics.set(key, {
         count: 0,
@@ -318,7 +318,7 @@ class PerformanceMiddleware {
     stats.avgDuration = stats.totalDuration / stats.count;
     stats.maxDuration = Math.max(stats.maxDuration, metrics.duration);
     stats.minDuration = Math.min(stats.minDuration, metrics.duration);
-    
+
     if (metrics.statusCode >= 400) {
       stats.errors++;
     }
@@ -357,7 +357,7 @@ class PerformanceMiddleware {
     return (req, res) => {
       const memoryUsage = process.memoryUsage();
       const heapUsedRatio = memoryUsage.heapUsed / memoryUsage.heapTotal;
-      
+
       const health = {
         status: 'healthy',
         timestamp: new Date().toISOString(),

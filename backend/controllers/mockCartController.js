@@ -8,7 +8,7 @@ let mockCarts = new Map();
 const getMockProduct = (productId) => {
   // Try to find in mock products first
   let product = mockProducts.find(p => p._id === productId || p.id === productId);
-  
+
   if (!product) {
     // Create a mock product if not found
     product = {
@@ -22,7 +22,7 @@ const getMockProduct = (productId) => {
       brand: 'Mock Brand'
     };
   }
-  
+
   return product;
 };
 
@@ -33,7 +33,7 @@ const getCart = async (req, res) => {
   try {
     const userId = req.user._id || req.user.id;
     const cart = mockCarts.get(userId) || { items: [], totalAmount: 0 };
-    
+
     // Populate product details
     const populatedCart = {
       ...cart,
@@ -42,7 +42,7 @@ const getCart = async (req, res) => {
         product: getMockProduct(item.product)
       }))
     };
-    
+
     res.json(populatedCart);
   } catch (error) {
     console.error('Mock cart get error:', error);
@@ -56,22 +56,22 @@ const getCart = async (req, res) => {
 const addToCart = async (req, res) => {
   try {
     console.log('🛒 Add to cart request:', { body: req.body, user: req.user });
-    
+
     const { productId, quantity } = req.body;
     const userId = req.user._id || req.user.id;
-    
+
     if (!req.user) {
       console.error('❌ No user found in request');
       return res.status(401).json({ message: 'Authentication required' });
     }
-    
+
     if (!productId || !quantity) {
       console.error('❌ Missing productId or quantity:', { productId, quantity });
       return res.status(400).json({ message: 'Product ID and quantity are required' });
     }
-    
+
     const product = getMockProduct(productId);
-    
+
     if (product.stock < quantity) {
       return res.status(400).json({ message: 'Insufficient stock' });
     }
@@ -95,7 +95,7 @@ const addToCart = async (req, res) => {
     }, 0);
 
     mockCarts.set(userId, cart);
-    
+
     // Return populated cart
     const populatedCart = {
       ...cart,
@@ -104,7 +104,7 @@ const addToCart = async (req, res) => {
         product: getMockProduct(item.product)
       }))
     };
-    
+
     console.log('✅ Cart updated successfully:', populatedCart);
     res.json(populatedCart);
   } catch (error) {
@@ -120,7 +120,7 @@ const updateCartItem = async (req, res) => {
   try {
     const { productId, quantity } = req.body;
     const userId = req.user._id || req.user.id;
-    
+
     const cart = mockCarts.get(userId);
     if (!cart) {
       return res.status(404).json({ message: 'Cart not found' });
@@ -147,7 +147,7 @@ const updateCartItem = async (req, res) => {
     }, 0);
 
     mockCarts.set(userId, cart);
-    
+
     // Return populated cart
     const populatedCart = {
       ...cart,
@@ -156,7 +156,7 @@ const updateCartItem = async (req, res) => {
         product: getMockProduct(item.product)
       }))
     };
-    
+
     res.json(populatedCart);
   } catch (error) {
     console.error('Mock cart update error:', error);
@@ -171,7 +171,7 @@ const removeFromCart = async (req, res) => {
   try {
     const userId = req.user._id || req.user.id;
     const cart = mockCarts.get(userId);
-    
+
     if (!cart) {
       return res.status(404).json({ message: 'Cart not found' });
     }
@@ -187,7 +187,7 @@ const removeFromCart = async (req, res) => {
     }, 0);
 
     mockCarts.set(userId, cart);
-    
+
     // Return populated cart
     const populatedCart = {
       ...cart,
@@ -196,7 +196,7 @@ const removeFromCart = async (req, res) => {
         product: getMockProduct(item.product)
       }))
     };
-    
+
     res.json(populatedCart);
   } catch (error) {
     console.error('Mock cart remove error:', error);

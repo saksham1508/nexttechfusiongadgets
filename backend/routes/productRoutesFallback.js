@@ -23,7 +23,7 @@ router.post('/:id/track', rateLimits.api, (req, res) => {
     const { getMockProducts } = require('../controllers/productControllerFallback');
     const list = getMockProducts();
     const p = list.find(x => x._id === req.params.id);
-    if (!p) return res.status(404).json({ success: false, message: 'Product not found' });
+    if (!p) {return res.status(404).json({ success: false, message: 'Product not found' });}
     p.analytics = p.analytics || { views: 0, clicks: 0 };
     p.analytics.clicks = Number(p.analytics.clicks || 0) + 1;
     p.updatedAt = new Date();

@@ -15,7 +15,7 @@ const addOrderItems = async (req, res) => {
       itemsPrice,
       taxPrice,
       shippingPrice,
-      totalPrice,
+      totalPrice
     } = req.body;
 
     if (orderItems && orderItems.length === 0) {
@@ -29,8 +29,8 @@ const addOrderItems = async (req, res) => {
         return res.status(404).json({ message: `Product ${item.name} not found` });
       }
       if (product.stock < item.quantity) {
-        return res.status(400).json({ 
-          message: `Insufficient stock for ${item.name}. Available: ${product.stock}` 
+        return res.status(400).json({
+          message: `Insufficient stock for ${item.name}. Available: ${product.stock}`
         });
       }
     }
@@ -43,7 +43,7 @@ const addOrderItems = async (req, res) => {
         name: productDoc.name,
         quantity: item.quantity,
         price: item.price ?? productDoc.price,
-        image: (productDoc.images && productDoc.images[0] && productDoc.images[0].url) || undefined,
+        image: (productDoc.images && productDoc.images[0] && productDoc.images[0].url) || undefined
       });
     }
 
@@ -61,7 +61,7 @@ const addOrderItems = async (req, res) => {
       shippingPrice,
       totalPrice,
       isPaid: provider !== 'cod',
-      paidAt: provider !== 'cod' ? Date.now() : undefined,
+      paidAt: provider !== 'cod' ? Date.now() : undefined
     });
 
     const createdOrder = await order.save();
@@ -141,7 +141,7 @@ const updateOrderToPaid = async (req, res) => {
         id: req.body.id,
         status: req.body.status,
         update_time: req.body.update_time,
-        email_address: req.body.email_address,
+        email_address: req.body.email_address
       };
       order.status = 'processing';
 

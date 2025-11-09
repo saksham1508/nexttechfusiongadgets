@@ -78,7 +78,7 @@ router.put('/:id/default', auth, asyncHandler(async (req, res) => {
         { isDefault: true },
         { new: true }
       );
-    
+
       return res.json({ success: true, message: 'Default updated', data: updated });
     }
     const updated = await paymentService.setDefaultPaymentMethod(req.user, req.params.id);
@@ -99,7 +99,7 @@ router.use('/instamojo', instamojoRouter);
 router.post('/stripe/create-intent', auth, asyncHandler(async (req, res) => {
   try {
     const svcFn = paymentService.createStripeIntent || paymentService.createStripePaymentIntent;
-    if (typeof svcFn !== 'function') throw new Error('Stripe create intent not implemented');
+    if (typeof svcFn !== 'function') {throw new Error('Stripe create intent not implemented');}
     const data = await svcFn(req.user, req.body);
     res.json({ success: true, data });
   } catch (err) {
@@ -110,7 +110,7 @@ router.post('/stripe/create-intent', auth, asyncHandler(async (req, res) => {
 router.post('/stripe/confirm-intent', auth, asyncHandler(async (req, res) => {
   try {
     const svcFn = paymentService.confirmStripeIntent || paymentService.confirmStripePayment;
-    if (typeof svcFn !== 'function') throw new Error('Stripe confirm intent not implemented');
+    if (typeof svcFn !== 'function') {throw new Error('Stripe confirm intent not implemented');}
     const data = await svcFn(req.body.paymentIntentId);
     res.json({ success: true, data });
   } catch (err) {
@@ -124,7 +124,7 @@ router.post('/webhooks/stripe', asyncHandler(async (req, res) => {
     return res.status(501).json({ success: false, error: 'Stripe webhook handler not implemented' });
   }
   const result = await paymentService.handleStripeWebhook(req.body, signature);
-  if (!result.success) return errorResponse(res, result.error);
+  if (!result.success) {return errorResponse(res, result.error);}
   res.json({ received: true });
 }));
 
@@ -133,13 +133,13 @@ router.post('/webhooks/stripe', asyncHandler(async (req, res) => {
 ---------------------------- */
 router.post('/razorpay/create-order', optional, asyncHandler(async (req, res) => {
   const result = await paymentService.createRazorpayOrder(req.body.amount, req.body.currency, req.body.receipt, req.body.notes);
-  if (!result.success) return errorResponse(res, result.error);
+  if (!result.success) {return errorResponse(res, result.error);}
   res.json({ success: true, data: result.data });
 }));
 
 router.post('/razorpay/verify', optional, asyncHandler(async (req, res) => {
   const result = await paymentService.verifyRazorpayPayment(req.body.razorpay_order_id, req.body.razorpay_payment_id, req.body.razorpay_signature);
-  if (!result.success) return errorResponse(res, result.error);
+  if (!result.success) {return errorResponse(res, result.error);}
   res.json({ success: true, data: result.data });
 }));
 
@@ -149,7 +149,7 @@ router.post('/webhooks/razorpay', asyncHandler(async (req, res) => {
     return res.status(501).json({ success: false, error: 'Razorpay webhook handler not implemented' });
   }
   const result = await paymentService.handleRazorpayWebhook(req.body, signature);
-  if (!result.success) return errorResponse(res, result.error);
+  if (!result.success) {return errorResponse(res, result.error);}
   res.json({ status: 'ok' });
 }));
 
@@ -158,13 +158,13 @@ router.post('/webhooks/razorpay', asyncHandler(async (req, res) => {
 ---------------------------- */
 router.post('/paypal/create-order', optional, asyncHandler(async (req, res) => {
   const result = await paymentService.createPayPalOrder(req.body.amount, req.body.currency, req.body.items, req.body.returnUrl, req.body.cancelUrl);
-  if (!result.success) return errorResponse(res, result.error);
+  if (!result.success) {return errorResponse(res, result.error);}
   res.json({ success: true, data: result.data });
 }));
 
 router.post('/paypal/capture/:orderId', optional, asyncHandler(async (req, res) => {
   const result = await paymentService.capturePayPalOrder(req.params.orderId);
-  if (!result.success) return errorResponse(res, result.error);
+  if (!result.success) {return errorResponse(res, result.error);}
   res.json({ success: true, data: result.data });
 }));
 
@@ -176,7 +176,7 @@ router.post('/paytm/initiate', optional, asyncHandler(async (req, res) => {
     return res.status(501).json({ success: false, error: 'Paytm initiate not implemented' });
   }
   const result = await paymentService.createPaytmTransaction(req.body);
-  if (!result.success) return errorResponse(res, result.error);
+  if (!result.success) {return errorResponse(res, result.error);}
   res.json({ success: true, data: result.data });
 }));
 
@@ -185,7 +185,7 @@ router.post('/paytm/status', optional, asyncHandler(async (req, res) => {
     return res.status(501).json({ success: false, error: 'Paytm status not implemented' });
   }
   const result = await paymentService.verifyPaytmTransactionStatus(req.body.orderId);
-  if (!result.success) return errorResponse(res, result.error);
+  if (!result.success) {return errorResponse(res, result.error);}
   res.json({ success: true, data: result.data });
 }));
 
@@ -194,7 +194,7 @@ router.post('/paytm/callback', asyncHandler(async (req, res) => {
     return res.status(501).send('Paytm callback verify not implemented');
   }
   const result = await paymentService.verifyPaytmCallback(req.body);
-  if (!result.success) return errorResponse(res, result.error);
+  if (!result.success) {return errorResponse(res, result.error);}
   res.redirect(`${process.env.FRONTEND_URL}/payment/${result.data.STATUS === 'TXN_SUCCESS' ? 'success' : 'failure'}?orderId=${result.data.ORDERID}`);
 }));
 
@@ -207,7 +207,7 @@ router.post('/phonepe/create-order', optional, asyncHandler(async (req, res) => 
   const result = await (typeof paymentService.createPhonePeOrder === 'function'
     ? paymentService.createPhonePeOrder(payload.amount || payload, payload.currency || 'INR', payload.orderId || payload.order_id, payload.userPhone || payload.phone || payload.mobileNumber, payload.redirectUrl, payload.callbackUrl)
     : Promise.resolve({ success: false, error: 'PhonePe create-order not implemented' }));
-  if (!result.success) return errorResponse(res, result.error);
+  if (!result.success) {return errorResponse(res, result.error);}
   res.json({ success: true, data: result.data || result });
 }));
 
@@ -216,7 +216,7 @@ router.post('/phonepe/verify', optional, asyncHandler(async (req, res) => {
     return res.status(501).json({ success: false, error: 'PhonePe verify not implemented' });
   }
   const result = await paymentService.verifyPhonePePayment(req.body.transactionId, req.body.checksum);
-  if (!result.success) return errorResponse(res, result.error);
+  if (!result.success) {return errorResponse(res, result.error);}
   res.json({ success: true, data: result.data });
 }));
 
@@ -225,13 +225,13 @@ router.get('/phonepe/status/:transactionId', optional, asyncHandler(async (req, 
     return res.status(501).json({ success: false, error: 'PhonePe status not implemented' });
   }
   const result = await paymentService.checkPhonePeStatus(req.params.transactionId);
-  if (!result.success) return errorResponse(res, result.error);
+  if (!result.success) {return errorResponse(res, result.error);}
   res.json({ success: true, data: result.data });
 }));
 
 router.post('/phonepe/callback', asyncHandler(async (req, res) => {
   const transactionId = req.body?.transactionId || req.body?.data?.merchantTransactionId;
-  if (!transactionId) return errorResponse(res, 'Transaction ID missing');
+  if (!transactionId) {return errorResponse(res, 'Transaction ID missing');}
 
   if (typeof paymentService.checkPhonePeStatus !== 'function') {
     return res.redirect(`${process.env.FRONTEND_URL}/payment/failure?transactionId=${transactionId}`);
@@ -248,7 +248,7 @@ router.post('/upi/create', optional, asyncHandler(async (req, res) => {
     return res.status(501).json({ success: false, error: 'UPI create not implemented' });
   }
   const result = await paymentService.createUPIPayment(req.body);
-  if (!result.success) return errorResponse(res, result.error);
+  if (!result.success) {return errorResponse(res, result.error);}
   res.json({ success: true, data: result.data });
 }));
 
@@ -257,7 +257,7 @@ router.post('/googlepay/create', auth, asyncHandler(async (req, res) => {
     return res.status(501).json({ success: false, error: 'Google Pay create not implemented' });
   }
   const result = await paymentService.createGooglePayPayment(req.body);
-  if (!result.success) return errorResponse(res, result.error);
+  if (!result.success) {return errorResponse(res, result.error);}
   res.json({ success: true, data: result.data });
 }));
 
@@ -266,7 +266,7 @@ router.post('/googlepay/process', auth, asyncHandler(async (req, res) => {
     return res.status(501).json({ success: false, error: 'Google Pay process not implemented' });
   }
   const result = await paymentService.processGooglePayToken(req.body);
-  if (!result.success) return errorResponse(res, result.error);
+  if (!result.success) {return errorResponse(res, result.error);}
   res.json({ success: true, data: result.data });
 }));
 
@@ -288,7 +288,7 @@ router.post('/refund', auth, asyncHandler(async (req, res) => {
       return res.status(501).json({ success: false, error: 'Refund provider not implemented' });
     }
 
-    if (!result.success) return errorResponse(res, result.error);
+    if (!result.success) {return errorResponse(res, result.error);}
     res.json({ success: true, data: result.data });
   } catch (err) {
     return errorResponse(res, err.message);
@@ -300,7 +300,7 @@ router.post('/phonepe/refund-status', optional, asyncHandler(async (req, res) =>
     return res.status(501).json({ success: false, error: 'PhonePe refund status not implemented' });
   }
   const result = await paymentService.getPhonePeRefundStatus(req.body.refundId);
-  if (!result.success) return errorResponse(res, result.error);
+  if (!result.success) {return errorResponse(res, result.error);}
   res.json({ success: true, data: result.data });
 }));
 

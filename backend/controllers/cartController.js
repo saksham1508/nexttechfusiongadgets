@@ -7,7 +7,7 @@ const Product = require('../models/Product');
 const getCart = async (req, res) => {
   try {
     const cart = await Cart.findOne({ user: req.user._id }).populate('items.product');
-    
+
     if (!cart) {
       return res.json({ items: [], totalAmount: 0 });
     }
@@ -24,19 +24,19 @@ const getCart = async (req, res) => {
 const addToCart = async (req, res) => {
   try {
     console.log('🛒 Add to cart request:', { body: req.body, user: req.user });
-    
+
     const { productId, quantity } = req.body;
-    
+
     if (!req.user) {
       console.error('❌ No user found in request');
       return res.status(401).json({ message: 'Authentication required' });
     }
-    
+
     if (!productId || !quantity) {
       console.error('❌ Missing productId or quantity:', { productId, quantity });
       return res.status(400).json({ message: 'Product ID and quantity are required' });
     }
-    
+
     const product = await Product.findById(productId);
     if (!product) {
       console.error('❌ Product not found:', productId);
@@ -84,7 +84,7 @@ const addToCart = async (req, res) => {
 const updateCartItem = async (req, res) => {
   try {
     const { productId, quantity } = req.body;
-    
+
     const cart = await Cart.findOne({ user: req.user._id });
     if (!cart) {
       return res.status(404).json({ message: 'Cart not found' });

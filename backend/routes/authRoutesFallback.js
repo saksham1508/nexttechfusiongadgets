@@ -44,10 +44,10 @@ const authMiddleware = (realHandler, mockHandler) => {
       if (isMongoAvailable()) {
         console.log('🔄 Using real authentication (MongoDB connected)');
         return await realHandler(req, res, next);
-      } else {
-        console.log('🔄 Using mock authentication (MongoDB not available)');
-        return await mockHandler(req, res, next);
       }
+      console.log('🔄 Using mock authentication (MongoDB not available)');
+      return await mockHandler(req, res, next);
+
     } catch (error) {
       console.log('⚠️ Real auth failed, falling back to mock:', error.message);
       return await mockHandler(req, res, next);
@@ -97,9 +97,9 @@ router.get('/apple', authMiddleware(
     // Check if Apple strategy is available
     if (passport._strategy('apple')) {
       return passport.authenticate('apple', { scope: ['name', 'email'] })(req, res, next);
-    } else {
-      return res.redirect('/api/auth/apple/mock');
     }
+    return res.redirect('/api/auth/apple/mock');
+
   },
   async (req, res) => {
     res.redirect('/api/auth/apple/mock');
@@ -111,9 +111,9 @@ router.post('/apple/callback', authMiddleware(
     // Check if Apple strategy is available
     if (passport._strategy('apple')) {
       return passport.authenticate('apple', { session: false })(req, res, next);
-    } else {
-      return res.redirect('/api/auth/apple/mock');
     }
+    return res.redirect('/api/auth/apple/mock');
+
   },
   async (req, res) => {
     res.redirect('/api/auth/apple/mock');
@@ -134,8 +134,8 @@ router.get('/status', (req, res) => {
     success: true,
     mode: mongoAvailable ? 'real' : 'mock',
     mongoAvailable,
-    message: mongoAvailable 
-      ? 'Using real authentication with MongoDB' 
+    message: mongoAvailable
+      ? 'Using real authentication with MongoDB'
       : 'Using mock authentication (MongoDB not available)',
     timestamp: new Date().toISOString(),
     testCredentials: mongoAvailable ? null : {

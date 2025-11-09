@@ -1,0 +1,186 @@
+# GCP Auto Scaling Configuration for NextTechFusionGadgets
+# Cloud Run auto scaling configuration
+
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: nexttechfusion-backend
+  annotations:
+    run.googleapis.com/ingress: all
+    run.googleapis.com/ingress-status: all
+spec:
+  template:
+    metadata:
+      annotations:
+        autoscaling.knative.dev/maxScale: "10"
+        autoscaling.knative.dev/minScale: "2"
+        autoscaling.knative.dev/target: "70"
+        autoscaling.knative.dev/metric: "cpu"
+        # Concurrency-based scaling
+        autoscaling.knative.dev/target-concurrency: "80"
+        # Memory-based scaling
+        autoscaling.knative.dev/target-memory: "80"
+        # Request-based scaling
+        autoscaling.knative.dev/target-requests-per-second: "100"
+    spec:
+      containers:
+      - image: gcr.io/PROJECT_ID/nexttechfusion-backend:latest
+        ports:
+        - containerPort: 5000
+        resources:
+          limits:
+            cpu: 1000m
+            memory: 512Mi
+          requests:
+            cpu: 500m
+            memory: 256Mi
+        env:
+        - name: NODE_ENV
+          value: "production"
+        - name: PORT
+          value: "5000"
+        # Add other environment variables as needed
+
+---
+# Cloud Scheduler for scheduled scaling (optional)
+# This can be used to pre-warm instances during peak hours
+
+apiVersion: cloudscheduler.googleapis.com/v1
+kind: Job
+metadata:
+  name: scale-up-business-hours
+spec:
+  schedule: "0 9 * * 1-5"  # 9 AM weekdays
+  timeZone: "America/New_York"
+  httpTarget:
+    httpMethod: "POST"
+    uri: "https://run.googleapis.com/v1/projects/PROJECT_ID/locations/REGION/services/nexttechfusion-backend:setIamPolicy"
+    body: |
+      {
+        "policy": {
+          "bindings": [],
+          "etag": "",
+          "version": 1
+        },
+        "updateMask": "bindings"
+      }
+    oauthToken:
+      serviceAccountEmail: SERVICE_ACCOUNT_EMAIL
+
+---
+# Monitoring and Alerting Configuration
+# Cloud Monitoring alerts for auto-scaling
+
+# CPU Utilization Alert
+resource "google_monitoring_alert_policy" "high_cpu_alert" {
+  display_name = "High CPU Utilization Alert"
+  combiner     = "OR"
+
+  conditions {
+    display_name = "CPU utilization > 85%"
+    condition_threshold {
+      filter          = "resource.type = \"cloud_run_revision\" AND resource.labels.service_name = \"nexttechfusion-backend\" AND metric.type = \"run.googleapis.com/container/cpu/utilization\""
+      duration        = "300s"
+      comparison      = "COMPARISON_GT"
+      threshold_value = 0.85
+      aggregations {
+        alignment_period   = "300s"
+        per_series_aligner = "ALIGN_MEAN"
+      }
+    }
+  }
+
+  notification_channels = [google_monitoring_notification_channel.email.name]
+}
+
+# Memory Utilization Alert
+resource "google_monitoring_alert_policy" "high_memory_alert" {
+  display_name = "High Memory Utilization Alert"
+  combiner     = "OR"
+
+  conditions {
+    display_name = "Memory utilization > 90%"
+    condition_threshold {
+      filter          = "resource.type = \"cloud_run_revision\" AND resource.labels.service_name = \"nexttechfusion-backend\" AND metric.type = \"run.googleapis.com/container/memory/utilization\""
+      duration        = "300s"
+      comparison      = "COMPARISON_GT"
+      threshold_value = 0.9
+      aggregations {
+        alignment_period   = "300s"
+        per_series_aligner = "ALIGN_MEAN"
+      }
+    }
+  }
+
+  notification_channels = [google_monitoring_notification_channel.email.name]
+}
+
+# Request Latency Alert
+resource "google_monitoring_alert_policy" "high_latency_alert" {
+  display_name = "High Request Latency Alert"
+  combiner     = "OR"
+
+  conditions {
+    display_name = "Request latency > 2s"
+    condition_threshold {
+      filter          = "resource.type = \"cloud_run_revision\" AND resource.labels.service_name = \"nexttechfusion-backend\" AND metric.type = \"run.googleapis.com/request_latencies\""
+      duration        = "300s"
+      comparison      = "COMPARISON_GT"
+      threshold_value = 2.0
+      aggregations {
+        alignment_period   = "300s"
+        per_series_aligner = "ALIGN_PERCENTILE_95"
+      }
+    }
+  }
+
+  notification_channels = [google_monitoring_notification_channel.email.name]
+}
+
+# Notification Channel
+resource "google_monitoring_notification_channel" "email" {
+  display_name = "Email Notification Channel"
+  type         = "email"
+
+  labels = {
+    email_address = "alerts@yourdomain.com"
+  }
+}
+
+# Custom Scaling Policies (Advanced)
+# These can be used for more complex scaling scenarios
+
+# Scale based on custom metrics
+resource "google_cloud_run_service" "backend_with_custom_scaling" {
+  name     = "nexttechfusion-backend-custom"
+  location = "us-central1"
+
+  template {
+    metadata {
+      annotations = {
+        # Custom metric scaling
+        autoscaling.knative.dev/metric: "custom.googleapis.com/my_custom_metric"
+        autoscaling.knative.dev/target: "50"
+        # Queue-based scaling for async workloads
+        run.googleapis.com/execution-environment: "gen2"
+      }
+    }
+
+    spec {
+      containers {
+        image = "gcr.io/PROJECT_ID/nexttechfusion-backend:latest"
+        resources {
+          limits = {
+            cpu    = "1000m"
+            memory = "512Mi"
+          }
+        }
+      }
+    }
+  }
+
+  traffic {
+    percent         = 100
+    latest_revision = true
+  }
+}

@@ -59,32 +59,32 @@ const getProducts = asyncHandler(async (req, res) => {
   const page = Math.max(1, Number(req.query.page) || 1);
   const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 12));
   const skip = (page - 1) * limit;
-  
+
   // Filter by seller if requested
   let filteredProducts = mockProducts.filter(p => p.isActive);
-  
+
   if (req.query.seller) {
     filteredProducts = filteredProducts.filter(p => p.seller === req.query.seller);
   }
-  
+
   // Apply keyword search
   if (req.query.keyword) {
     const keyword = req.query.keyword.toLowerCase();
-    filteredProducts = filteredProducts.filter(p => 
+    filteredProducts = filteredProducts.filter(p =>
       p.name.toLowerCase().includes(keyword) ||
       p.description.toLowerCase().includes(keyword) ||
       p.category.toLowerCase().includes(keyword) ||
       p.brand.toLowerCase().includes(keyword)
     );
   }
-  
+
   // Apply category filter
   if (req.query.category) {
-    filteredProducts = filteredProducts.filter(p => 
+    filteredProducts = filteredProducts.filter(p =>
       p.category.toLowerCase() === req.query.category.toLowerCase()
     );
   }
-  
+
   // Apply price range filter
   if (req.query.minPrice) {
     filteredProducts = filteredProducts.filter(p => p.price >= Number(req.query.minPrice));
@@ -92,31 +92,31 @@ const getProducts = asyncHandler(async (req, res) => {
   if (req.query.maxPrice) {
     filteredProducts = filteredProducts.filter(p => p.price <= Number(req.query.maxPrice));
   }
-  
+
   // Sort products
   const sortBy = req.query.sortBy || 'newest';
   filteredProducts.sort((a, b) => {
     switch (sortBy) {
-      case 'price-low':
-        return a.price - b.price;
-      case 'price-high':
-        return b.price - a.price;
-      case 'rating':
-        return b.rating - a.rating;
-      case 'popular':
-        return b.numReviews - a.numReviews;
-      case 'name':
-        return a.name.localeCompare(b.name);
-      case 'oldest':
-        return new Date(a.createdAt) - new Date(b.createdAt);
-      default: // newest
-        return new Date(b.createdAt) - new Date(a.createdAt);
+    case 'price-low':
+      return a.price - b.price;
+    case 'price-high':
+      return b.price - a.price;
+    case 'rating':
+      return b.rating - a.rating;
+    case 'popular':
+      return b.numReviews - a.numReviews;
+    case 'name':
+      return a.name.localeCompare(b.name);
+    case 'oldest':
+      return new Date(a.createdAt) - new Date(b.createdAt);
+    default: // newest
+      return new Date(b.createdAt) - new Date(a.createdAt);
     }
   });
-  
+
   const totalCount = filteredProducts.length;
   const paginatedProducts = filteredProducts.slice(skip, skip + limit);
-  
+
   res.json({
     success: true,
     data: {
@@ -139,7 +139,7 @@ const getProducts = asyncHandler(async (req, res) => {
 // @access  Public
 const getProductById = asyncHandler(async (req, res) => {
   const product = mockProducts.find(p => p._id === req.params.id);
-  
+
   if (!product) {
     return res.status(404).json({
       success: false,
@@ -150,25 +150,25 @@ const getProductById = asyncHandler(async (req, res) => {
       }
     });
   }
-  
+
   // Increment view analytics in mock mode
   product.analytics = product.analytics || { views: 0, clicks: 0 };
   product.analytics.views = Number(product.analytics.views || 0) + 1;
   product.updatedAt = new Date();
-  
+
   // Get related products (same category, different product)
   const relatedProducts = mockProducts
     .filter(p => p.category === product.category && p._id !== product._id && p.isActive)
     .slice(0, 4);
-  
+
   res.json({
     success: true,
     data: {
       product: {
         ...product,
         isInStock: product.countInStock > 0,
-        stockStatus: product.countInStock > 10 ? 'in-stock' : 
-                    product.countInStock > 0 ? 'low-stock' : 'out-of-stock',
+        stockStatus: product.countInStock > 10 ? 'in-stock' :
+          product.countInStock > 0 ? 'low-stock' : 'out-of-stock',
         averageRating: product.rating || 0,
         totalReviews: product.numReviews || 0
       },
@@ -186,14 +186,14 @@ const createProduct = asyncHandler(async (req, res) => {
   const {
     name, description, price, category, brand, countInStock, images
   } = req.body;
-  
+
   // Check for duplicate products
-  const existingProduct = mockProducts.find(p => 
+  const existingProduct = mockProducts.find(p =>
     p.name.toLowerCase() === name.toLowerCase() &&
     p.brand.toLowerCase() === brand.toLowerCase() &&
     p.seller === req.user._id
   );
-  
+
   if (existingProduct) {
     return res.status(409).json({
       success: false,
@@ -204,7 +204,7 @@ const createProduct = asyncHandler(async (req, res) => {
       }
     });
   }
-  
+
   // Support MRP (originalPrice), SKU and variants like Meesho-style catalogs
   const sellingPrice = Number(price);
   const mrp = req.body.originalPrice ? Number(req.body.originalPrice) : sellingPrice;
@@ -217,8 +217,8 @@ const createProduct = asyncHandler(async (req, res) => {
   const rawChannels = Array.isArray(req.body.tags)
     ? req.body.tags
     : Array.isArray(req.body.channels)
-    ? req.body.channels
-    : (req.body.channel ? [req.body.channel] : []);
+      ? req.body.channels
+      : (req.body.channel ? [req.body.channel] : []);
   const normalizedChannels = rawChannels
     .map((t) => String(t).toLowerCase().trim())
     .filter(Boolean);
@@ -244,9 +244,9 @@ const createProduct = asyncHandler(async (req, res) => {
     createdAt: new Date(),
     updatedAt: new Date()
   };
-  
+
   mockProducts.push(newProduct);
-  
+
   res.status(201).json({
     success: true,
     message: 'Product created successfully (Mock Mode)',
@@ -263,7 +263,7 @@ const createProduct = asyncHandler(async (req, res) => {
 // @access  Private/Seller
 const updateProduct = asyncHandler(async (req, res) => {
   const productIndex = mockProducts.findIndex(p => p._id === req.params.id);
-  
+
   if (productIndex === -1) {
     return res.status(404).json({
       success: false,
@@ -274,9 +274,9 @@ const updateProduct = asyncHandler(async (req, res) => {
       }
     });
   }
-  
+
   const product = mockProducts[productIndex];
-  
+
   // Check if user owns this product or is admin
   if (product.seller !== req.user._id && req.user.role !== 'admin') {
     return res.status(403).json({
@@ -288,7 +288,7 @@ const updateProduct = asyncHandler(async (req, res) => {
       }
     });
   }
-  
+
   // Update product
   // Enforce safe pricing and keep SKU if not provided
   const nextPrice = req.body.price != null ? Number(req.body.price) : product.price;
@@ -299,8 +299,8 @@ const updateProduct = asyncHandler(async (req, res) => {
   const rawChannels = Array.isArray(req.body.tags)
     ? req.body.tags
     : Array.isArray(req.body.channels)
-    ? req.body.channels
-    : (req.body.channel ? [req.body.channel] : product.tags || []);
+      ? req.body.channels
+      : (req.body.channel ? [req.body.channel] : product.tags || []);
   const normalizedChannels = rawChannels.map((t) => String(t).toLowerCase().trim()).filter(Boolean);
 
   const updatedProduct = {
@@ -315,9 +315,9 @@ const updateProduct = asyncHandler(async (req, res) => {
     seller: product.seller, // Preserve seller
     updatedAt: new Date()
   };
-  
+
   mockProducts[productIndex] = updatedProduct;
-  
+
   res.json({
     success: true,
     message: 'Product updated successfully (Mock Mode)',
@@ -334,7 +334,7 @@ const updateProduct = asyncHandler(async (req, res) => {
 // @access  Private/Seller
 const deleteProduct = asyncHandler(async (req, res) => {
   const productIndex = mockProducts.findIndex(p => p._id === req.params.id);
-  
+
   if (productIndex === -1) {
     return res.status(404).json({
       success: false,
@@ -345,9 +345,9 @@ const deleteProduct = asyncHandler(async (req, res) => {
       }
     });
   }
-  
+
   const product = mockProducts[productIndex];
-  
+
   // Check if user owns this product or is admin
   if (product.seller !== req.user._id && req.user.role !== 'admin') {
     return res.status(403).json({
@@ -359,10 +359,10 @@ const deleteProduct = asyncHandler(async (req, res) => {
       }
     });
   }
-  
+
   // Remove product from array
   mockProducts.splice(productIndex, 1);
-  
+
   res.json({
     success: true,
     message: 'Product deleted successfully (Mock Mode)',

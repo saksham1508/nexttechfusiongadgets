@@ -69,8 +69,8 @@ Available product categories: Smartphones, Laptops, Tablets, Smartwatches, Headp
     if (process.env.NODE_ENV === 'production' && process.env.GEMINI_API_KEY) {
       try {
         const contextBits = [];
-        if (context.userHistory) contextBits.push(`User context: ${JSON.stringify(context.userHistory)}`);
-        if (context.currentProducts) contextBits.push(`Current products: ${JSON.stringify(context.currentProducts)}`);
+        if (context.userHistory) {contextBits.push(`User context: ${JSON.stringify(context.userHistory)}`);}
+        if (context.currentProducts) {contextBits.push(`Current products: ${JSON.stringify(context.currentProducts)}`);}
         const prompt = `${this.systemPrompt}\n${contextBits.join('\n')}\nUser: ${userMessage}`;
         const message = await generateWithGemini({ text: prompt });
         return { success: true, message };
@@ -140,7 +140,7 @@ Available product categories: Smartphones, Laptops, Tablets, Smartwatches, Headp
       const response = await openai.chat.completions.create({
         model: 'gpt-3.5-turbo',
         messages: [
-          { role: 'system', content: `Analyze the user's message and return a JSON object with: { "intent": "product_search|order_inquiry|payment_issue|technical_support|general_question|complaint|refund_request", "category": "smartphones|laptops|tablets|smartwatches|headphones|gaming|accessories|smart_home|payment|general", "urgency": "low|medium|high", "keywords": ["keyword1"], "requiresHuman": boolean, "paymentRelated": boolean }` },
+          { role: 'system', content: 'Analyze the user\'s message and return a JSON object with: { "intent": "product_search|order_inquiry|payment_issue|technical_support|general_question|complaint|refund_request", "category": "smartphones|laptops|tablets|smartwatches|headphones|gaming|accessories|smart_home|payment|general", "urgency": "low|medium|high", "keywords": ["keyword1"], "requiresHuman": boolean, "paymentRelated": boolean }' },
           { role: 'user', content: message }
         ],
         max_tokens: 200,
@@ -168,7 +168,7 @@ Available product categories: Smartphones, Laptops, Tablets, Smartwatches, Headp
       const response = await openai.chat.completions.create({
         model: 'gpt-3.5-turbo',
         messages: [
-          { role: 'system', content: `Analyze payment failure data and provide insights as JSON { primaryCause, recommendations[], userFriendlyMessage, preventionTips[], severity }` },
+          { role: 'system', content: 'Analyze payment failure data and provide insights as JSON { primaryCause, recommendations[], userFriendlyMessage, preventionTips[], severity }' },
           { role: 'user', content: `Payment failure data: ${JSON.stringify(failureData)}` }
         ],
         max_tokens: 300,
@@ -200,7 +200,7 @@ Available product categories: Smartphones, Laptops, Tablets, Smartwatches, Headp
       const response = await openai.chat.completions.create({
         model: 'gpt-3.5-turbo',
         messages: [
-          { role: 'system', content: `Based on user profile and transaction history, recommend optimal payment methods. Return JSON { recommendedMethods[], insights[], optimizations[] }` },
+          { role: 'system', content: 'Based on user profile and transaction history, recommend optimal payment methods. Return JSON { recommendedMethods[], insights[], optimizations[] }' },
           { role: 'user', content: `User profile: ${JSON.stringify(userProfile)}, Transaction history: ${JSON.stringify(transactionHistory)}` }
         ],
         max_tokens: 400,

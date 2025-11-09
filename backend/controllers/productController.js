@@ -27,19 +27,19 @@ class ProductMetrics {
 
   recordSearch(keyword) {
     if (keyword) {
-      this.searchPatterns.set(keyword.toLowerCase(), 
+      this.searchPatterns.set(keyword.toLowerCase(),
         (this.searchPatterns.get(keyword.toLowerCase()) || 0) + 1);
     }
   }
 
   recordProductView(productId) {
-    this.popularProducts.set(productId, 
+    this.popularProducts.set(productId,
       (this.popularProducts.get(productId) || 0) + 1);
   }
 
   getMetrics() {
-    const avgQueryTime = this.queryPerformance.length > 0 
-      ? this.queryPerformance.reduce((sum, q) => sum + q.duration, 0) / this.queryPerformance.length 
+    const avgQueryTime = this.queryPerformance.length > 0
+      ? this.queryPerformance.reduce((sum, q) => sum + q.duration, 0) / this.queryPerformance.length
       : 0;
 
     return {
@@ -59,11 +59,11 @@ const productMetrics = new ProductMetrics();
 
 // Agile: Utility functions for better code organization
 const buildSearchQuery = (keyword) => {
-  if (!keyword) return {};
-  
+  if (!keyword) {return {};}
+
   // Enhanced search with fuzzy matching and relevance scoring
   const searchTerms = keyword.split(' ').filter(term => term.length > 2);
-  
+
   return {
     $or: [
       { name: { $regex: keyword, $options: 'i' } },
@@ -79,25 +79,25 @@ const buildSearchQuery = (keyword) => {
 
 const buildFilterQuery = (filters) => {
   const query = { isActive: true };
-  
+
   if (filters.category) {
     query.category = filters.category;
   }
-  
+
   if (filters.brand) {
     query.brand = filters.brand;
   }
-  
+
   if (filters.minPrice || filters.maxPrice) {
     query.price = {};
-    if (filters.minPrice) query.price.$gte = Number(filters.minPrice);
-    if (filters.maxPrice) query.price.$lte = Number(filters.maxPrice);
+    if (filters.minPrice) {query.price.$gte = Number(filters.minPrice);}
+    if (filters.maxPrice) {query.price.$lte = Number(filters.maxPrice);}
   }
-  
+
   if (filters.inStock === 'true') {
     query.countInStock = { $gt: 0 };
   }
-  
+
   if (filters.rating) {
     query.rating = { $gte: Number(filters.rating) };
   }
@@ -111,8 +111,8 @@ const buildFilterQuery = (filters) => {
   if (filters.channel && !filters.tags) {
     const ch = String(filters.channel).toLowerCase();
     const mapped = ch === 'quick' || ch === 'quick-commerce' ? ['quick-commerce']
-                  : ch === 'ecom' || ch === 'e-commerce' || ch === 'ecommerce' ? ['e-commerce']
-                  : [];
+      : ch === 'ecom' || ch === 'e-commerce' || ch === 'ecommerce' ? ['e-commerce']
+        : [];
     if (mapped.length) {
       query.tags = { $in: mapped };
     }
@@ -134,7 +134,7 @@ const buildFilterQuery = (filters) => {
       }
     }
   }
-  
+
   return query;
 };
 
@@ -148,7 +148,7 @@ const getSortOptions = (sortBy) => {
     'popular': { numReviews: -1 },
     'name': { name: 1 }
   };
-  
+
   return sortOptions[sortBy] || { createdAt: -1 };
 };
 
@@ -157,23 +157,23 @@ const getSortOptions = (sortBy) => {
 // @access  Public
 const getProducts = asyncHandler(async (req, res) => {
   const startTime = Date.now();
-  
+
   // Six Sigma: Measure - Extract and validate parameters
   const page = Math.max(1, Number(req.query.page) || 1);
   const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 12));
   const sortBy = req.query.sortBy || 'newest';
   const keyword = req.query.keyword?.trim();
-  
+
   // Record search pattern
   if (keyword) {
     productMetrics.recordSearch(keyword);
   }
-  
+
   // Build query
   const searchQuery = buildSearchQuery(keyword);
   const filterQuery = buildFilterQuery(req.query);
   const finalQuery = { ...searchQuery, ...filterQuery };
-  
+
   // Six Sigma: Analyze - Optimize database queries
   const [products, totalCount] = await Promise.all([
     Product.find(finalQuery)
@@ -183,15 +183,15 @@ const getProducts = asyncHandler(async (req, res) => {
       .limit(limit)
       .skip((page - 1) * limit)
       .lean(), // Lean: faster queries
-    
+
     Product.countDocuments(finalQuery)
   ]);
-  
+
   const queryDuration = Date.now() - startTime;
-  
+
   // Record performance metrics
   productMetrics.recordQuery('getProducts', queryDuration, products.length, req.query);
-  
+
   // Six Sigma: Control - Structured response with metadata
   const response = {
     success: true,
@@ -208,7 +208,7 @@ const getProducts = asyncHandler(async (req, res) => {
       filters: {
         keyword,
         sortBy,
-        appliedFilters: Object.keys(req.query).filter(key => 
+        appliedFilters: Object.keys(req.query).filter(key =>
           !['page', 'limit', 'sortBy'].includes(key) && req.query[key]
         )
       },
@@ -220,13 +220,13 @@ const getProducts = asyncHandler(async (req, res) => {
     timestamp: new Date().toISOString(),
     correlationId: req.correlationId
   };
-  
+
   // Agile: Add cache headers for better performance
   res.set({
     'Cache-Control': 'public, max-age=300', // 5 minutes cache
     'ETag': `"products-${page}-${limit}-${JSON.stringify(req.query).length}"`
   });
-  
+
   res.json(response);
 });
 
@@ -236,10 +236,10 @@ const getProducts = asyncHandler(async (req, res) => {
 const getProductById = asyncHandler(async (req, res) => {
   const startTime = Date.now();
   const productId = req.params.id;
-  
+
   // Record product view for analytics
   productMetrics.recordProductView(productId);
-  
+
   // Six Sigma: Analyze - Fetch product with related data
   const [product, relatedProducts] = await Promise.all([
     Product.findById(productId)
@@ -249,7 +249,7 @@ const getProductById = asyncHandler(async (req, res) => {
         select: 'name'
       })
       .lean(),
-    
+
     // Get related products (same category, different product)
     Product.find({
       category: { $exists: true },
@@ -260,7 +260,7 @@ const getProductById = asyncHandler(async (req, res) => {
       .select('name price images rating category')
       .lean()
   ]);
-  
+
   if (!product) {
     return res.status(404).json({
       success: false,
@@ -276,14 +276,14 @@ const getProductById = asyncHandler(async (req, res) => {
   try {
     await Product.updateOne({ _id: productId }, { $inc: { 'analytics.views': 1 } });
   } catch (_) { /* ignore analytics update errors */ }
-  
+
   // Filter related products by same category
-  const filteredRelatedProducts = relatedProducts.filter(p => 
+  const filteredRelatedProducts = relatedProducts.filter(p =>
     p.category === product.category
   ).slice(0, 4);
-  
+
   const queryDuration = Date.now() - startTime;
-  
+
   // Six Sigma: Control - Enhanced response with analytics
   const response = {
     success: true,
@@ -292,8 +292,8 @@ const getProductById = asyncHandler(async (req, res) => {
         ...product,
         // Add computed fields
         isInStock: product.countInStock > 0,
-        stockStatus: product.countInStock > 10 ? 'in-stock' : 
-                    product.countInStock > 0 ? 'low-stock' : 'out-of-stock',
+        stockStatus: product.countInStock > 10 ? 'in-stock' :
+          product.countInStock > 0 ? 'low-stock' : 'out-of-stock',
         averageRating: product.rating || 0,
         totalReviews: product.numReviews || 0,
         priceHistory: [], // Could be populated from a price tracking system
@@ -310,13 +310,13 @@ const getProductById = asyncHandler(async (req, res) => {
     timestamp: new Date().toISOString(),
     correlationId: req.correlationId
   };
-  
+
   // Agile: Cache headers for product details
   res.set({
     'Cache-Control': 'public, max-age=600', // 10 minutes cache
     'ETag': `"product-${productId}-${product.updatedAt}"`
   });
-  
+
   res.json(response);
 });
 
@@ -325,20 +325,20 @@ const getProductById = asyncHandler(async (req, res) => {
 // @access  Private/Seller
 const createProduct = asyncHandler(async (req, res) => {
   const startTime = Date.now();
-  
+
   // Six Sigma: Define - Validate business rules
   const {
     name, description, price, category, brand, countInStock,
     images, specifications, tags, features, sku, originalPrice
   } = req.body;
-  
+
   // Check for duplicate products (same name + brand + seller)
   const existingProduct = await Product.findOne({
     name: { $regex: new RegExp(`^${name}$`, 'i') },
     brand: { $regex: new RegExp(`^${brand}$`, 'i') },
     seller: req.user._id
   });
-  
+
   if (existingProduct) {
     return res.status(409).json({
       success: false,
@@ -349,14 +349,14 @@ const createProduct = asyncHandler(async (req, res) => {
       }
     });
   }
-  
+
   // Resolve category if a non-ObjectId string was provided (fallback by name)
   let categoryId = category;
   try {
     if (category && !String(category).match(/^[0-9a-fA-F]{24}$/)) {
       const Category = require('../models/Category');
       const found = await Category.findOne({ name: new RegExp(`^${String(category)}$`, 'i') }).lean();
-      if (found?._id) categoryId = found._id;
+      if (found?._id) {categoryId = found._id;}
     }
   } catch {}
 
@@ -367,7 +367,7 @@ const createProduct = asyncHandler(async (req, res) => {
 
   // Normalize sales channel tags safely
   const normalizeTags = (arr) => {
-    if (!Array.isArray(arr)) return [];
+    if (!Array.isArray(arr)) {return [];}
     return Array.from(new Set(arr
       .map((t) => String(t || '').toLowerCase().trim())
       .filter(Boolean)
@@ -406,15 +406,15 @@ const createProduct = asyncHandler(async (req, res) => {
     createdAt: new Date(),
     updatedAt: new Date()
   };
-  
+
   const product = new Product(productData);
   const createdProduct = await product.save();
-  
+
   // Populate seller information for response
   await createdProduct.populate('seller', 'name email');
-  
+
   const processingTime = Date.now() - startTime;
-  
+
   // Six Sigma: Control - Structured success response
   const response = {
     success: true,
@@ -430,7 +430,7 @@ const createProduct = asyncHandler(async (req, res) => {
     timestamp: new Date().toISOString(),
     correlationId: req.correlationId
   };
-  
+
   res.status(201).json(response);
 });
 
@@ -559,7 +559,7 @@ const createProductReview = async (req, res) => {
         name: req.user.name,
         rating: Number(rating),
         comment,
-        user: req.user._id,
+        user: req.user._id
       };
 
       product.reviews.push(review);
@@ -646,7 +646,7 @@ const getProductAnalytics = asyncHandler(async (req, res) => {
 // @access  Private/Admin
 const bulkUpdateProducts = asyncHandler(async (req, res) => {
   const { productIds, updates } = req.body;
-  
+
   if (!productIds || !Array.isArray(productIds) || productIds.length === 0) {
     return res.status(400).json({
       success: false,
@@ -696,7 +696,7 @@ const bulkUpdateProducts = asyncHandler(async (req, res) => {
 const searchProducts = asyncHandler(async (req, res) => {
   const startTime = Date.now();
   const { q: query, filters, sort, page = 1, limit = 12 } = req.query;
-  
+
   if (!query || query.trim().length < 2) {
     return res.status(400).json({
       success: false,

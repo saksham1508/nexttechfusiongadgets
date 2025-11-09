@@ -22,7 +22,7 @@ router.get('/addresses', auth, async (req, res) => {
   try {
     const userId = req.user.id || req.user._id;
     let addresses = [];
-    
+
     if (isMongoAvailable()) {
       // Try to get user from database
       try {
@@ -46,7 +46,7 @@ router.get('/addresses', auth, async (req, res) => {
         console.log('Database error, falling back to mock addresses:', dbError.message);
       }
     }
-    
+
     // Fallback to mock addresses if MongoDB is not available or user not found
     if (addresses.length === 0) {
       const userAddresses = mockAddresses.get(userId) || [];
@@ -112,7 +112,7 @@ router.post('/addresses', auth, async (req, res) => {
           // Return the new address in the expected format
           const savedAddress = user.address[user.address.length - 1];
           responseAddress.id = savedAddress._id;
-          
+
           console.log(`✅ Address saved to MongoDB for user ${req.user.name}`);
           return res.status(201).json(responseAddress);
         }
@@ -120,20 +120,20 @@ router.post('/addresses', auth, async (req, res) => {
         console.log('Database error, falling back to mock storage:', dbError.message);
       }
     }
-    
+
     // Fallback to mock storage
     const userAddresses = mockAddresses.get(userId) || [];
-    
+
     // If this is set as default, unset other defaults
     if (isDefault) {
       userAddresses.forEach(addr => {
         addr.isDefault = false;
       });
     }
-    
+
     userAddresses.push(responseAddress);
     mockAddresses.set(userId, userAddresses);
-    
+
     console.log(`✅ Address saved to mock storage for user ${req.user.name}`);
     res.status(201).json(responseAddress);
   } catch (error) {
@@ -195,11 +195,11 @@ router.put('/addresses/:id', auth, async (req, res) => {
         console.log('Database error, falling back to mock storage:', dbError.message);
       }
     }
-    
+
     // Fallback to mock storage
     const userAddresses = mockAddresses.get(userId) || [];
     const addressIndex = userAddresses.findIndex(addr => addr.id === addressId);
-    
+
     if (addressIndex === -1) {
       return res.status(404).json({ message: 'Address not found' });
     }
@@ -213,7 +213,7 @@ router.put('/addresses/:id', auth, async (req, res) => {
 
     userAddresses[addressIndex] = updatedAddress;
     mockAddresses.set(userId, userAddresses);
-    
+
     console.log(`✅ Address updated in mock storage for user ${req.user.name}`);
     res.json(updatedAddress);
   } catch (error) {
@@ -245,18 +245,18 @@ router.delete('/addresses/:id', auth, async (req, res) => {
         console.log('Database error, falling back to mock storage:', dbError.message);
       }
     }
-    
+
     // Fallback to mock storage
     const userAddresses = mockAddresses.get(userId) || [];
     const addressIndex = userAddresses.findIndex(addr => addr.id === addressId);
-    
+
     if (addressIndex === -1) {
       return res.status(404).json({ message: 'Address not found' });
     }
 
     userAddresses.splice(addressIndex, 1);
     mockAddresses.set(userId, userAddresses);
-    
+
     console.log(`✅ Address deleted from mock storage for user ${req.user.name}`);
     res.json({ message: 'Address deleted successfully' });
   } catch (error) {

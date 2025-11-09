@@ -12,7 +12,7 @@ const PORT = process.env.PORT || 5000;
 
 // Initialize Razorpay (with error handling for missing secrets)
 let razorpay = null;
-if (process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET && 
+if (process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET &&
     !process.env.RAZORPAY_KEY_SECRET.includes('PLEASE_ADD')) {
   razorpay = new Razorpay({
     key_id: process.env.RAZORPAY_KEY_ID,
@@ -25,9 +25,9 @@ if (process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET &&
 
 // Initialize PayPal (with error handling for missing secrets)
 let paypalClient = null;
-if (process.env.PAYPAL_CLIENT_ID && process.env.PAYPAL_CLIENT_SECRET && 
+if (process.env.PAYPAL_CLIENT_ID && process.env.PAYPAL_CLIENT_SECRET &&
     !process.env.PAYPAL_CLIENT_SECRET.includes('PLEASE_ADD')) {
-  const environment = process.env.PAYPAL_MODE === 'live' 
+  const environment = process.env.PAYPAL_MODE === 'live'
     ? new paypal.core.LiveEnvironment(process.env.PAYPAL_CLIENT_ID, process.env.PAYPAL_CLIENT_SECRET)
     : new paypal.core.SandboxEnvironment(process.env.PAYPAL_CLIENT_ID, process.env.PAYPAL_CLIENT_SECRET);
   paypalClient = new paypal.core.PayPalHttpClient(environment);
@@ -76,18 +76,18 @@ app.get('/api/vendor/analytics', (req, res) => {
   const productMonthly = [
     { productId: '1', name: 'iPhone 15 Pro', months, series: [5,6,8,7,9,12,10,11,13,12,14,16] },
     { productId: '3', name: 'MacBook Pro M3', months, series: [2,3,2,4,3,5,4,6,5,7,6,8] },
-    { productId: '6', name: 'Sony WH-1000XM5', months, series: [7,8,6,7,8,9,10,9,8,10,11,12] },
+    { productId: '6', name: 'Sony WH-1000XM5', months, series: [7,8,6,7,8,9,10,9,8,10,11,12] }
   ];
 
   const productOrders = [
     { productId: '1', name: 'iPhone 15 Pro', views: 1200, orders: 160 },
     { productId: '6', name: 'Sony WH-1000XM5', views: 900, orders: 110 },
-    { productId: '3', name: 'MacBook Pro M3', views: 600, orders: 70 },
+    { productId: '3', name: 'MacBook Pro M3', views: 600, orders: 70 }
   ];
 
   const totalViews = productOrders.reduce((s, p) => s + p.views, 0);
   const totalOrders = productOrders.reduce((s, p) => s + p.orders, 0);
-  const conversionRate = +(totalViews ? ((totalOrders / totalViews) * 100).toFixed(2) : 0);
+  const conversionRate = Number(totalViews ? ((totalOrders / totalViews) * 100).toFixed(2) : 0);
   const totalSales = 160*999.99 + 110*349.99 + 70*1999.99;
 
   res.json({
@@ -98,7 +98,7 @@ app.get('/api/vendor/analytics', (req, res) => {
         totalViews,
         totalOrders,
         conversionRate,
-        totalSales: +totalSales.toFixed(2),
+        totalSales: Number(totalSales.toFixed(2)),
         returnPercentage: 2.5
       },
       productOrders,
@@ -363,7 +363,7 @@ app.get('/api/products', (req, res) => {
 // Mock product by ID endpoint
 app.get('/api/products/:id', (req, res) => {
   const { id } = req.params;
-  
+
   const products = {
     '1': {
       _id: '1',
@@ -451,7 +451,7 @@ app.get('/api/products/:id', (req, res) => {
       updatedAt: new Date().toISOString()
     }
   };
-  
+
   const product = products[id];
   if (product) {
     res.json({
@@ -469,14 +469,14 @@ app.get('/api/products/:id', (req, res) => {
 // Mock auth endpoints
 app.post('/api/auth/login', (req, res) => {
   const { email, password } = req.body;
-  
+
   if (!email || !password) {
     return res.status(400).json({
       success: false,
       message: 'Email and password are required'
     });
   }
-  
+
   // Mock successful login
   res.json({
     success: true,
@@ -493,14 +493,14 @@ app.post('/api/auth/login', (req, res) => {
 
 app.post('/api/auth/register', (req, res) => {
   const { name, email, password } = req.body;
-  
+
   if (!name || !email || !password) {
     return res.status(400).json({
       success: false,
       message: 'Name, email, and password are required'
     });
   }
-  
+
   // Mock successful registration
   res.json({
     success: true,
@@ -567,7 +567,7 @@ let mockCart = [];
 app.get('/api/cart', (req, res) => {
   console.log('🛒 Cart API: Get cart request');
   const totalAmount = mockCart.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
-  
+
   res.json({
     success: true,
     message: 'Cart retrieved successfully',
@@ -578,7 +578,7 @@ app.get('/api/cart', (req, res) => {
 
 app.post('/api/cart/add', (req, res) => {
   const { productId, quantity = 1 } = req.body;
-  
+
   if (!productId) {
     return res.status(400).json({
       success: false,
@@ -656,7 +656,7 @@ app.post('/api/cart/add', (req, res) => {
 
   // Check if item already exists in cart
   const existingItemIndex = mockCart.findIndex(item => item.product._id === productId);
-  
+
   if (existingItemIndex !== -1) {
     // Update quantity
     mockCart[existingItemIndex].quantity += quantity;
@@ -676,9 +676,9 @@ app.post('/api/cart/add', (req, res) => {
 
   const totalAmount = mockCart.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
 
-  console.log('✅ Cart API: Item added to cart', { 
-    totalItems: mockCart.length, 
-    totalAmount: totalAmount 
+  console.log('✅ Cart API: Item added to cart', {
+    totalItems: mockCart.length,
+    totalAmount: totalAmount
   });
 
   res.json({
@@ -691,7 +691,7 @@ app.post('/api/cart/add', (req, res) => {
 
 app.put('/api/cart/update', (req, res) => {
   const { productId, quantity } = req.body;
-  
+
   if (!productId || quantity < 0) {
     return res.status(400).json({
       success: false,
@@ -700,7 +700,7 @@ app.put('/api/cart/update', (req, res) => {
   }
 
   const existingItemIndex = mockCart.findIndex(item => item.product._id === productId);
-  
+
   if (existingItemIndex === -1) {
     return res.status(404).json({
       success: false,
@@ -728,9 +728,9 @@ app.put('/api/cart/update', (req, res) => {
 
 app.delete('/api/cart/remove/:productId', (req, res) => {
   const { productId } = req.params;
-  
+
   const existingItemIndex = mockCart.findIndex(item => item.product._id === productId);
-  
+
   if (existingItemIndex === -1) {
     return res.status(404).json({
       success: false,
@@ -751,7 +751,7 @@ app.delete('/api/cart/remove/:productId', (req, res) => {
 
 app.delete('/api/cart/clear', (req, res) => {
   mockCart = [];
-  
+
   res.json({
     success: true,
     message: 'Cart cleared successfully',
@@ -771,7 +771,7 @@ app.post('/api/payment-methods/razorpay/create-order', async (req, res) => {
     }
 
     const { amount, currency = 'INR', receipt } = req.body;
-    
+
     if (!amount) {
       return res.status(400).json({
         success: false,
@@ -818,7 +818,7 @@ app.post('/api/payment-methods/razorpay/create-order', async (req, res) => {
 app.post('/api/payment-methods/googlepay/create', async (req, res) => {
   try {
     const { amount, currency = 'INR', orderId } = req.body;
-    
+
     if (!amount || !orderId) {
       return res.status(400).json({
         success: false,
@@ -899,7 +899,7 @@ app.post('/api/payment-methods/googlepay/create', async (req, res) => {
 app.post('/api/payment-methods/razorpay/verify', async (req, res) => {
   try {
     const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
-    
+
     console.log('🔄 Verifying Razorpay payment:', { razorpay_order_id, razorpay_payment_id });
 
     const crypto = require('crypto');
@@ -939,7 +939,7 @@ app.post('/api/payment-methods/razorpay/verify', async (req, res) => {
 
 app.post('/api/payment-methods/googlepay/process', (req, res) => {
   const { amount, currency, orderId, paymentToken, testMode } = req.body;
-  
+
   if (!amount || !orderId || !paymentToken) {
     return res.status(400).json({
       success: false,
@@ -949,7 +949,7 @@ app.post('/api/payment-methods/googlepay/process', (req, res) => {
 
   // Mock payment processing
   const transactionId = `gp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-  
+
   res.json({
     success: true,
     data: {
@@ -1070,13 +1070,13 @@ app.get('/api/categories', (req, res) => {
 // UPI Payment Endpoints
 app.post('/api/payment-methods/upi/create', (req, res) => {
   const { amount, currency = 'INR', orderId, upiId, paymentMode = 'upi' } = req.body;
-  
+
   console.log('🔄 UPI Payment Create Request:', { amount, currency, orderId, upiId, paymentMode });
-  
+
   // Generate UPI payment string
   const merchantUpiId = 'merchant@paytm'; // Your merchant UPI ID
   const upiString = `upi://pay?pa=${merchantUpiId}&pn=NextTechFusionGadgets&am=${amount}&cu=${currency}&tn=Payment for Order ${orderId}`;
-  
+
   res.json({
     success: true,
     message: 'UPI payment initiated',
@@ -1107,9 +1107,9 @@ app.post('/api/payment-methods/upi/create', (req, res) => {
 
 app.post('/api/payment-methods/upi/process', (req, res) => {
   const { paymentId, upiId, amount } = req.body;
-  
+
   console.log('💳 UPI Payment Process Request:', { paymentId, upiId, amount });
-  
+
   // Simulate payment processing
   setTimeout(() => {
     res.json({
@@ -1130,9 +1130,9 @@ app.post('/api/payment-methods/upi/process', (req, res) => {
 // PhonePe Payment Endpoints
 app.post('/api/payment-methods/phonepe/create', (req, res) => {
   const { amount, currency = 'INR', orderId, upiId } = req.body;
-  
+
   console.log('📱 PhonePe Payment Create Request:', { amount, currency, orderId, upiId });
-  
+
   res.json({
     success: true,
     message: 'PhonePe payment initiated',
@@ -1151,9 +1151,9 @@ app.post('/api/payment-methods/phonepe/create', (req, res) => {
 
 app.post('/api/payment-methods/phonepe/process', (req, res) => {
   const { paymentId, upiId, amount } = req.body;
-  
+
   console.log('📱 PhonePe Payment Process Request:', { paymentId, upiId, amount });
-  
+
   setTimeout(() => {
     res.json({
       success: true,
@@ -1173,9 +1173,9 @@ app.post('/api/payment-methods/phonepe/process', (req, res) => {
 // Paytm Payment Endpoints
 app.post('/api/payment-methods/paytm/create', (req, res) => {
   const { amount, currency = 'INR', orderId, upiId } = req.body;
-  
+
   console.log('💰 Paytm Payment Create Request:', { amount, currency, orderId, upiId });
-  
+
   res.json({
     success: true,
     message: 'Paytm payment initiated',
@@ -1194,9 +1194,9 @@ app.post('/api/payment-methods/paytm/create', (req, res) => {
 
 app.post('/api/payment-methods/paytm/process', (req, res) => {
   const { paymentId, upiId, amount } = req.body;
-  
+
   console.log('💰 Paytm Payment Process Request:', { paymentId, upiId, amount });
-  
+
   setTimeout(() => {
     res.json({
       success: true,
@@ -1216,9 +1216,9 @@ app.post('/api/payment-methods/paytm/process', (req, res) => {
 // Card Payment Endpoints (Stripe)
 app.post('/api/payment-methods/card/create', (req, res) => {
   const { amount, currency = 'USD', orderId, cardNumber, expiryDate, cvv } = req.body;
-  
+
   console.log('💳 Card Payment Create Request:', { amount, currency, orderId, cardNumber: cardNumber?.slice(-4) });
-  
+
   res.json({
     success: true,
     message: 'Card payment initiated',
@@ -1235,9 +1235,9 @@ app.post('/api/payment-methods/card/create', (req, res) => {
 
 app.post('/api/payment-methods/card/process', (req, res) => {
   const { paymentId, cardNumber, expiryDate, cvv, amount } = req.body;
-  
+
   console.log('💳 Card Payment Process Request:', { paymentId, cardLast4: cardNumber?.slice(-4), amount });
-  
+
   setTimeout(() => {
     res.json({
       success: true,
@@ -1265,7 +1265,7 @@ app.post('/api/payment-methods/paypal/create-order', async (req, res) => {
     }
 
     const { amount, currency = 'USD', items = [], returnUrl, cancelUrl, orderId } = req.body;
-    
+
     if (!amount) {
       return res.status(400).json({
         success: false,
@@ -1276,7 +1276,7 @@ app.post('/api/payment-methods/paypal/create-order', async (req, res) => {
     console.log('🌐 Creating PayPal order:', { amount, currency, items, orderId });
 
     const request = new paypal.orders.OrdersCreateRequest();
-    request.prefer("return=representation");
+    request.prefer('return=representation');
     request.requestBody({
       intent: 'CAPTURE',
       purchase_units: [{
@@ -1326,7 +1326,7 @@ app.post('/api/payment-methods/paypal/create-order', async (req, res) => {
 app.post('/api/payment-methods/paypal/capture/:orderId', async (req, res) => {
   try {
     const { orderId } = req.params;
-    
+
     console.log('🌐 Capturing PayPal order:', orderId);
 
     const request = new paypal.orders.OrdersCaptureRequest(orderId);
@@ -1358,7 +1358,6 @@ app.post('/api/payment-methods/paypal/capture/:orderId', async (req, res) => {
 });
 
 
-
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error('Error:', err.stack);
@@ -1383,7 +1382,7 @@ app.listen(PORT, () => {
   console.log(`🌐 Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`🔗 Frontend URL: ${process.env.FRONTEND_URL || 'http://localhost:3000'}`);
   console.log(`📚 API Documentation: http://localhost:${PORT}/api`);
-  console.log(`⚡ Simple server mode - no database required`);
+  console.log('⚡ Simple server mode - no database required');
 });
 
 module.exports = app;

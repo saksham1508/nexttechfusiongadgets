@@ -253,31 +253,31 @@ const categories = [
 const seedCategories = async () => {
   try {
     await connectDB();
-    
+
     // Clear existing categories
     await Category.deleteMany({});
     console.log('Cleared existing categories');
-    
+
     // Create Electronics parent category first
     const electronicsCategory = await Category.create(categories[0]);
     console.log('Created Electronics category');
-    
+
     // Create subcategories with Electronics as parent
     const subcategories = categories.slice(1).map(cat => ({
       ...cat,
       parent: electronicsCategory._id
     }));
-    
+
     const createdSubcategories = await Category.insertMany(subcategories);
     console.log(`Created ${createdSubcategories.length} subcategories`);
-    
+
     // Update Electronics category with children
     electronicsCategory.children = createdSubcategories.map(cat => cat._id);
     await electronicsCategory.save();
-    
+
     console.log('✅ Categories seeded successfully!');
     console.log(`Total categories created: ${1 + createdSubcategories.length}`);
-    
+
     process.exit(0);
   } catch (error) {
     console.error('❌ Error seeding categories:', error);

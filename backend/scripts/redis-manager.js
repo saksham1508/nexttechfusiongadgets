@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 
 /**
  * Redis Manager Script
@@ -14,13 +13,13 @@ const envPath = path.join(__dirname, '..', '.env');
 function updateEnvVariable(key, value) {
   let envContent = fs.readFileSync(envPath, 'utf8');
   const regex = new RegExp(`^${key}=.*$`, 'm');
-  
+
   if (regex.test(envContent)) {
     envContent = envContent.replace(regex, `${key}=${value}`);
   } else {
     envContent += `\n${key}=${value}`;
   }
-  
+
   fs.writeFileSync(envPath, envContent);
 }
 
@@ -52,7 +51,7 @@ function checkRedisStatus() {
   console.log(`   REDIS_URL: ${getEnvVariable('REDIS_URL') || 'Not set'}`);
   console.log(`   REDIS_HOST: ${getEnvVariable('REDIS_HOST') || 'Not set'}`);
   console.log(`   REDIS_PORT: ${getEnvVariable('REDIS_PORT') || 'Not set'}`);
-  
+
   if (!disabled) {
     console.log('\n🔍 Testing Redis connection...');
     try {
@@ -87,25 +86,25 @@ function showHelp() {
 const command = process.argv[2];
 
 switch (command) {
-  case 'disable':
-    disableRedis();
-    break;
-  case 'enable':
-    enableRedis();
-    break;
-  case 'status':
-    checkRedisStatus();
-    break;
-  case 'help':
-  case '--help':
-  case '-h':
-    showHelp();
-    break;
-  default:
-    if (command) {
-      console.log(`❌ Unknown command: ${command}`);
-      console.log('');
-    }
-    showHelp();
-    process.exit(1);
+case 'disable':
+  disableRedis();
+  break;
+case 'enable':
+  enableRedis();
+  break;
+case 'status':
+  checkRedisStatus();
+  break;
+case 'help':
+case '--help':
+case '-h':
+  showHelp();
+  break;
+default:
+  if (command) {
+    console.log(`❌ Unknown command: ${command}`);
+    console.log('');
+  }
+  showHelp();
+  process.exit(1);
 }

@@ -20,7 +20,7 @@ if (
   Razorpay = require('razorpay');
   razorpay = new Razorpay({
     key_id: process.env.RAZORPAY_KEY_ID,
-    key_secret: process.env.RAZORPAY_KEY_SECRET,
+    key_secret: process.env.RAZORPAY_KEY_SECRET
   });
 }
 
@@ -29,14 +29,14 @@ if (
 let paypal = null;
 let paypalClient = null;
 
-if (process.env.PAYPAL_CLIENT_ID && process.env.PAYPAL_CLIENT_SECRET && 
+if (process.env.PAYPAL_CLIENT_ID && process.env.PAYPAL_CLIENT_SECRET &&
     process.env.PAYPAL_CLIENT_ID !== 'AYourPayPalClientId1234567890') {
   paypal = require('@paypal/checkout-server-sdk');
   paypalClient = () => {
-    const environment = process.env.PAYPAL_MODE === 'production' 
+    const environment = process.env.PAYPAL_MODE === 'production'
       ? new paypal.core.LiveEnvironment(process.env.PAYPAL_CLIENT_ID, process.env.PAYPAL_CLIENT_SECRET)
       : new paypal.core.SandboxEnvironment(process.env.PAYPAL_CLIENT_ID, process.env.PAYPAL_CLIENT_SECRET);
-    
+
     return new paypal.core.PayPalHttpClient(environment);
   };
 }
@@ -89,7 +89,7 @@ class PaymentService {
         confirmation_method: 'manual',
         confirm: true,
         metadata,
-        return_url: `${process.env.FRONTEND_URL}/payment/success`,
+        return_url: `${process.env.FRONTEND_URL}/payment/success`
       });
 
       return {
@@ -99,7 +99,7 @@ class PaymentService {
           status: paymentIntent.status,
           paymentIntentId: paymentIntent.id,
           requiresAction: paymentIntent.status === 'requires_action',
-          nextAction: paymentIntent.next_action,
+          nextAction: paymentIntent.next_action
         }
       };
     } catch (error) {
@@ -278,7 +278,7 @@ class PaymentService {
       if (isAuthentic) {
         // Fetch payment details
         const payment = await razorpay.payments.fetch(razorpayPaymentId);
-        
+
         console.log('Payment details fetched:', {
           id: payment.id,
           status: payment.status,
@@ -297,13 +297,13 @@ class PaymentService {
             captured: payment.captured
           }
         };
-      } else {
-        console.error('Payment signature verification failed');
-        return {
-          success: false,
-          error: 'Invalid payment signature. Payment verification failed.'
-        };
       }
+      console.error('Payment signature verification failed');
+      return {
+        success: false,
+        error: 'Invalid payment signature. Payment verification failed.'
+      };
+
     } catch (error) {
       console.error('Payment verification error:', error);
       return {
@@ -435,7 +435,7 @@ class PaymentService {
     try {
       // This is a mock implementation
       // In production, integrate with actual UPI payment gateway like Paytm, PhonePe, etc.
-      
+
       const upiPaymentData = {
         paymentId: `upi_${Date.now()}`,
         amount: amount,
@@ -489,14 +489,14 @@ class PaymentService {
             type: 'PAYMENT_GATEWAY',
             parameters: gateway === 'stripe'
               ? {
-                  gateway: 'stripe',
-                  'stripe:publishableKey': process.env.STRIPE_PUBLISHABLE_KEY,
-                  'stripe:version': '2020-08-27'
-                }
+                gateway: 'stripe',
+                'stripe:publishableKey': process.env.STRIPE_PUBLISHABLE_KEY,
+                'stripe:version': '2020-08-27'
+              }
               : {
-                  gateway: 'razorpay',
-                  gatewayMerchantId: process.env.RAZORPAY_KEY_ID || 'demo_merchant'
-                }
+                gateway: 'razorpay',
+                gatewayMerchantId: process.env.RAZORPAY_KEY_ID || 'demo_merchant'
+              }
           }
         }],
         merchantInfo: {
@@ -560,7 +560,7 @@ class PaymentService {
 
       // Process via chosen gateway
       if (gateway === 'stripe') {
-        if (!stripe) throw new Error('Stripe is not configured');
+        if (!stripe) {throw new Error('Stripe is not configured');}
 
         // Google Pay returns a paymentMethodData.tokenizationData.token which for Stripe contains id
         // If we get a raw token, create a PaymentMethod from tokenized card
@@ -609,25 +609,25 @@ class PaymentService {
             processedAt: new Date().toISOString()
           }
         };
-      } else {
-        // Razorpay gateway placeholder – implement server-side capture if needed
-        // Typically you would verify/capture using razorpay.payments API with token details
-        const transactionId = `gp_rzp_${Date.now()}`;
-        return {
-          success: true,
-          data: {
-            transactionId,
-            status: 'completed',
-            amount,
-            currency,
-            orderId,
-            userId,
-            paymentMethod: 'googlepay',
-            gateway: 'razorpay',
-            processedAt: new Date().toISOString()
-          }
-        };
       }
+      // Razorpay gateway placeholder – implement server-side capture if needed
+      // Typically you would verify/capture using razorpay.payments API with token details
+      const transactionId = `gp_rzp_${Date.now()}`;
+      return {
+        success: true,
+        data: {
+          transactionId,
+          status: 'completed',
+          amount,
+          currency,
+          orderId,
+          userId,
+          paymentMethod: 'googlepay',
+          gateway: 'razorpay',
+          processedAt: new Date().toISOString()
+        }
+      };
+
     } catch (error) {
       return {
         success: false,
@@ -669,12 +669,12 @@ class PaymentService {
           success: true,
           data: payload
         };
-      } else {
-        return {
-          success: false,
-          error: 'Invalid webhook signature'
-        };
       }
+      return {
+        success: false,
+        error: 'Invalid webhook signature'
+      };
+
     } catch (error) {
       return {
         success: false,
@@ -816,7 +816,7 @@ class PaymentService {
 
       // Create transaction ID
       const transactionId = `TXN_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      
+
       // Create payment request
       const paymentRequest = {
         merchantId: merchantId,
@@ -834,7 +834,7 @@ class PaymentService {
 
       // Create base64 encoded payload
       const payload = Buffer.from(JSON.stringify(paymentRequest)).toString('base64');
-      
+
       // Create checksum
       const checksumString = payload + '/pg/v1/pay' + saltKey;
       const checksum = crypto.createHash('sha256').update(checksumString).digest('hex') + '###' + saltIndex;
@@ -902,12 +902,12 @@ class PaymentService {
             responseMessage: statusData.message
           }
         };
-      } else {
-        return {
-          success: false,
-          error: statusData.message || 'Payment verification failed'
-        };
       }
+      return {
+        success: false,
+        error: statusData.message || 'Payment verification failed'
+      };
+
     } catch (error) {
       return {
         success: false,
@@ -964,17 +964,17 @@ class PaymentService {
       if (!PaytmChecksum) {
         return { success: false, error: 'Paytm SDK not available. Install paytmchecksum.' };
       }
-      
+
       const mid = process.env.PAYTM_MID;
       const key = process.env.PAYTM_MERCHANT_KEY;
       const website = process.env.PAYTM_WEBSITE || 'WEBSTAGING';
       const industryType = process.env.PAYTM_INDUSTRY_TYPE || 'Retail';
       const channelId = process.env.PAYTM_CHANNEL_ID || 'WEB';
-      
+
       if (!mid || !key) {
         return { success: false, error: 'Paytm MID or Merchant Key not configured' };
       }
-      
+
       const txnAmount = amount.toFixed(2);
       const finalOrderId = orderId || `ORDER_${Date.now()}`;
       const finalCustomerId = customerId || `CUST_${Date.now()}`;
@@ -1010,7 +1010,7 @@ class PaymentService {
       // Call Paytm initiateTransaction to get txnToken
       const apiUrl = `${PAYTM_HOST}/theia/api/v1/initiateTransaction?mid=${mid}&orderId=${finalOrderId}`;
       console.log('Calling Paytm API:', apiUrl);
-      
+
       const requestBody = { body: payload, head: { signature: checksum } };
       console.log('Request body:', JSON.stringify(requestBody, null, 2));
 
@@ -1019,7 +1019,7 @@ class PaymentService {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(requestBody)
       });
-      
+
       const data = await response.json();
       console.log('Paytm API response:', JSON.stringify(data, null, 2));
 
@@ -1072,10 +1072,10 @@ class PaymentService {
       if (!PaytmChecksum) {
         return { success: false, error: 'Paytm SDK not available. Install paytmchecksum.' };
       }
-      
+
       const mid = process.env.PAYTM_MID;
       const key = process.env.PAYTM_MERCHANT_KEY;
-      
+
       if (!mid || !key) {
         return { success: false, error: 'Paytm MID or Merchant Key not configured' };
       }
@@ -1093,7 +1093,7 @@ class PaymentService {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ body, head: { signature: checksum } })
       });
-      
+
       const data = await response.json();
       console.log('Paytm status response:', JSON.stringify(data, null, 2));
 
@@ -1112,15 +1112,15 @@ class PaymentService {
             paymentMode: data.body.paymentMode
           }
         };
-      } else {
-        const errorMsg = data?.body?.resultInfo?.resultMsg || 'Transaction failed';
-        console.error('Paytm transaction failed:', errorMsg);
-        return { 
-          success: false, 
-          error: errorMsg,
-          status: data?.body?.resultInfo?.resultStatus || 'UNKNOWN'
-        };
       }
+      const errorMsg = data?.body?.resultInfo?.resultMsg || 'Transaction failed';
+      console.error('Paytm transaction failed:', errorMsg);
+      return {
+        success: false,
+        error: errorMsg,
+        status: data?.body?.resultInfo?.resultStatus || 'UNKNOWN'
+      };
+
     } catch (error) {
       console.error('Paytm status verification error:', error);
       return { success: false, error: error.message };
@@ -1133,7 +1133,7 @@ class PaymentService {
       const merchantId = process.env.PHONEPE_MERCHANT_ID || 'TEST-M234UMHVRP1FV_25082';
       const secretKey = process.env.PHONEPE_SALT_KEY || process.env.PHONEPE_SECRET_KEY || 'NDRlODYwYTUtZGI4Zi00YTIzLTgwYjMtNmJiMDczYTQzNzQ2';
       const transactionId = `TXN_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      
+
       // Create payment payload
       const paymentPayload = {
         merchantId: merchantId,
@@ -1151,13 +1151,13 @@ class PaymentService {
 
       // Encode payload
       const base64Payload = Buffer.from(JSON.stringify(paymentPayload)).toString('base64');
-      
+
       // Create checksum
       const checksumString = base64Payload + '/pg/v1/pay' + secretKey;
       const checksum = crypto.createHash('sha256').update(checksumString).digest('hex') + '###1';
 
       // PhonePe API endpoint
-      const apiEndpoint = process.env.PHONEPE_ENV === 'production' 
+      const apiEndpoint = process.env.PHONEPE_ENV === 'production'
         ? 'https://api.phonepe.com/apis/hermes/pg/v1/pay'
         : 'https://api-preprod.phonepe.com/apis/hermes/pg/v1/pay';
 
@@ -1191,7 +1191,7 @@ class PaymentService {
     try {
       const merchantId = process.env.PHONEPE_MERCHANT_ID || 'TEST-M234UMHVRP1FV_25082';
       const secretKey = process.env.PHONEPE_SALT_KEY || process.env.PHONEPE_SECRET_KEY || 'NDRlODYwYTUtZGI4Zi00YTIzLTgwYjMtNmJiMDczYTQzNzQ2';
-      
+
       // Create checksum for verification
       const checksumString = `/pg/v1/status/${merchantId}/${transactionId}` + secretKey;
       const calculatedChecksum = crypto.createHash('sha256').update(checksumString).digest('hex') + '###1';
@@ -1224,13 +1224,13 @@ class PaymentService {
             responseCode: data.data.responseCode
           }
         };
-      } else {
-        return {
-          success: false,
-          error: data.message || 'Payment verification failed',
-          status: data.data?.state || 'UNKNOWN'
-        };
       }
+      return {
+        success: false,
+        error: data.message || 'Payment verification failed',
+        status: data.data?.state || 'UNKNOWN'
+      };
+
     } catch (error) {
       console.error('PhonePe verification error:', error);
       return { success: false, error: error.message };
@@ -1241,10 +1241,10 @@ class PaymentService {
     try {
       const merchantId = process.env.PHONEPE_MERCHANT_ID || 'PGTESTPAYUAT';
       const secretKey = process.env.PHONEPE_SALT_KEY || process.env.PHONEPE_SECRET_KEY || '099eb0cd-02cf-4e2a-8aca-3e6c6aff0399';
-      
+
       // Check if we're in development mode with test credentials
-      const isTestMode = process.env.NODE_ENV === 'development' || 
-                        merchantId === 'PGTESTPAYUAT' || 
+      const isTestMode = process.env.NODE_ENV === 'development' ||
+                        merchantId === 'PGTESTPAYUAT' ||
                         process.env.PHONEPE_ENV === 'test';
 
       if (isTestMode) {
@@ -1264,7 +1264,7 @@ class PaymentService {
           }
         };
       }
-      
+
       // Create checksum for status check
       const checksumString = `/pg/v1/status/${merchantId}/${transactionId}` + secretKey;
       const checksum = crypto.createHash('sha256').update(checksumString).digest('hex') + '###1';
@@ -1298,13 +1298,13 @@ class PaymentService {
             responseMessage: data.data.responseCodeDescription
           }
         };
-      } else {
-        return {
-          success: false,
-          error: data.message || 'Status check failed',
-          status: 'UNKNOWN'
-        };
       }
+      return {
+        success: false,
+        error: data.message || 'Status check failed',
+        status: 'UNKNOWN'
+      };
+
     } catch (error) {
       console.error('PhonePe status check error:', error);
       return { success: false, error: error.message };
@@ -1328,7 +1328,7 @@ class PaymentService {
           redirectUrl: redirectUrl || `${process.env.FRONTEND_URL}/payment/phonepe/callback`,
           callbackUrl: callbackUrl || `${process.env.BACKEND_URL}/api/payment-methods/phonepe/callback`,
           merchantUserId: `user_${Date.now()}`,
-          mobileNumber: userPhone || '9999999999',
+          mobileNumber: userPhone || '9999999999'
           // optional fields can be passed here per SDK docs
         });
 
@@ -1380,8 +1380,8 @@ class PaymentService {
         : 'https://api-preprod.phonepe.com/apis/hermes/pg/v1/pay';
 
       // Check if we're in development mode with test credentials
-      const isTestMode = process.env.NODE_ENV === 'development' || 
-                        merchantId === 'PGTESTPAYUAT' || 
+      const isTestMode = process.env.NODE_ENV === 'development' ||
+                        merchantId === 'PGTESTPAYUAT' ||
                         process.env.PHONEPE_ENV === 'test';
 
       if (isTestMode) {
@@ -1431,13 +1431,13 @@ class PaymentService {
             redirectInfo: redirectInfo
           }
         };
-      } else {
-        return {
-          success: false,
-          error: data.message || 'Failed to initiate PhonePe payment',
-          code: data.code
-        };
       }
+      return {
+        success: false,
+        error: data.message || 'Failed to initiate PhonePe payment',
+        code: data.code
+      };
+
 
     } catch (error) {
       console.error('PhonePe order creation error:', error);
@@ -1448,13 +1448,13 @@ class PaymentService {
   async verifyPhonePePayment(transactionId, checksum) {
     try {
       console.log('Verifying PhonePe payment:', { transactionId, checksum });
-      
+
       const merchantId = process.env.PHONEPE_MERCHANT_ID || 'PGTESTPAYUAT';
       const saltKey = process.env.PHONEPE_SALT_KEY || process.env.PHONEPE_SECRET_KEY || '099eb0cd-02cf-4e2a-8aca-3e6c6aff0399';
-      
+
       // Check if we're in development mode with test credentials
-      const isTestMode = process.env.NODE_ENV === 'development' || 
-                        merchantId === 'PGTESTPAYUAT' || 
+      const isTestMode = process.env.NODE_ENV === 'development' ||
+                        merchantId === 'PGTESTPAYUAT' ||
                         process.env.PHONEPE_ENV === 'test';
 
       if (isTestMode) {
@@ -1474,7 +1474,7 @@ class PaymentService {
           }
         };
       }
-      
+
       // Create checksum for verification
       const checksumString = `/pg/v1/status/${merchantId}/${transactionId}` + saltKey;
       const calculatedChecksum = crypto.createHash('sha256').update(checksumString).digest('hex') + '###1';
@@ -1508,12 +1508,12 @@ class PaymentService {
             responseMessage: data.data.responseCodeDescription
           }
         };
-      } else {
-        return {
-          success: false,
-          error: data.message || 'Payment verification failed'
-        };
       }
+      return {
+        success: false,
+        error: data.message || 'Payment verification failed'
+      };
+
     } catch (error) {
       console.error('PhonePe verification error:', error);
       return { success: false, error: error.message };
@@ -1523,12 +1523,12 @@ class PaymentService {
   async checkPhonePeStatus(transactionId) {
     try {
       console.log('Checking PhonePe status for transaction:', transactionId);
-      
+
       const merchantId = process.env.PHONEPE_MERCHANT_ID || 'PGTESTPAYUAT';
       const saltKey = process.env.PHONEPE_SALT_KEY || process.env.PHONEPE_SECRET_KEY || '099eb0cd-02cf-4e2a-8aca-3e6c6aff0399';
-      
+
       console.log('PhonePe credentials:', { merchantId, saltKey: saltKey.substring(0, 8) + '...' });
-      
+
       // Create checksum for status check
       const checksumString = `/pg/v1/status/${merchantId}/${transactionId}` + saltKey;
       const checksum = crypto.createHash('sha256').update(checksumString).digest('hex') + '###1';
@@ -1565,13 +1565,13 @@ class PaymentService {
             responseMessage: data.data.responseCodeDescription
           }
         };
-      } else {
-        return {
-          success: false,
-          error: data.message || 'Status check failed',
-          status: 'UNKNOWN'
-        };
       }
+      return {
+        success: false,
+        error: data.message || 'Status check failed',
+        status: 'UNKNOWN'
+      };
+
     } catch (error) {
       console.error('PhonePe status check error:', error);
       return { success: false, error: error.message };

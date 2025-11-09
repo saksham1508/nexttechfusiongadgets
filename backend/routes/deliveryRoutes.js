@@ -7,7 +7,7 @@ const { auth } = require('../middleware/auth');
 router.post('/check', async (req, res) => {
   try {
     const { coordinates } = req.body;
-    
+
     if (!coordinates || !coordinates.lat || !coordinates.lng) {
       return res.status(400).json({ message: 'Coordinates are required' });
     }
@@ -40,14 +40,14 @@ router.post('/check', async (req, res) => {
     }
 
     // Get the best zone (lowest delivery time)
-    const bestZone = zones.reduce((best, current) => 
+    const bestZone = zones.reduce((best, current) =>
       current.deliveryTime.min < best.deliveryTime.min ? current : best
     );
 
     // Check current load
     const isOverloaded = bestZone.currentLoad >= bestZone.maxOrdersPerHour;
-    const estimatedTime = isOverloaded ? 
-      bestZone.deliveryTime.max + 10 : 
+    const estimatedTime = isOverloaded ?
+      bestZone.deliveryTime.max + 10 :
       bestZone.deliveryTime.min;
 
     res.json({

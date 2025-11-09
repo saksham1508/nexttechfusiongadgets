@@ -112,8 +112,8 @@ couponSchema.index({ type: 1 });
 // Virtual for checking if coupon is currently valid
 couponSchema.virtual('isCurrentlyValid').get(function() {
   const now = new Date();
-  return this.isActive && 
-         this.validFrom <= now && 
+  return this.isActive &&
+         this.validFrom <= now &&
          this.validUntil >= now &&
          (this.usageLimit === null || this.usageCount < this.usageLimit);
 });

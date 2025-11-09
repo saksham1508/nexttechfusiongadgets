@@ -21,9 +21,9 @@ const pick = (realHandler, mockHandler) => async (req, res, next) => {
   try {
     if (isMongoAvailable()) {
       return await realHandler(req, res, next);
-    } else {
-      return await mockHandler(req, res, next);
     }
+    return await mockHandler(req, res, next);
+
   } catch (err) {
     // Fall back to mock on failure
     return await mockHandler(req, res, next);

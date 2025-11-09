@@ -15,7 +15,7 @@ const ensureSeller = (req, res) => {
 // List orders containing products of this vendor
 const listVendorOrders = async (req, res) => {
   try {
-    if (!ensureSeller(req, res)) return;
+    if (!ensureSeller(req, res)) {return;}
 
     const vendorId = req.user._id?.toString();
     const { status, limit = 50, page = 1 } = req.query;
@@ -65,7 +65,7 @@ const listVendorOrders = async (req, res) => {
 // Update per-item vendorStatus by seller
 const updateItemStatus = async (req, res) => {
   try {
-    if (!ensureSeller(req, res)) return;
+    if (!ensureSeller(req, res)) {return;}
     const vendorId = req.user._id?.toString();
     const { orderId, itemId } = req.params;
     const { status, note } = req.body || {};
@@ -76,10 +76,10 @@ const updateItemStatus = async (req, res) => {
     }
 
     const order = await Order.findById(orderId).populate('orderItems.product', 'seller');
-    if (!order) return res.status(404).json({ success: false, message: 'Order not found' });
+    if (!order) {return res.status(404).json({ success: false, message: 'Order not found' });}
 
     const item = order.orderItems.id(itemId);
-    if (!item) return res.status(404).json({ success: false, message: 'Order item not found' });
+    if (!item) {return res.status(404).json({ success: false, message: 'Order item not found' });}
 
     // Ensure this item belongs to this vendor
     const itemSeller = item.product?.seller?.toString?.();

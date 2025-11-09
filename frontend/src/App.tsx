@@ -221,7 +221,6 @@ function App() {
                 <Route path="/debug-payments" element={<PaymentMethodsDebug />} />
                 <Route path="/payment-debug" element={<PaymentDebugPage />} />
                 <Route path="/payment" element={<PaymentPage />} />
-                <Route path="/checkout" element={<PaymentPage />} />
                 {/* Instamojo payment callback */}
                 <Route path="/payment/instamojo/callback" element={<React.Suspense fallback={<div>Loading...</div>}>{React.createElement(require('./pages/InstamojoCallbackPage').default)}</React.Suspense>} />
                 {/* Order Tracking */}

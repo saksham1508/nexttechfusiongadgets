@@ -75,7 +75,7 @@ const auth = async (req, res, next) => {
   if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
     try {
       token = req.headers.authorization.split(' ')[1];
-      
+
       // Handle demo tokens (fallback for frontend demo login)
       if (token.startsWith('demo_token_') || token.startsWith('mock_')) {
         console.log('🔄 Using demo/mock token fallback');
@@ -87,21 +87,21 @@ const auth = async (req, res, next) => {
           return next();
         }
       }
-      
+
       // Try to verify as JWT token
       const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret_key');
-      
+
       // Find user in mock database
       const user = mockUsers.find(u => u._id === decoded.id || u.id === decoded.id);
-      
+
       if (!user) {
         return res.status(401).json({ message: 'User not found' });
       }
-      
+
       // Remove password from user object
       const { password, ...userWithoutPassword } = user;
       req.user = userWithoutPassword;
-      
+
       next();
     } catch (error) {
       console.error('Auth error:', error.message);
@@ -137,10 +137,10 @@ const optional = async (req, res, next) => {
     try {
       token = req.headers.authorization.split(' ')[1];
       const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret_key');
-      
+
       // Find user in mock database
       const user = mockUsers.find(u => u._id === decoded.id || u.id === decoded.id);
-      
+
       if (user) {
         const { password, ...userWithoutPassword } = user;
         req.user = userWithoutPassword;

@@ -4,13 +4,13 @@ const paymentService = require('./services/paymentService');
 
 async function testPayPal() {
   console.log('🧪 Testing PayPal Integration...\n');
-  
+
   console.log('Environment Variables:');
   console.log('PAYPAL_CLIENT_ID:', process.env.PAYPAL_CLIENT_ID ? 'Set ✅' : 'Not Set ❌');
   console.log('PAYPAL_CLIENT_SECRET:', process.env.PAYPAL_CLIENT_SECRET ? 'Set ✅' : 'Not Set ❌');
   console.log('PAYPAL_MODE:', process.env.PAYPAL_MODE || 'sandbox (default)');
   console.log('');
-  
+
   try {
     // Test PayPal order creation
     console.log('Creating PayPal test order...');
@@ -28,7 +28,7 @@ async function testPayPal() {
       'http://localhost:3000/payment/success',
       'http://localhost:3000/payment/cancel'
     );
-    
+
     if (result.success) {
       console.log('✅ PayPal order created successfully!');
       console.log('Order ID:', result.data.orderId);
@@ -37,7 +37,7 @@ async function testPayPal() {
     } else {
       console.log('❌ PayPal order creation failed:', result.error);
     }
-    
+
   } catch (error) {
     console.error('❌ Test failed:', error.message);
   }

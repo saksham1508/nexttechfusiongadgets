@@ -75,7 +75,7 @@ async function addOrderItems(req, res) {
       status: 'pending',
       notes: notes || undefined,
       createdAt: nowISO(),
-      updatedAt: nowISO(),
+      updatedAt: nowISO()
     };
 
     mockOrders.push(order);
@@ -103,7 +103,7 @@ async function getMyOrders(req, res) {
 async function getOrderById(req, res) {
   try {
     const order = mockOrders.find(o => String(o._id) === String(req.params.id));
-    if (!order) return res.status(404).json({ message: 'Order not found' });
+    if (!order) {return res.status(404).json({ message: 'Order not found' });}
     return res.json(order);
   } catch (err) {
     return res.status(500).json({ message: err.message || 'Failed to fetch order (mock)' });
@@ -114,7 +114,7 @@ async function getOrderById(req, res) {
 async function updateOrderToPaid(req, res) {
   try {
     const order = mockOrders.find(o => String(o._id) === String(req.params.id));
-    if (!order) return res.status(404).json({ message: 'Order not found' });
+    if (!order) {return res.status(404).json({ message: 'Order not found' });}
     order.isPaid = true;
     order.paidAt = nowISO();
     order.status = 'processing';
@@ -145,7 +145,7 @@ async function getOrders(req, res) {
 async function updateOrderToDelivered(req, res) {
   try {
     const order = mockOrders.find(o => String(o._id) === String(req.params.id));
-    if (!order) return res.status(404).json({ message: 'Order not found' });
+    if (!order) {return res.status(404).json({ message: 'Order not found' });}
     order.isDelivered = true;
     order.deliveredAt = nowISO();
     order.status = 'delivered';

@@ -9,19 +9,19 @@ const purchaseOrderSchema = new mongoose.Schema({
       return 'PO-' + Date.now() + '-' + Math.random().toString(36).substr(2, 5).toUpperCase();
     }
   },
-  
+
   productId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Product',
     required: true,
     index: true
   },
-  
+
   productName: {
     type: String,
     required: true
   },
-  
+
   supplier: {
     name: {
       type: String,
@@ -38,95 +38,95 @@ const purchaseOrderSchema = new mongoose.Schema({
       country: String
     }
   },
-  
+
   orderQuantity: {
     type: Number,
     required: true,
     min: 1
   },
-  
+
   unitCost: {
     type: Number,
     required: true,
     min: 0
   },
-  
+
   totalCost: {
     type: Number,
     required: true,
     min: 0
   },
-  
+
   status: {
     type: String,
     enum: ['pending', 'approved', 'ordered', 'shipped', 'delivered', 'cancelled'],
     default: 'pending',
     index: true
   },
-  
+
   priority: {
     type: String,
     enum: ['low', 'medium', 'high', 'critical'],
     default: 'medium',
     index: true
   },
-  
+
   // AI-generated data
   aiGenerated: {
     type: Boolean,
     default: false,
     index: true
   },
-  
+
   confidence: {
     type: Number,
     min: 0,
     max: 1,
     default: 0.8
   },
-  
+
   reorderPoint: {
     type: Number,
     min: 0
   },
-  
+
   currentStock: {
     type: Number,
     min: 0
   },
-  
+
   safetyStock: {
     type: Number,
     min: 0
   },
-  
+
   urgency: {
     type: String,
     enum: ['low', 'medium', 'high', 'critical'],
     default: 'medium'
   },
-  
+
   // Dates
   orderDate: {
     type: Date,
     default: Date.now,
     index: true
   },
-  
+
   expectedDelivery: {
     type: Date,
     index: true
   },
-  
+
   actualDelivery: Date,
-  
+
   approvedDate: Date,
-  
+
   approvedBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'
   },
-  
+
   // Tracking information
   tracking: {
     trackingNumber: String,
@@ -135,7 +135,7 @@ const purchaseOrderSchema = new mongoose.Schema({
     lastUpdate: Date,
     status: String
   },
-  
+
   // Financial information
   payment: {
     method: {
@@ -151,7 +151,7 @@ const purchaseOrderSchema = new mongoose.Schema({
     paidDate: Date,
     paidAmount: Number
   },
-  
+
   // Quality control
   qualityCheck: {
     required: {
@@ -170,7 +170,7 @@ const purchaseOrderSchema = new mongoose.Schema({
     notes: String,
     passed: Boolean
   },
-  
+
   // Notes and comments
   notes: [{
     user: {
@@ -183,7 +183,7 @@ const purchaseOrderSchema = new mongoose.Schema({
       default: Date.now
     }
   }],
-  
+
   // Attachments
   attachments: [{
     filename: String,
@@ -197,7 +197,7 @@ const purchaseOrderSchema = new mongoose.Schema({
       default: Date.now
     }
   }],
-  
+
   // Performance metrics
   metrics: {
     leadTime: Number, // Actual lead time in days
@@ -206,7 +206,7 @@ const purchaseOrderSchema = new mongoose.Schema({
     costVariance: Number, // Difference from expected cost
     supplierRating: Number // 1-5 rating
   },
-  
+
   // Audit trail
   auditLog: [{
     action: String,
@@ -235,7 +235,7 @@ purchaseOrderSchema.index({ priority: 1, status: 1 });
 
 // Virtual for days until delivery
 purchaseOrderSchema.virtual('daysUntilDelivery').get(function() {
-  if (!this.expectedDelivery) return null;
+  if (!this.expectedDelivery) {return null;}
   const today = new Date();
   const delivery = new Date(this.expectedDelivery);
   const diffTime = delivery - today;
@@ -252,7 +252,7 @@ purchaseOrderSchema.virtual('orderAge').get(function() {
 
 // Virtual for is overdue
 purchaseOrderSchema.virtual('isOverdue').get(function() {
-  if (!this.expectedDelivery || this.status === 'delivered') return false;
+  if (!this.expectedDelivery || this.status === 'delivered') {return false;}
   return new Date() > new Date(this.expectedDelivery);
 });
 
@@ -262,7 +262,7 @@ purchaseOrderSchema.pre('save', function(next) {
   if (this.isModified('orderQuantity') || this.isModified('unitCost')) {
     this.totalCost = this.orderQuantity * this.unitCost;
   }
-  
+
   // Set payment due date based on terms
   if (this.isModified('payment.terms') && this.payment.terms) {
     const daysMatch = this.payment.terms.match(/Net (\d+)/);
@@ -271,7 +271,7 @@ purchaseOrderSchema.pre('save', function(next) {
       this.payment.dueDate = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
     }
   }
-  
+
   next();
 });
 
@@ -280,25 +280,25 @@ purchaseOrderSchema.methods.approve = function(userId) {
   this.status = 'approved';
   this.approvedDate = new Date();
   this.approvedBy = userId;
-  
+
   this.auditLog.push({
     action: 'approved',
     user: userId,
     details: { previousStatus: this.status }
   });
-  
+
   return this.save();
 };
 
 purchaseOrderSchema.methods.cancel = function(userId, reason) {
   this.status = 'cancelled';
-  
+
   this.auditLog.push({
     action: 'cancelled',
     user: userId,
     details: { reason, previousStatus: this.status }
   });
-  
+
   return this.save();
 };
 
@@ -308,33 +308,33 @@ purchaseOrderSchema.methods.updateTracking = function(trackingInfo) {
     ...trackingInfo,
     lastUpdate: new Date()
   };
-  
+
   return this.save();
 };
 
 purchaseOrderSchema.methods.markDelivered = function(userId) {
   this.status = 'delivered';
   this.actualDelivery = new Date();
-  
+
   // Calculate metrics
   if (this.expectedDelivery) {
     const expectedTime = new Date(this.expectedDelivery).getTime();
     const actualTime = this.actualDelivery.getTime();
     this.metrics.deliveryAccuracy = actualTime <= expectedTime ? 1 : 0.5;
   }
-  
+
   if (this.orderDate) {
     const orderTime = new Date(this.orderDate).getTime();
     const deliveryTime = this.actualDelivery.getTime();
     this.metrics.leadTime = Math.ceil((deliveryTime - orderTime) / (1000 * 60 * 60 * 24));
   }
-  
+
   this.auditLog.push({
     action: 'delivered',
     user: userId,
     details: { deliveryDate: this.actualDelivery }
   });
-  
+
   return this.save();
 };
 

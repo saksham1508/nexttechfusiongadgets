@@ -27,7 +27,7 @@ module.exports = {
     'no-implied-eval': 'error',
     'no-new-func': 'error',
     'no-script-url': 'error',
-    
+
     // Agile: Code Quality Rules
     'complexity': ['error', { max: 10 }],
     'max-depth': ['error', 4],
@@ -35,7 +35,7 @@ module.exports = {
     'max-lines-per-function': ['error', { max: 50, skipBlankLines: true, skipComments: true }],
     'max-params': ['error', 5],
     'max-statements': ['error', 20],
-    
+
     // Lean: Code Consistency Rules
     'indent': ['error', 2],
     'quotes': ['error', 'single'],
@@ -44,7 +44,7 @@ module.exports = {
     'no-trailing-spaces': 'error',
     'eol-last': 'error',
     'no-multiple-empty-lines': ['error', { max: 2, maxEOF: 1 }],
-    
+
     // Security Rules
     'security/detect-object-injection': 'error',
     'security/detect-non-literal-regexp': 'error',
@@ -58,7 +58,7 @@ module.exports = {
     'security/detect-non-literal-require': 'error',
     'security/detect-possible-timing-attacks': 'error',
     'security/detect-pseudoRandomBytes': 'error',
-    
+
     // Node.js Specific Rules
     'node/no-unpublished-require': 'off',
     'node/no-missing-require': 'error',
@@ -70,7 +70,7 @@ module.exports = {
     'node/prefer-global/url': 'error',
     'node/prefer-promises/dns': 'error',
     'node/prefer-promises/fs': 'error',
-    
+
     // Best Practices
     'array-callback-return': 'error',
     'block-scoped-var': 'error',
@@ -99,9 +99,9 @@ module.exports = {
     'no-labels': 'error',
     'no-lone-blocks': 'error',
     'no-loop-func': 'error',
-    'no-magic-numbers': ['error', { 
+    'no-magic-numbers': ['error', {
       ignore: [-1, 0, 1, 2, 100, 200, 201, 400, 401, 403, 404, 422, 429, 500, 503],
-      ignoreArrayIndexes: true 
+      ignoreArrayIndexes: true
     }],
     'no-multi-spaces': 'error',
     'no-multi-str': 'error',

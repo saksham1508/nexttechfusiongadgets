@@ -1,0 +1,52 @@
+apiVersion: '2022-03-01'
+location: eastus
+name: nexttechfusion-backend
+type: Microsoft.App/containerApps
+properties:
+  managedEnvironmentId: /subscriptions/SUBSCRIPTION_ID/resourceGroups/RESOURCE_GROUP/providers/Microsoft.App/managedEnvironments/nexttechfusion-env
+  configuration:
+    secrets:
+    - name: mongodb-uri
+      value: YOUR_MONGODB_URI
+    - name: jwt-secret
+      value: YOUR_JWT_SECRET
+    - name: redis-url
+      value: YOUR_REDIS_URL
+    - name: stripe-secret
+      value: YOUR_STRIPE_SECRET
+    activeRevisionsMode: Single
+    ingress:
+      external: true
+      targetPort: 5000
+      transport: http
+      traffic:
+      - latestRevision: true
+        weight: 100
+  template:
+    containers:
+    - image: nexttechfusionregistry.azurecr.io/nexttechfusion-backend:latest
+      name: backend
+      env:
+      - name: NODE_ENV
+        value: production
+      - name: PORT
+        value: '5000'
+      - name: MONGODB_URI
+        secretRef: mongodb-uri
+      - name: JWT_SECRET
+        secretRef: jwt-secret
+      - name: REDIS_URL
+        secretRef: redis-url
+      - name: STRIPE_SECRET_KEY
+        secretRef: stripe-secret
+      resources:
+        cpu: 0.5
+        memory: 1Gi
+    scale:
+      minReplicas: 1
+      maxReplicas: 10
+      rules:
+      - name: http-scaling
+        http:
+          metadata:
+            concurrentRequests: '50'

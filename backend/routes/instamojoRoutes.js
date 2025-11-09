@@ -31,12 +31,12 @@ router.post('/pay', (req, res) => {
     const data = new Insta.PaymentData();
     data.purpose = purpose;
     data.amount = amount;
-    if (buyer_name) data.buyer_name = buyer_name;
+    if (buyer_name) {data.buyer_name = buyer_name;}
     data.email = email;
-    if (phone) data.phone = phone;
+    if (phone) {data.phone = phone;}
 
     data.redirect_url = redirectUrl || INSTAMOJO_REDIRECT_URL;
-    if (INSTAMOJO_WEBHOOK_URL) data.webhook = INSTAMOJO_WEBHOOK_URL;
+    if (INSTAMOJO_WEBHOOK_URL) {data.webhook = INSTAMOJO_WEBHOOK_URL;}
 
     data.send_email = 'true';
     data.send_sms = 'false';
@@ -116,9 +116,9 @@ router.post('/create-order', (req, res) => {
   const data = new Insta.PaymentData();
   data.purpose = 'Product Purchase';
   data.amount = amount;
-  if (name) data.buyer_name = name;
+  if (name) {data.buyer_name = name;}
   data.email = email;
-  if (phone) data.phone = phone;
+  if (phone) {data.phone = phone;}
 
   data.redirect_url = redirectUrl || INSTAMOJO_REDIRECT_URL;
   data.send_email = 'true';

@@ -1,0 +1,388 @@
+# GCP Cloud CDN Configuration for NextTechFusionGadgets
+
+# Cloud Storage Bucket for Static Assets
+resource "google_storage_bucket" "static_assets" {
+  name          = "nexttechfusion-static-assets-${var.environment}"
+  location      = var.region
+  storage_class = "STANDARD"
+
+  uniform_bucket_level_access = true
+
+  website {
+    main_page_suffix = "index.html"
+    not_found_page   = "index.html"
+  }
+
+  cors {
+    origin          = ["*"]
+    method          = ["GET", "HEAD", "OPTIONS"]
+    response_header = ["*"]
+    max_age_seconds = 3600
+  }
+}
+
+# Backend Bucket for CDN
+resource "google_compute_backend_bucket" "static_assets" {
+  name        = "nexttechfusion-static-backend"
+  bucket_name = google_storage_bucket.static_assets.name
+  description = "Backend bucket for static assets"
+}
+
+# URL Map for Load Balancer
+resource "google_compute_url_map" "cdn" {
+  name            = "nexttechfusion-cdn-urlmap"
+  description     = "URL map for NextTechFusion CDN"
+  default_service = google_compute_backend_bucket.static_assets.id
+
+  host_rule {
+    hosts        = [var.domain_name]
+    path_matcher = "main"
+  }
+
+  path_matcher {
+    name            = "main"
+    default_service = google_compute_backend_bucket.static_assets.id
+
+    # API routing to backend service
+    path_rule {
+      paths   = ["/api/*"]
+      service = google_compute_backend_service.api.id
+    }
+
+    # Static assets routing
+    path_rule {
+      paths   = ["/*"]
+      service = google_compute_backend_bucket.static_assets.id
+    }
+  }
+}
+
+# HTTP Load Balancer
+resource "google_compute_target_http_proxy" "cdn" {
+  name    = "nexttechfusion-cdn-proxy"
+  url_map = google_compute_url_map.cdn.id
+}
+
+resource "google_compute_global_forwarding_rule" "cdn" {
+  name       = "nexttechfusion-cdn-forwarding-rule"
+  target     = google_compute_target_http_proxy.cdn.id
+  port_range = "80"
+}
+
+# HTTPS Load Balancer (recommended)
+resource "google_compute_target_https_proxy" "cdn" {
+  name             = "nexttechfusion-cdn-https-proxy"
+  url_map          = google_compute_url_map.cdn.id
+  ssl_certificates = [google_compute_ssl_certificate.cdn.id]
+}
+
+resource "google_compute_global_forwarding_rule" "cdn_https" {
+  name       = "nexttechfusion-cdn-https-forwarding-rule"
+  target     = google_compute_target_https_proxy.cdn.id
+  port_range = "443"
+}
+
+# SSL Certificate
+resource "google_compute_ssl_certificate" "cdn" {
+  name        = "nexttechfusion-cdn-cert"
+  private_key = file(var.ssl_private_key_path)
+  certificate = file(var.ssl_certificate_path)
+}
+
+# Cloud CDN Configuration
+resource "google_compute_backend_bucket" "static_assets_with_cdn" {
+  name        = "nexttechfusion-static-backend-cdn"
+  bucket_name = google_storage_bucket.static_assets.name
+  description = "Backend bucket with CDN enabled"
+  enable_cdn  = true
+
+  cdn_policy {
+    cache_mode        = "CACHE_ALL_STATIC"
+    client_ttl        = 3600    # 1 hour
+    default_ttl       = 86400   # 24 hours
+    max_ttl           = 31536000 # 1 year
+    negative_caching  = true
+    serve_while_stale = 86400   # 24 hours
+
+    # Cache key policy
+    cache_key_policy {
+      include_host           = true
+      include_protocol       = true
+      include_query_string   = false
+      query_string_whitelist = []
+      query_string_blacklist = []
+    }
+
+    # Negative caching policies
+    negative_caching_policy {
+      code = 404
+      ttl  = 300  # 5 minutes
+    }
+
+    negative_caching_policy {
+      code = 502
+      ttl  = 0    # Don't cache
+    }
+  }
+}
+
+# API Backend Service
+resource "google_compute_backend_service" "api" {
+  name                  = "nexttechfusion-api-backend"
+  protocol              = "HTTP"
+  port_name             = "http"
+  timeout_sec           = 30
+  enable_cdn            = false  # Don't cache API responses
+
+  backend {
+    group = google_compute_instance_group.api.self_link
+  }
+
+  health_checks = [google_compute_health_check.api.id]
+
+  # Security policy
+  security_policy = google_compute_security_policy.api_policy.id
+}
+
+# Health Check for API
+resource "google_compute_health_check" "api" {
+  name                = "nexttechfusion-api-health-check"
+  check_interval_sec  = 30
+  timeout_sec         = 10
+  healthy_threshold   = 2
+  unhealthy_threshold = 3
+
+  http_health_check {
+    port         = 5000
+    request_path = "/api/health"
+  }
+}
+
+# Security Policy for API
+resource "google_compute_security_policy" "api_policy" {
+  name = "nexttechfusion-api-security-policy"
+
+  rule {
+    action   = "deny(403)"
+    priority = "1000"
+    match {
+      expr {
+        expression = "request.path.matches(\"/api/.*\") && !request.headers[\"authorization\"].matches(\"Bearer .*\")"
+      }
+    }
+    description = "Deny API requests without authorization"
+  }
+
+  rule {
+    action   = "allow"
+    priority = "2147483647"
+    match {
+      expr {
+        expression = "true"
+      }
+    }
+    description = "Default allow rule"
+  }
+}
+
+# Cloud Armor Security Policies
+
+# Rate Limiting
+resource "google_compute_security_policy" "rate_limiting" {
+  name = "nexttechfusion-rate-limiting"
+
+  rule {
+    action   = "throttle"
+    priority = "1000"
+    match {
+      expr {
+        expression = "request.path.matches(\"/api/.*\")"
+      }
+    }
+    rate_limit_options {
+      conform_action = "allow"
+      exceed_action  = "deny(429)"
+      rate_limit_threshold {
+        count        = 100
+        interval_sec = 60
+      }
+      ban_duration_sec = 300
+    }
+    description = "Rate limit API requests"
+  }
+}
+
+# DDoS Protection
+resource "google_compute_security_policy" "ddos_protection" {
+  name = "nexttechfusion-ddos-protection"
+
+  rule {
+    action   = "deny(403)"
+    priority = "1000"
+    match {
+      expr {
+        expression = "evaluatePreconfiguredExpr('xss-stable')"
+      }
+    }
+    description = "Block XSS attacks"
+  }
+
+  rule {
+    action   = "deny(403)"
+    priority = "1100"
+    match {
+      expr {
+        expression = "evaluatePreconfiguredExpr('sqli-stable')"
+      }
+    }
+    description = "Block SQL injection"
+  }
+}
+
+# Custom Cache Policies for Different Content Types
+
+# Images - Long cache
+resource "google_compute_backend_bucket" "images" {
+  name        = "nexttechfusion-images-backend"
+  bucket_name = google_storage_bucket.images.name
+  enable_cdn  = true
+
+  cdn_policy {
+    cache_mode = "CACHE_ALL_STATIC"
+    client_ttl = 86400   # 24 hours
+    default_ttl = 604800  # 7 days
+    max_ttl     = 2592000 # 30 days
+  }
+}
+
+# JavaScript/CSS - Medium cache with versioning
+resource "google_compute_backend_bucket" "assets" {
+  name        = "nexttechfusion-assets-backend"
+  bucket_name = google_storage_bucket.assets.name
+  enable_cdn  = true
+
+  cdn_policy {
+    cache_mode = "CACHE_ALL_STATIC"
+    client_ttl = 3600    # 1 hour
+    default_ttl = 86400  # 24 hours
+    max_ttl     = 604800 # 7 days
+  }
+}
+
+# Monitoring and Logging
+
+# Enable Cloud CDN logs
+resource "google_compute_backend_bucket" "static_assets_with_logging" {
+  name        = "nexttechfusion-static-backend-logging"
+  bucket_name = google_storage_bucket.static_assets.name
+  enable_cdn  = true
+
+  log_config {
+    enable = true
+    sample_rate = 1.0
+  }
+}
+
+# BigQuery dataset for CDN logs analysis
+resource "google_bigquery_dataset" "cdn_logs" {
+  dataset_id    = "nexttechfusion_cdn_logs"
+  friendly_name = "NextTechFusion CDN Logs"
+  description   = "Dataset for analyzing CDN access logs"
+  location      = "US"
+}
+
+# BigQuery table for CDN logs
+resource "google_bigquery_table" "cdn_logs_table" {
+  dataset_id = google_bigquery_dataset.cdn_logs.dataset_id
+  table_id   = "cdn_access_logs"
+
+  schema = <<EOF
+[
+  {
+    "name": "timestamp",
+    "type": "TIMESTAMP",
+    "mode": "REQUIRED"
+  },
+  {
+    "name": "client_ip",
+    "type": "STRING",
+    "mode": "REQUIRED"
+  },
+  {
+    "name": "http_method",
+    "type": "STRING",
+    "mode": "REQUIRED"
+  },
+  {
+    "name": "host",
+    "type": "STRING",
+    "mode": "REQUIRED"
+  },
+  {
+    "name": "path",
+    "type": "STRING",
+    "mode": "REQUIRED"
+  },
+  {
+    "name": "status_code",
+    "type": "INTEGER",
+    "mode": "REQUIRED"
+  },
+  {
+    "name": "response_size",
+    "type": "INTEGER"
+  },
+  {
+    "name": "user_agent",
+    "type": "STRING"
+  },
+  {
+    "name": "referer",
+    "type": "STRING"
+  },
+  {
+    "name": "cache_hit",
+    "type": "BOOLEAN"
+  }
+]
+EOF
+}
+
+# Variables
+variable "environment" {
+  description = "Environment name"
+  type        = string
+  default     = "prod"
+}
+
+variable "region" {
+  description = "GCP region"
+  type        = string
+  default     = "us-central1"
+}
+
+variable "domain_name" {
+  description = "Domain name for the CDN"
+  type        = string
+}
+
+variable "ssl_private_key_path" {
+  description = "Path to SSL private key file"
+  type        = string
+}
+
+variable "ssl_certificate_path" {
+  description = "Path to SSL certificate file"
+  type        = string
+}
+
+# Outputs
+output "cdn_ip_address" {
+  description = "IP address of the CDN load balancer"
+  value       = google_compute_global_forwarding_rule.cdn.ip_address
+}
+
+output "cdn_domain" {
+  description = "Domain name for CDN access"
+  value       = var.domain_name
+}

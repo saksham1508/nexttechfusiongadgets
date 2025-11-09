@@ -13,7 +13,7 @@ const buildEmptyAnalytics = () => ({
     returnPercentage: 0
   },
   productOrders: [],
-  productMonthly: [],
+  productMonthly: []
 });
 
 // Helper: build realistic mock analytics for dev
@@ -22,12 +22,12 @@ const buildMockAnalytics = () => {
     { productId: 'p1', name: 'SuperPhone X' },
     { productId: 'p2', name: 'UltraEar Buds' },
     { productId: 'p3', name: 'SmartWatch Pro' },
-    { productId: 'p4', name: '4K Action Cam' },
+    { productId: 'p4', name: '4K Action Cam' }
   ];
   const productOrders = products.map((p, idx) => ({
     ...p,
     views: 800 - idx * 120,
-    orders: 60 - idx * 10,
+    orders: 60 - idx * 10
   }));
   const totalViews = productOrders.reduce((s, p) => s + p.views, 0);
   const totalOrders = productOrders.reduce((s, p) => s + p.orders, 0);
@@ -99,7 +99,7 @@ const getVendorAnalytics = async (req, res) => {
           productId: p._id?.toString() || p.id?.toString(),
           name: p.name,
           months,
-          series: months.map(() => 0), // no historical in mock; start with zeros
+          series: months.map(() => 0) // no historical in mock; start with zeros
         }));
         return res.json({
           success: true,
@@ -110,11 +110,11 @@ const getVendorAnalytics = async (req, res) => {
               totalOrders,
               conversionRate: totalViews ? Number(((totalOrders / totalViews) * 100).toFixed(2)) : 0,
               totalSales: Number(totalSales.toFixed(2)),
-              returnPercentage: 0,
+              returnPercentage: 0
             },
             productOrders,
-            productMonthly,
-          },
+            productMonthly
+          }
         });
       } catch (e) {
         // Fallback to static mock if anything goes wrong
@@ -163,16 +163,16 @@ const getVendorAnalytics = async (req, res) => {
       // Identify returned orders quickly
       const isReturned = order.status === 'returned';
       for (const item of order.orderItems) {
-        if (!item.product) continue;
+        if (!item.product) {continue;}
         const pid = item.product.toString();
-        if (!productIdSet.has(pid)) continue;
+        if (!productIdSet.has(pid)) {continue;}
 
         const qty = Number(item.quantity) || 0;
         const price = Number(item.price) || 0;
 
         totalOrders += qty;
         totalSales += price * qty;
-        if (isReturned) returnedItems += qty;
+        if (isReturned) {returnedItems += qty;}
 
         // Per-product totals
         perProductOrders.set(pid, (perProductOrders.get(pid) || 0) + qty);
@@ -191,7 +191,7 @@ const getVendorAnalytics = async (req, res) => {
       productId: p._id.toString(),
       name: p.name,
       views: productViewMap[p._id.toString()] || (p.analytics?.views || 0),
-      orders: perProductOrders.get(p._id.toString()) || 0,
+      orders: perProductOrders.get(p._id.toString()) || 0
     })).sort((a, b) => b.orders - a.orders);
 
     // Build productMonthly array for last 12 months only
@@ -209,7 +209,7 @@ const getVendorAnalytics = async (req, res) => {
         productId: p._id.toString(),
         name: p.name,
         months,
-        series,
+        series
       };
     });
 
@@ -222,10 +222,10 @@ const getVendorAnalytics = async (req, res) => {
           totalOrders,
           conversionRate,
           totalSales: Number(totalSales.toFixed(2)),
-          returnPercentage,
+          returnPercentage
         },
         productOrders,
-        productMonthly,
+        productMonthly
       }
     });
   } catch (err) {

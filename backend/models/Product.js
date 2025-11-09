@@ -95,40 +95,40 @@ const productSchema = new mongoose.Schema({
     type: String,
     default: '1 year'
   },
-  
+
   // AI Inventory Management fields
   autoReorder: {
     type: Boolean,
     default: false
   },
-  
+
   minStock: {
     type: Number,
     default: 10
   },
-  
+
   maxStock: {
     type: Number,
     default: 100
   },
-  
+
   leadTime: {
     type: Number,
     default: 7 // days
   },
-  
+
   supplier: {
     type: String,
     default: 'Default Supplier'
   },
-  
+
   lastReorderDate: Date,
-  
+
   reorderCount: {
     type: Number,
     default: 0
   },
-  
+
   demandForecast: {
     accuracy: {
       type: Number,

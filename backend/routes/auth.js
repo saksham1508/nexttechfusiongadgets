@@ -64,7 +64,7 @@ router.post('/register', [
       process.env.JWT_SECRET,
       { expiresIn: '30d' },
       (err, token) => {
-        if (err) throw err;
+        if (err) {throw err;}
         res.json({
           user: {
             _id: user._id,
@@ -123,7 +123,7 @@ router.post('/login', [
       process.env.JWT_SECRET,
       { expiresIn: '30d' },
       (err, token) => {
-        if (err) throw err;
+        if (err) {throw err;}
         res.json({
           user: {
             _id: user._id,
@@ -155,7 +155,7 @@ router.post('/google', async (req, res) => {
     }
 
     // Check if user exists
-    let user = await User.findOne({ 
+    let user = await User.findOne({
       $or: [
         { email: email },
         { googleId: googleId }
@@ -167,7 +167,7 @@ router.post('/google', async (req, res) => {
       if (!user.googleId) {
         user.googleId = googleId;
         user.authProvider = 'google';
-        if (picture) user.avatar = picture;
+        if (picture) {user.avatar = picture;}
         await user.save();
       }
     } else {
@@ -199,7 +199,7 @@ router.post('/google', async (req, res) => {
       process.env.JWT_SECRET,
       { expiresIn: '30d' },
       (err, token) => {
-        if (err) throw err;
+        if (err) {throw err;}
         res.json({
           user: {
             _id: user._id,
@@ -262,9 +262,9 @@ router.put('/profile', protect, [
     }
 
     // Update fields
-    if (name) user.name = name;
-    if (email) user.email = email;
-    if (avatar) user.avatar = avatar;
+    if (name) {user.name = name;}
+    if (email) {user.email = email;}
+    if (avatar) {user.avatar = avatar;}
 
     await user.save();
 

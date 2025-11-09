@@ -46,7 +46,7 @@ class AlgorithmOptimizer {
 
   // O(n log n) - Optimized merge sort for large datasets
   mergeSort(arr, compareFn = (a, b) => a - b) {
-    if (arr.length <= 1) return arr;
+    if (arr.length <= 1) {return arr;}
 
     const merge = (left, right) => {
       const result = [];
@@ -72,7 +72,7 @@ class AlgorithmOptimizer {
 
   // O(n) - Quick select for finding kth element
   quickSelect(arr, k, compareFn = (a, b) => a - b) {
-    if (arr.length === 1) return arr[0];
+    if (arr.length === 1) {return arr[0];}
 
     const pivot = arr[Math.floor(Math.random() * arr.length)];
     const left = arr.filter(x => compareFn(x, pivot) < 0);
@@ -83,9 +83,9 @@ class AlgorithmOptimizer {
       return this.quickSelect(left, k, compareFn);
     } else if (k < left.length + middle.length) {
       return middle[0];
-    } else {
-      return this.quickSelect(right, k - left.length - middle.length, compareFn);
     }
+    return this.quickSelect(right, k - left.length - middle.length, compareFn);
+
   }
 
   // O(1) average - Hash table for fast lookups
@@ -143,7 +143,7 @@ class AlgorithmOptimizer {
       const str = typeof item === 'string' ? item : JSON.stringify(item);
       for (let i = 0; i < k; i++) {
         const index = (hash1(str) + i * hash2(str)) % m;
-        if (!bitArray[index]) return false;
+        if (!bitArray[index]) {return false;}
       }
       return true;
     };
@@ -188,8 +188,8 @@ class AlgorithmOptimizer {
 
     // DFS to find all words with prefix
     const dfs = (node) => {
-      if (results.length >= maxResults) return;
-      
+      if (results.length >= maxResults) {return;}
+
       if (node.isEndOfWord) {
         results.push(node.word);
       }
@@ -282,7 +282,7 @@ class AlgorithmOptimizer {
     // Phase 2: Verify candidate
     count = 0;
     for (const num of arr) {
-      if (num === candidate) count++;
+      if (num === candidate) {count++;}
     }
 
     return count > arr.length / 2 ? candidate : null;
@@ -331,13 +331,13 @@ class AlgorithmOptimizer {
 
     const dfs = (node) => {
       visited.add(node);
-      
+
       for (const neighbor of graph[node] || []) {
         if (!visited.has(neighbor)) {
           dfs(neighbor);
         }
       }
-      
+
       stack.push(node);
     };
 

@@ -69,59 +69,59 @@ class MonitoringService extends EventEmitter {
   // Payment Monitoring
   recordPaymentAttempt(paymentData) {
     this.metrics.payments.total++;
-    
+
     const method = paymentData.method || 'unknown';
     const currency = paymentData.currency || 'USD';
     const amount = paymentData.amount || 0;
-    
+
     // Update method stats
     if (!this.metrics.payments.byMethod[method]) {
       this.metrics.payments.byMethod[method] = { count: 0, revenue: 0, failures: 0 };
     }
     this.metrics.payments.byMethod[method].count++;
-    
+
     // Update currency stats
     if (!this.metrics.payments.byCurrency[currency]) {
       this.metrics.payments.byCurrency[currency] = { count: 0, revenue: 0 };
     }
     this.metrics.payments.byCurrency[currency].count++;
-    
+
     // Update hourly stats
     const hour = new Date().getHours();
     this.metrics.payments.hourlyStats[hour]++;
-    
+
     this.emit('payment_attempt', paymentData);
   }
 
   recordPaymentSuccess(paymentData) {
     this.metrics.payments.successful++;
-    
+
     const method = paymentData.method || 'unknown';
     const currency = paymentData.currency || 'USD';
     const amount = paymentData.amount || 0;
-    
+
     // Update revenue
     this.metrics.payments.revenue += amount;
     this.metrics.payments.byMethod[method].revenue += amount;
     this.metrics.payments.byCurrency[currency].revenue += amount;
-    
+
     // Update average
-    this.metrics.payments.averageAmount = 
+    this.metrics.payments.averageAmount =
       this.metrics.payments.revenue / this.metrics.payments.successful;
-    
+
     this.emit('payment_success', paymentData);
   }
 
   recordPaymentFailure(paymentData, error) {
     this.metrics.payments.failed++;
-    
+
     const method = paymentData.method || 'unknown';
     if (this.metrics.payments.byMethod[method]) {
       this.metrics.payments.byMethod[method].failures++;
     }
-    
+
     this.emit('payment_failure', { paymentData, error });
-    
+
     // Check if failure rate is too high
     const failureRate = (this.metrics.payments.failed / this.metrics.payments.total) * 100;
     if (failureRate > this.thresholds.failureRate) {
@@ -136,12 +136,12 @@ class MonitoringService extends EventEmitter {
       duration,
       timestamp: Date.now()
     });
-    
+
     // Keep only last 1000 entries
     if (this.metrics.performance.responseTime.length > 1000) {
       this.metrics.performance.responseTime = this.metrics.performance.responseTime.slice(-1000);
     }
-    
+
     // Alert on slow responses
     if (duration > this.thresholds.responseTime) {
       this.createAlert('slow_response', `Slow response on ${endpoint}: ${duration}ms`);
@@ -150,9 +150,9 @@ class MonitoringService extends EventEmitter {
 
   recordError(error, context = {}) {
     this.metrics.performance.errorRate++;
-    
+
     this.emit('error_occurred', { error, context, timestamp: Date.now() });
-    
+
     // Log error
     winston.error('Application error', { error: error.message, stack: error.stack, context });
   }
@@ -160,14 +160,14 @@ class MonitoringService extends EventEmitter {
   updatePerformanceMetrics() {
     // Update memory usage
     this.metrics.performance.memoryUsage = process.memoryUsage();
-    
+
     // Update CPU usage
     this.metrics.performance.cpuUsage = process.cpuUsage();
-    
+
     // Check memory usage
-    const memoryUsagePercent = (this.metrics.performance.memoryUsage.heapUsed / 
+    const memoryUsagePercent = (this.metrics.performance.memoryUsage.heapUsed /
                                this.metrics.performance.memoryUsage.heapTotal) * 100;
-    
+
     if (memoryUsagePercent > this.thresholds.memoryUsage) {
       this.createAlert('high_memory_usage', `Memory usage is ${memoryUsagePercent.toFixed(1)}%`);
     }
@@ -176,22 +176,22 @@ class MonitoringService extends EventEmitter {
   // Security Monitoring
   recordSecurityEvent(type, details = {}) {
     switch (type) {
-      case 'blocked_request':
-        this.metrics.security.blockedRequests++;
-        break;
-      case 'suspicious_activity':
-        this.metrics.security.suspiciousActivity++;
-        break;
-      case 'failed_login':
-        this.metrics.security.failedLogins++;
-        break;
-      case 'rate_limit_hit':
-        this.metrics.security.rateLimitHits++;
-        break;
+    case 'blocked_request':
+      this.metrics.security.blockedRequests++;
+      break;
+    case 'suspicious_activity':
+      this.metrics.security.suspiciousActivity++;
+      break;
+    case 'failed_login':
+      this.metrics.security.failedLogins++;
+      break;
+    case 'rate_limit_hit':
+      this.metrics.security.rateLimitHits++;
+      break;
     }
-    
+
     this.emit('security_event', { type, details, timestamp: Date.now() });
-    
+
     // Alert on security events
     if (type === 'suspicious_activity') {
       this.createAlert('security_threat', `Suspicious activity detected: ${JSON.stringify(details)}`);
@@ -208,11 +208,11 @@ class MonitoringService extends EventEmitter {
       });
       this.metrics.users.active++;
     }
-    
+
     const session = this.metrics.users.sessions.get(userId);
     session.lastActivity = Date.now();
     session.actions.push({ action, timestamp: Date.now() });
-    
+
     this.emit('user_activity', { userId, action, timestamp: Date.now() });
   }
 
@@ -226,15 +226,15 @@ class MonitoringService extends EventEmitter {
       timestamp: Date.now(),
       resolved: false
     };
-    
+
     this.alerts.push(alert);
     this.emit('alert_created', alert);
-    
+
     // Keep only last 100 alerts
     if (this.alerts.length > 100) {
       this.alerts = this.alerts.slice(-100);
     }
-    
+
     return alert;
   }
 
@@ -250,15 +250,15 @@ class MonitoringService extends EventEmitter {
   checkAlerts() {
     // Check various conditions and create alerts if needed
     const now = Date.now();
-    
+
     // Check if system is down (no recent activity)
     const recentActivity = this.metrics.performance.responseTime
       .filter(r => now - r.timestamp < 300000); // Last 5 minutes
-    
+
     if (recentActivity.length === 0 && this.metrics.payments.total > 0) {
       this.createAlert('system_down', 'No recent activity detected', 'high');
     }
-    
+
     // Check average response time
     if (recentActivity.length > 0) {
       const avgResponseTime = recentActivity.reduce((sum, r) => sum + r.duration, 0) / recentActivity.length;
@@ -270,11 +270,11 @@ class MonitoringService extends EventEmitter {
 
   cleanOldData() {
     const oneHourAgo = Date.now() - 3600000;
-    
+
     // Clean old response time data
     this.metrics.performance.responseTime = this.metrics.performance.responseTime
       .filter(r => r.timestamp > oneHourAgo);
-    
+
     // Clean old user sessions
     for (const [userId, session] of this.metrics.users.sessions.entries()) {
       if (session.lastActivity < oneHourAgo) {
@@ -288,21 +288,21 @@ class MonitoringService extends EventEmitter {
   getPaymentAnalytics(timeframe = '24h') {
     const now = Date.now();
     let startTime;
-    
+
     switch (timeframe) {
-      case '1h':
-        startTime = now - 3600000;
-        break;
-      case '24h':
-        startTime = now - 86400000;
-        break;
-      case '7d':
-        startTime = now - 604800000;
-        break;
-      default:
-        startTime = now - 86400000;
+    case '1h':
+      startTime = now - 3600000;
+      break;
+    case '24h':
+      startTime = now - 86400000;
+      break;
+    case '7d':
+      startTime = now - 604800000;
+      break;
+    default:
+      startTime = now - 86400000;
     }
-    
+
     return {
       summary: {
         total: this.metrics.payments.total,
@@ -320,10 +320,10 @@ class MonitoringService extends EventEmitter {
 
   getPerformanceMetrics() {
     const recentResponses = this.metrics.performance.responseTime.slice(-100);
-    const avgResponseTime = recentResponses.length > 0 
-      ? recentResponses.reduce((sum, r) => sum + r.duration, 0) / recentResponses.length 
+    const avgResponseTime = recentResponses.length > 0
+      ? recentResponses.reduce((sum, r) => sum + r.duration, 0) / recentResponses.length
       : 0;
-    
+
     return {
       averageResponseTime: avgResponseTime,
       errorRate: this.metrics.performance.errorRate,
@@ -352,7 +352,7 @@ class MonitoringService extends EventEmitter {
   }
 
   getAlerts(unresolved = false) {
-    return unresolved 
+    return unresolved
       ? this.alerts.filter(a => !a.resolved)
       : this.alerts;
   }

@@ -120,7 +120,7 @@ const mockUsers = [
 
 // Generate JWT token
 const generateToken = (id, options = {}) => {
-  const payload = { 
+  const payload = {
     id,
     iat: Math.floor(Date.now() / 1000),
     jti: crypto.randomUUID()
@@ -158,7 +158,7 @@ const mockLogin = async (req, res) => {
 
     // Find mock user
     const user = mockUsers.find(u => u.email.toLowerCase() === email.toLowerCase());
-    
+
     if (!user || (user.password && user.password !== password)) {
       return res.status(401).json({
         success: false,
@@ -225,7 +225,7 @@ const mockRegister = async (req, res) => {
 
     // Check if user already exists
     const existingUser = mockUsers.find(u => u.email.toLowerCase() === email.toLowerCase());
-    
+
     if (existingUser) {
       return res.status(409).json({
         success: false,
@@ -306,7 +306,7 @@ const mockGoogleLogin = async (req, res) => {
 
     // Find or create Google user
     let user = mockUsers.find(u => u.email.toLowerCase() === email.toLowerCase());
-    
+
     if (!user) {
       user = {
         _id: 'mock_google_' + Date.now(),
@@ -503,7 +503,7 @@ const mockPhoneLogin = async (req, res) => {
 
     // Create or find phone user
     let user = mockUsers.find(u => u.phone === phone);
-    
+
     if (!user) {
       user = {
         _id: 'mock_phone_' + Date.now(),
@@ -559,7 +559,7 @@ const mockGetProfile = async (req, res) => {
   try {
     const userId = req.user?.id || req.user?._id;
     const user = mockUsers.find(u => u._id === userId);
-    
+
     if (!user) {
       return res.status(404).json({
         success: false,
@@ -595,7 +595,7 @@ const mockUpdateProfile = async (req, res) => {
   try {
     const userId = req.user?.id || req.user?._id;
     const userIndex = mockUsers.findIndex(u => u._id === userId);
-    
+
     if (userIndex === -1) {
       return res.status(404).json({
         success: false,
@@ -610,7 +610,7 @@ const mockUpdateProfile = async (req, res) => {
     // Update user data
     const allowedUpdates = ['name', 'phone', 'preferences'];
     const updates = {};
-    
+
     allowedUpdates.forEach(field => {
       if (req.body[field] !== undefined) {
         updates[field] = req.body[field];
@@ -618,9 +618,9 @@ const mockUpdateProfile = async (req, res) => {
     });
 
     mockUsers[userIndex] = { ...mockUsers[userIndex], ...updates, updatedAt: new Date() };
-    
+
     const { password, ...userWithoutPassword } = mockUsers[userIndex];
-    
+
     res.json({
       success: true,
       message: 'Profile updated successfully (Mock Mode)',

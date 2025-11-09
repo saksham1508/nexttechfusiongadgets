@@ -17,7 +17,7 @@ class AuthMetrics {
   recordLoginAttempt(email, success, ip, userAgent) {
     const key = `${email}_${ip}`;
     const attempts = this.loginAttempts.get(key) || [];
-    
+
     attempts.push({
       timestamp: new Date(),
       success,
@@ -31,7 +31,7 @@ class AuthMetrics {
     if (!success) {
       const failedCount = this.failedLogins.get(key) || 0;
       this.failedLogins.set(key, failedCount + 1);
-      
+
       // Security event for multiple failed attempts
       if (failedCount >= 3) {
         this.recordSecurityEvent('MULTIPLE_FAILED_LOGINS', { email, ip, attempts: failedCount + 1 });
@@ -95,7 +95,7 @@ const authMetrics = new AuthMetrics();
 
 // Agile: Enhanced token generation with security features
 const generateToken = (id, options = {}) => {
-  const payload = { 
+  const payload = {
     id,
     iat: Math.floor(Date.now() / 1000),
     jti: crypto.randomUUID() // JWT ID for token tracking
@@ -143,7 +143,7 @@ const register = asyncHandler(async (req, res) => {
   }
 
   // Check for existing user
-  const existingUser = await User.findOne({ 
+  const existingUser = await User.findOne({
     $or: [
       { email: email.toLowerCase() },
       ...(phone ? [{ phone }] : [])
@@ -349,7 +349,7 @@ const login = asyncHandler(async (req, res) => {
       },
       session: {
         loginTime: new Date(),
-        rememberMe: !!rememberMe,
+        rememberMe: Boolean(rememberMe),
         deviceInfo: {
           ip: clientIP,
           userAgent
@@ -428,7 +428,7 @@ const updateProfile = async (req, res) => {
 // @access  Public
 const appleAuthCallback = asyncHandler(async (req, res) => {
   const startTime = Date.now();
-  
+
   try {
     // User should be attached by passport middleware
     if (!req.user) {
@@ -545,7 +545,7 @@ const appleAuth = asyncHandler(async (req, res) => {
     // For demo/development mode
     if (process.env.NODE_ENV === 'development' && identityToken.startsWith('mock_')) {
       console.log('🔄 Using mock Apple authentication');
-      
+
       const mockUser = {
         id: 'mock_apple_' + Date.now(),
         email: appleUser?.email || 'user@apple.demo',
@@ -554,7 +554,7 @@ const appleAuth = asyncHandler(async (req, res) => {
 
       // Check if user exists
       let user = await User.findOne({ email: mockUser.email.toLowerCase() });
-      
+
       if (!user) {
         user = new User({
           appleId: mockUser.id,
@@ -636,7 +636,7 @@ const appleAuth = asyncHandler(async (req, res) => {
   } catch (error) {
     console.error('Apple auth error:', error);
     authMetrics.recordLoginAttempt(req.body.user?.email || 'unknown', false, clientIP, userAgent);
-    
+
     res.status(500).json({
       success: false,
       error: {
@@ -734,9 +734,9 @@ const googleAuth = asyncHandler(async (req, res) => {
     if (user) {
       // Update google fields if missing
       const updates = {};
-      if (!user.googleId) updates.googleId = googleId;
-      if (!user.avatar && picture) updates.avatar = picture;
-      if (user.authProvider !== 'google') updates.authProvider = 'google';
+      if (!user.googleId) {updates.googleId = googleId;}
+      if (!user.avatar && picture) {updates.avatar = picture;}
+      if (user.authProvider !== 'google') {updates.authProvider = 'google';}
       if (Object.keys(updates).length) {
         await User.findByIdAndUpdate(user._id, updates);
         user = await User.findById(user._id);
@@ -888,15 +888,15 @@ const facebookAuth = asyncHandler(async (req, res) => {
 
     // Find or create user
     const query = [{ facebookId }];
-    if (email) query.push({ email });
+    if (email) {query.push({ email });}
 
     let user = await User.findOne({ $or: query });
 
     if (user) {
       const updates = {};
-      if (!user.facebookId) updates.facebookId = facebookId;
-      if (!user.avatar && avatar) updates.avatar = avatar;
-      if (user.authProvider !== 'facebook') updates.authProvider = 'facebook';
+      if (!user.facebookId) {updates.facebookId = facebookId;}
+      if (!user.avatar && avatar) {updates.avatar = avatar;}
+      if (user.authProvider !== 'facebook') {updates.authProvider = 'facebook';}
       if (Object.keys(updates).length) {
         await User.findByIdAndUpdate(user._id, updates);
         user = await User.findById(user._id);
@@ -908,7 +908,7 @@ const facebookAuth = asyncHandler(async (req, res) => {
         email,
         avatar,
         authProvider: 'facebook',
-        isEmailVerified: !!email
+        isEmailVerified: Boolean(email)
       });
     }
 

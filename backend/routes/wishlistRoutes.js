@@ -171,42 +171,42 @@ const clearWishlist = asyncHandler(async (req, res) => {
 const moveToCart = asyncHandler(async (req, res) => {
   const { quantity = 1 } = req.body;
   const Cart = require('../models/Cart');
-  
+
   // Get wishlist
   const wishlist = await Wishlist.findOne({ user: req.user._id });
   if (!wishlist) {
     res.status(404);
     throw new Error('Wishlist not found');
   }
-  
+
   // Check if item exists in wishlist
   const itemIndex = wishlist.items.findIndex(
     item => item.product.toString() === req.params.productId
   );
-  
+
   if (itemIndex === -1) {
     res.status(404);
     throw new Error('Item not found in wishlist');
   }
-  
+
   // Check product availability
   const product = await Product.findById(req.params.productId);
   if (!product || product.countInStock < quantity) {
     res.status(400);
     throw new Error('Product not available in requested quantity');
   }
-  
+
   // Get or create cart
   let cart = await Cart.findOne({ user: req.user._id });
   if (!cart) {
     cart = new Cart({ user: req.user._id, items: [] });
   }
-  
+
   // Add to cart
   const existingCartItemIndex = cart.items.findIndex(
     item => item.product.toString() === req.params.productId
   );
-  
+
   if (existingCartItemIndex > -1) {
     cart.items[existingCartItemIndex].quantity += quantity;
   } else {
@@ -215,13 +215,13 @@ const moveToCart = asyncHandler(async (req, res) => {
       quantity
     });
   }
-  
+
   // Remove from wishlist
   wishlist.items.splice(itemIndex, 1);
-  
+
   // Save both
   await Promise.all([cart.save(), wishlist.save()]);
-  
+
   res.json({
     success: true,
     message: 'Item moved to cart successfully'

@@ -9,13 +9,13 @@ class AIInventoryService {
     this.reorderPoints = new Map();
     this.priceElasticity = new Map();
     this.inventoryAlerts = [];
-    
+
     // AI model parameters
     this.learningRate = 0.01;
     this.seasonalityWindow = 365; // days
     this.forecastHorizon = 30; // days
     this.confidenceThreshold = 0.8;
-    
+
     this.initializeAIModels();
   }
 
@@ -23,26 +23,26 @@ class AIInventoryService {
   async initializeAIModels() {
     try {
       console.log('🤖 Initializing AI Inventory System...');
-      
+
       // Check if MongoDB is available before proceeding
       if (mongoose.connection.readyState !== 1) {
         console.log('⚠️  MongoDB not available, using mock AI inventory data');
         this.initializeMockData();
         return;
       }
-      
+
       // Load historical sales data for training
       await this.loadHistoricalData();
-      
+
       // Train demand forecasting models
       await this.trainDemandModels();
-      
+
       // Calculate optimal reorder points
       await this.calculateReorderPoints();
-      
+
       // Set up real-time monitoring
       this.startRealTimeMonitoring();
-      
+
       console.log('✅ AI Inventory System initialized successfully');
     } catch (error) {
       console.error('❌ AI Inventory System initialization failed:', error);
@@ -55,11 +55,11 @@ class AIInventoryService {
   async loadHistoricalData() {
     const cacheKey = 'ai_inventory:historical_data';
     let historicalData = await cacheOptimizer.get(cacheKey);
-    
+
     if (!historicalData) {
       const Order = mongoose.model('Order');
       const Product = mongoose.model('Product');
-      
+
       // Aggregate sales data by product and date
       const salesData = await Order.aggregate([
         {
@@ -124,10 +124,10 @@ class AIInventoryService {
   // O(n) - Process and clean historical data
   processHistoricalData(rawData) {
     const processedData = new Map();
-    
+
     rawData.forEach(record => {
       const productId = record.productId.toString();
-      
+
       if (!processedData.has(productId)) {
         processedData.set(productId, {
           salesHistory: [],
@@ -147,7 +147,7 @@ class AIInventoryService {
       }
 
       const productData = processedData.get(productId);
-      
+
       // Add sales record
       productData.salesHistory.push({
         date: record.date,
@@ -160,7 +160,7 @@ class AIInventoryService {
       const month = record.seasonality.month - 1;
       const dayOfWeek = record.seasonality.dayOfWeek - 1;
       const quarter = record.seasonality.quarter - 1;
-      
+
       productData.seasonalPatterns.monthly[month] += record.totalSold;
       productData.seasonalPatterns.weekly[dayOfWeek] += record.totalSold;
       productData.seasonalPatterns.quarterly[quarter] += record.totalSold;
@@ -178,7 +178,7 @@ class AIInventoryService {
   // O(n) - Calculate growth trends and volatility
   calculateTrends(productData) {
     const sales = productData.salesHistory;
-    if (sales.length < 7) return;
+    if (sales.length < 7) {return;}
 
     // Calculate moving averages
     const shortMA = this.calculateMovingAverage(sales, 7);
@@ -202,18 +202,18 @@ class AIInventoryService {
   // O(n) - Train demand forecasting models using time series analysis
   async trainDemandModels() {
     console.log('🧠 Training demand forecasting models...');
-    
+
     for (const [productId, data] of this.historicalData) {
       try {
         // Simple exponential smoothing for trend
         const forecast = this.exponentialSmoothing(data.salesHistory);
-        
+
         // ARIMA-like model for seasonality
         const seasonalForecast = this.seasonalDecomposition(data);
-        
+
         // Combine forecasts
         const combinedForecast = this.combineForecastModels(forecast, seasonalForecast, data);
-        
+
         this.demandForecasts.set(productId, {
           forecast: combinedForecast,
           confidence: this.calculateForecastConfidence(data),
@@ -223,33 +223,33 @@ class AIInventoryService {
 
         // Store seasonal patterns
         this.seasonalPatterns.set(productId, data.seasonalPatterns);
-        
+
       } catch (error) {
         console.error(`Error training model for product ${productId}:`, error);
       }
     }
-    
+
     console.log(`✅ Trained models for ${this.demandForecasts.size} products`);
   }
 
   // O(n) - Exponential smoothing for demand forecasting
   exponentialSmoothing(salesHistory, alpha = 0.3, beta = 0.1, gamma = 0.1) {
-    if (salesHistory.length < 2) return [];
+    if (salesHistory.length < 2) {return [];}
 
     const forecast = [];
     let level = salesHistory[0].quantity;
     let trend = 0;
-    
+
     for (let i = 1; i < salesHistory.length; i++) {
       const actual = salesHistory[i].quantity;
       const prevLevel = level;
-      
+
       // Update level (smoothed value)
       level = alpha * actual + (1 - alpha) * (level + trend);
-      
+
       // Update trend
       trend = beta * (level - prevLevel) + (1 - beta) * trend;
-      
+
       // Forecast next period
       forecast.push({
         date: salesHistory[i].date,
@@ -266,19 +266,19 @@ class AIInventoryService {
   seasonalDecomposition(productData) {
     const sales = productData.salesHistory;
     const seasonalForecast = [];
-    
+
     // Calculate seasonal indices
     const monthlyIndices = this.calculateSeasonalIndices(productData.seasonalPatterns.monthly);
     const weeklyIndices = this.calculateSeasonalIndices(productData.seasonalPatterns.weekly);
-    
+
     // Apply seasonal adjustment to forecast
     sales.forEach((record, index) => {
       const date = new Date(record.date);
       const month = date.getMonth();
       const dayOfWeek = date.getDay();
-      
+
       const seasonalAdjustment = (monthlyIndices[month] + weeklyIndices[dayOfWeek]) / 2;
-      
+
       seasonalForecast.push({
         date: record.date,
         seasonalFactor: seasonalAdjustment,
@@ -293,8 +293,8 @@ class AIInventoryService {
   calculateSeasonalIndices(seasonalData) {
     const total = seasonalData.reduce((sum, value) => sum + value, 0);
     const average = total / seasonalData.length;
-    
-    return seasonalData.map(value => 
+
+    return seasonalData.map(value =>
       average > 0 ? value / average : 1
     );
   }
@@ -304,11 +304,11 @@ class AIInventoryService {
     const combinedForecast = [];
     const weight1 = 0.6; // Weight for trend model
     const weight2 = 0.4; // Weight for seasonal model
-    
+
     for (let i = 0; i < Math.min(trendForecast.length, seasonalForecast.length); i++) {
       const trend = trendForecast[i];
       const seasonal = seasonalForecast[i];
-      
+
       const combined = {
         date: trend.date,
         predicted: (weight1 * trend.predicted) + (weight2 * seasonal.adjustedDemand),
@@ -316,7 +316,7 @@ class AIInventoryService {
         seasonalComponent: seasonal.adjustedDemand,
         confidence: this.calculatePointConfidence(trend, seasonal, productData)
       };
-      
+
       combinedForecast.push(combined);
     }
 
@@ -326,13 +326,13 @@ class AIInventoryService {
   // O(1) - Calculate forecast confidence
   calculateForecastConfidence(productData) {
     const sales = productData.salesHistory;
-    if (sales.length < 10) return 0.5;
+    if (sales.length < 10) {return 0.5;}
 
     // Base confidence on data quality and consistency
     const dataQuality = Math.min(sales.length / 100, 1); // More data = higher confidence
     const volatility = productData.trends.volatility;
     const volatilityPenalty = Math.max(0, 1 - volatility * 2);
-    
+
     return Math.min(dataQuality * volatilityPenalty, 0.95);
   }
 
@@ -341,33 +341,33 @@ class AIInventoryService {
     const baseConfidence = 0.7;
     const errorPenalty = trend.error ? Math.max(0, 1 - trend.error / trend.predicted) : 1;
     const seasonalBonus = seasonal.seasonalFactor > 0.8 ? 0.1 : 0;
-    
+
     return Math.min(baseConfidence * errorPenalty + seasonalBonus, 0.95);
   }
 
   // O(n) - Calculate optimal reorder points using AI
   async calculateReorderPoints() {
     console.log('📊 Calculating optimal reorder points...');
-    
+
     const Product = mongoose.model('Product');
     const products = await Product.find({ isActive: true }).select('_id name category price countInStock leadTime');
-    
+
     for (const product of products) {
       const productId = product._id.toString();
       const forecast = this.demandForecasts.get(productId);
-      
-      if (!forecast) continue;
+
+      if (!forecast) {continue;}
 
       // Calculate safety stock using AI predictions
       const safetyStock = this.calculateSafetyStock(product, forecast);
-      
+
       // Calculate reorder point
       const leadTimeDemand = this.calculateLeadTimeDemand(product, forecast);
       const reorderPoint = leadTimeDemand + safetyStock;
-      
+
       // Calculate economic order quantity (EOQ)
       const eoq = this.calculateEOQ(product, forecast);
-      
+
       this.reorderPoints.set(productId, {
         reorderPoint: Math.ceil(reorderPoint),
         safetyStock: Math.ceil(safetyStock),
@@ -377,7 +377,7 @@ class AIInventoryService {
         confidence: forecast.confidence
       });
     }
-    
+
     console.log(`✅ Calculated reorder points for ${this.reorderPoints.size} products`);
   }
 
@@ -385,11 +385,11 @@ class AIInventoryService {
   calculateSafetyStock(product, forecast) {
     const serviceLevel = 0.95; // 95% service level
     const zScore = 1.645; // Z-score for 95% service level
-    
+
     // Calculate demand variability from forecast
     const demandVariability = this.calculateDemandVariability(forecast);
     const leadTime = product.leadTime || 7; // Default 7 days
-    
+
     return zScore * Math.sqrt(leadTime) * demandVariability;
   }
 
@@ -403,7 +403,7 @@ class AIInventoryService {
   calculateLeadTimeDemand(product, forecast) {
     const leadTime = product.leadTime || 7;
     const avgDailyDemand = this.calculateAverageDailyDemand(forecast);
-    
+
     return avgDailyDemand * leadTime;
   }
 
@@ -411,7 +411,7 @@ class AIInventoryService {
   calculateAverageDailyDemand(forecast) {
     const recentForecasts = forecast.forecast.slice(-30); // Last 30 days
     const totalDemand = recentForecasts.reduce((sum, f) => sum + f.predicted, 0);
-    
+
     return recentForecasts.length > 0 ? totalDemand / recentForecasts.length : 0;
   }
 
@@ -421,9 +421,9 @@ class AIInventoryService {
     const orderingCost = 50; // Fixed ordering cost
     const holdingCostRate = 0.2; // 20% of product value per year
     const holdingCost = product.price * holdingCostRate;
-    
-    if (holdingCost <= 0) return 100; // Default EOQ
-    
+
+    if (holdingCost <= 0) {return 100;} // Default EOQ
+
     return Math.sqrt((2 * annualDemand * orderingCost) / holdingCost);
   }
 
@@ -431,10 +431,10 @@ class AIInventoryService {
   async getDemandForecast(productId, days = 30) {
     const cacheKey = `ai_inventory:forecast:${productId}:${days}`;
     let forecast = await cacheOptimizer.get(cacheKey);
-    
+
     if (!forecast) {
       const storedForecast = this.demandForecasts.get(productId);
-      
+
       if (!storedForecast) {
         return {
           success: false,
@@ -457,30 +457,30 @@ class AIInventoryService {
   generateFutureForecast(productId, days) {
     const storedForecast = this.demandForecasts.get(productId);
     const seasonalPattern = this.seasonalPatterns.get(productId);
-    
-    if (!storedForecast || !seasonalPattern) return [];
+
+    if (!storedForecast || !seasonalPattern) {return [];}
 
     const futureForecast = [];
     const lastForecast = storedForecast.forecast[storedForecast.forecast.length - 1];
     const baselineDemand = lastForecast ? lastForecast.predicted : 10;
-    
+
     for (let i = 1; i <= days; i++) {
       const futureDate = new Date();
       futureDate.setDate(futureDate.getDate() + i);
-      
+
       const month = futureDate.getMonth();
       const dayOfWeek = futureDate.getDay();
-      
+
       // Apply seasonal adjustments
       const monthlyFactor = seasonalPattern.monthly[month] || 1;
       const weeklyFactor = seasonalPattern.weekly[dayOfWeek] || 1;
       const seasonalAdjustment = (monthlyFactor + weeklyFactor) / 2;
-      
+
       // Add some randomness for realistic forecasting
       const randomFactor = 0.9 + Math.random() * 0.2; // ±10% variation
-      
+
       const predictedDemand = baselineDemand * seasonalAdjustment * randomFactor;
-      
+
       futureForecast.push({
         date: futureDate.toISOString().split('T')[0],
         predicted: Math.max(0, Math.round(predictedDemand)),
@@ -496,20 +496,20 @@ class AIInventoryService {
   async checkReorderStatus(productId) {
     const Product = mongoose.model('Product');
     const product = await Product.findById(productId);
-    
+
     if (!product) {
       return { needsReorder: false, message: 'Product not found' };
     }
 
     const reorderInfo = this.reorderPoints.get(productId);
-    
+
     if (!reorderInfo) {
       return { needsReorder: false, message: 'No reorder point calculated' };
     }
 
     const currentStock = product.countInStock;
     const needsReorder = currentStock <= reorderInfo.reorderPoint;
-    
+
     return {
       needsReorder,
       currentStock,
@@ -524,28 +524,28 @@ class AIInventoryService {
   // O(1) - Calculate reorder urgency
   calculateUrgency(currentStock, reorderInfo) {
     const stockRatio = currentStock / reorderInfo.reorderPoint;
-    
-    if (stockRatio <= 0.5) return 'critical';
-    if (stockRatio <= 0.8) return 'high';
-    if (stockRatio <= 1.0) return 'medium';
+
+    if (stockRatio <= 0.5) {return 'critical';}
+    if (stockRatio <= 0.8) {return 'high';}
+    if (stockRatio <= 1.0) {return 'medium';}
     return 'low';
   }
 
   // O(n) - Generate automated purchase orders
   async generateAutomatedOrders() {
     console.log('🤖 Generating automated purchase orders...');
-    
+
     const Product = mongoose.model('Product');
-    const products = await Product.find({ 
+    const products = await Product.find({
       isActive: true,
-      autoReorder: true 
+      autoReorder: true
     });
 
     const orders = [];
-    
+
     for (const product of products) {
       const reorderStatus = await this.checkReorderStatus(product._id);
-      
+
       if (reorderStatus.needsReorder && reorderStatus.confidence > this.confidenceThreshold) {
         const order = {
           productId: product._id,
@@ -560,9 +560,9 @@ class AIInventoryService {
           confidence: reorderStatus.confidence,
           createdAt: new Date()
         };
-        
+
         orders.push(order);
-        
+
         // Create alert
         this.createInventoryAlert({
           type: 'auto_reorder',
@@ -615,7 +615,7 @@ class AIInventoryService {
 
       // Check stock status
       const reorderStatus = await this.checkReorderStatus(productId);
-      
+
       if (reorderStatus.needsReorder) {
         analysis.stockoutRisk.push({
           productId,
@@ -640,8 +640,8 @@ class AIInventoryService {
   // O(n) - Calculate forecast accuracy
   calculateForecastAccuracy(forecast) {
     const predictions = forecast.forecast.filter(f => f.actual !== undefined);
-    
-    if (predictions.length === 0) return 0;
+
+    if (predictions.length === 0) {return 0;}
 
     let totalError = 0;
     let totalActual = 0;
@@ -659,16 +659,16 @@ class AIInventoryService {
   async generateProductRecommendation(productId) {
     const forecast = this.demandForecasts.get(productId);
     const reorderInfo = this.reorderPoints.get(productId);
-    
-    if (!forecast || !reorderInfo) return null;
+
+    if (!forecast || !reorderInfo) {return null;}
 
     const Product = mongoose.model('Product');
     const product = await Product.findById(productId);
-    
-    if (!product) return null;
+
+    if (!product) {return null;}
 
     const recommendations = [];
-    
+
     // Stock level recommendations
     if (product.countInStock > reorderInfo.eoq * 3) {
       recommendations.push({
@@ -762,7 +762,7 @@ class AIInventoryService {
 
     for (const product of lowStockProducts) {
       const reorderStatus = await this.checkReorderStatus(product._id);
-      
+
       if (reorderStatus.needsReorder) {
         this.createInventoryAlert({
           type: 'low_stock',
@@ -781,7 +781,7 @@ class AIInventoryService {
     const cacheKeys = Array.from(this.demandForecasts.keys()).map(
       productId => `ai_inventory:forecast:${productId}:30`
     );
-    
+
     // Clear forecast caches to force refresh
     for (const key of cacheKeys) {
       await cacheOptimizer.delete(key);
@@ -802,24 +802,24 @@ class AIInventoryService {
     const n = data.length;
     const x = data.map((_, i) => i);
     const y = data.map(d => d.quantity);
-    
+
     const sumX = x.reduce((a, b) => a + b, 0);
     const sumY = y.reduce((a, b) => a + b, 0);
     const sumXY = x.reduce((acc, xi, i) => acc + xi * y[i], 0);
     const sumXX = x.reduce((acc, xi) => acc + xi * xi, 0);
-    
+
     const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
     const intercept = (sumY - slope * sumX) / n;
-    
+
     return { slope, intercept };
   }
 
   calculateStandardDeviation(data) {
-    if (data.length === 0) return 0;
-    
+    if (data.length === 0) {return 0;}
+
     const mean = data.reduce((a, b) => a + b, 0) / data.length;
     const variance = data.reduce((acc, val) => acc + Math.pow(val - mean, 2), 0) / data.length;
-    
+
     return Math.sqrt(variance);
   }
 
@@ -827,38 +827,38 @@ class AIInventoryService {
     // Simplified seasonal correlation calculation
     const monthlyTotals = new Array(12).fill(0);
     const monthlyCounts = new Array(12).fill(0);
-    
+
     sales.forEach(sale => {
       const month = new Date(sale.date).getMonth();
       monthlyTotals[month] += sale.quantity;
       monthlyCounts[month]++;
     });
-    
-    const monthlyAverages = monthlyTotals.map((total, i) => 
+
+    const monthlyAverages = monthlyTotals.map((total, i) =>
       monthlyCounts[i] > 0 ? total / monthlyCounts[i] : 0
     );
-    
+
     const overallAverage = monthlyAverages.reduce((a, b) => a + b, 0) / 12;
     const variance = monthlyAverages.reduce((acc, avg) => acc + Math.pow(avg - overallAverage, 2), 0) / 12;
-    
+
     return variance / (overallAverage || 1); // Higher value = more seasonal
   }
 
   normalizeSeasonalPatterns(productData) {
     const patterns = productData.seasonalPatterns;
-    
+
     // Normalize monthly patterns
     const monthlyTotal = patterns.monthly.reduce((a, b) => a + b, 0);
     if (monthlyTotal > 0) {
       patterns.monthly = patterns.monthly.map(val => val / monthlyTotal * 12);
     }
-    
+
     // Normalize weekly patterns
     const weeklyTotal = patterns.weekly.reduce((a, b) => a + b, 0);
     if (weeklyTotal > 0) {
       patterns.weekly = patterns.weekly.map(val => val / weeklyTotal * 7);
     }
-    
+
     // Normalize quarterly patterns
     const quarterlyTotal = patterns.quarterly.reduce((a, b) => a + b, 0);
     if (quarterlyTotal > 0) {
@@ -869,34 +869,34 @@ class AIInventoryService {
   // O(n) - Get seasonal trends
   getSeasonalTrends() {
     const trends = [];
-    
+
     for (const [productId, patterns] of this.seasonalPatterns) {
       const monthlyTrend = patterns.monthly.map((value, month) => ({
         month: month + 1,
         factor: value,
         name: new Date(2024, month, 1).toLocaleString('default', { month: 'long' })
       }));
-      
+
       const weeklyTrend = patterns.weekly.map((value, day) => ({
         day: day + 1,
         factor: value,
         name: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][day]
       }));
-      
+
       trends.push({
         productId,
         monthly: monthlyTrend,
         weekly: weeklyTrend
       });
     }
-    
+
     return trends;
   }
 
   // O(n) - Get category performance
   async getCategoryPerformance() {
     const Product = mongoose.model('Product');
-    
+
     const categoryPerformance = await Product.aggregate([
       { $match: { isActive: true } },
       {
@@ -921,17 +921,17 @@ class AIInventoryService {
       },
       { $sort: { totalProducts: -1 } }
     ]);
-    
+
     return categoryPerformance;
   }
 
   // Initialize mock data when MongoDB is not available
   initializeMockData() {
     console.log('🔄 Initializing mock AI inventory data...');
-    
+
     // Create mock demand forecasts for sample products
     const mockProductIds = ['mock_product_1', 'mock_product_2', 'mock_product_3'];
-    
+
     mockProductIds.forEach(productId => {
       // Generate mock forecast data
       const forecast = {
@@ -941,12 +941,12 @@ class AIInventoryService {
         confidence: 0.9,
         lastUpdated: new Date()
       };
-      
+
       // Generate 30 days of mock forecast data
       for (let i = 0; i < 30; i++) {
         const date = new Date();
         date.setDate(date.getDate() + i);
-        
+
         forecast.forecast.push({
           date: date.toISOString().split('T')[0],
           predicted: Math.floor(Math.random() * 50) + 10, // 10-60 units
@@ -954,16 +954,16 @@ class AIInventoryService {
           trend: Math.random() > 0.5 ? 'increasing' : 'stable'
         });
       }
-      
+
       this.demandForecasts.set(productId, forecast);
-      
+
       // Mock seasonal patterns
       this.seasonalPatterns.set(productId, {
         monthly: Array.from({length: 12}, () => 0.8 + Math.random() * 0.4),
         weekly: Array.from({length: 7}, () => 0.8 + Math.random() * 0.4),
         quarterly: Array.from({length: 4}, () => 0.8 + Math.random() * 0.4)
       });
-      
+
       // Mock reorder points
       this.reorderPoints.set(productId, {
         reorderPoint: Math.floor(Math.random() * 20) + 5, // 5-25 units
@@ -972,7 +972,7 @@ class AIInventoryService {
         leadTime: Math.floor(Math.random() * 7) + 3 // 3-10 days
       });
     });
-    
+
     console.log('✅ Mock AI inventory data initialized successfully');
   }
 }

@@ -432,7 +432,7 @@ dotenv.config({ path: envFile });
 dotenv.config(); // fallback to .env
 
 // Debug log – confirm REDIS_URL loaded
-console.log("Loaded REDIS_URL:", process.env.REDIS_URL);
+console.log('Loaded REDIS_URL:', process.env.REDIS_URL);
 
 // Import configs & middleware
 const passport = require('./config/passport');
@@ -509,12 +509,12 @@ app.use(
   helmet({
     contentSecurityPolicy: {
       directives: {
-        defaultSrc: ["'self'"],
-        styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
-        fontSrc: ["'self'", 'https://fonts.gstatic.com'],
-        imgSrc: ["'self'", 'data:', 'https://res.cloudinary.com'],
+        defaultSrc: ['\'self\''],
+        styleSrc: ['\'self\'', '\'unsafe-inline\'', 'https://fonts.googleapis.com'],
+        fontSrc: ['\'self\'', 'https://fonts.gstatic.com'],
+        imgSrc: ['\'self\'', 'data:', 'https://res.cloudinary.com'],
         scriptSrc: [
-          "'self'",
+          '\'self\'',
           'https://pay.google.com',
           'https://www.gstatic.com',
           'https://accounts.google.com',
@@ -525,7 +525,7 @@ app.use(
           'https://securegw.paytm.in'
         ],
         connectSrc: [
-          "'self'",
+          '\'self\'',
           'https://api.stripe.com',
           'https://pay.google.com',
           'https://accounts.google.com',
@@ -538,7 +538,7 @@ app.use(
           'https://api-preprod.phonepe.com'
         ],
         frameSrc: [
-          "'self'",
+          '\'self\'',
           'https://accounts.google.com',
           'https://api.razorpay.com',
           'https://checkout.razorpay.com',

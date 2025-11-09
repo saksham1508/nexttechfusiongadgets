@@ -6,7 +6,7 @@ class RedisConfig {
     // Priority 1: Use REDIS_URL if provided
     if (process.env.REDIS_URL && process.env.REDIS_URL !== 'your_redis_connection_string') {
       return {
-        url: process.env.REDIS_URL, // ✅ Directly use URL for Redis v4
+        url: process.env.REDIS_URL // ✅ Directly use URL for Redis v4
       };
     }
 
@@ -17,7 +17,7 @@ class RedisConfig {
     const db = process.env.REDIS_DB || 0;
 
     return {
-      url: `redis://${password}${host}:${port}/${db}`,
+      url: `redis://${password}${host}:${port}/${db}`
     };
   }
 
@@ -77,10 +77,10 @@ class RedisConfig {
       if (result === 'success') {
         console.log('✅ Redis connection test successful');
         return true;
-      } else {
-        console.log('❌ Redis connection test failed: unexpected result');
-        return false;
       }
+      console.log('❌ Redis connection test failed: unexpected result');
+      return false;
+
     } catch (error) {
       console.log('❌ Redis connection test failed:', error.message);
       console.log('ℹ️  Continuing with memory cache only');

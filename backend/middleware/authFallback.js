@@ -123,7 +123,7 @@ const auth = async (req, res, next) => {
 
       // Try to verify as JWT (still mock mode handler)
       const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret_key');
-      
+
       // Find user in mock database; if missing (e.g., newly mock-registered), fallback to a default customer
       let user = mockUsers.find(u => u._id === decoded.id);
       if (!user) {
@@ -131,7 +131,7 @@ const auth = async (req, res, next) => {
         const fallback = mockUsers.find(u => u.role === 'customer') || mockUsers[0];
         user = { ...fallback, _id: decoded.id };
       }
-      
+
       // Remove password from user object
       const { password, ...userWithoutPassword } = user;
       req.user = userWithoutPassword;
@@ -169,7 +169,7 @@ const optional = async (req, res, next) => {
     try {
       token = req.headers.authorization.split(' ')[1];
       const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret_key');
-      
+
       // Find user in mock database
       const user = mockUsers.find(u => u._id === decoded.id);
       if (user) {
@@ -185,7 +185,7 @@ const optional = async (req, res, next) => {
   } else {
     req.user = null;
   }
-  
+
   next();
 };
 

@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 
 /**
  * Redis Connection Test Script
@@ -29,7 +28,7 @@ const RedisConfig = require('../config/redis');
 
 async function testRedisConnection() {
   console.log('🔍 Testing Redis Connection...\n');
-  
+
   // Display configuration
   console.log('📋 Configuration:');
   console.log(`   REDIS_URL: ${process.env.REDIS_URL || 'Not set'}`);
@@ -40,7 +39,7 @@ async function testRedisConnection() {
 
   // Test connection
   const isConnected = await RedisConfig.testConnection();
-  
+
   if (isConnected) {
     console.log('\n✅ Redis connection test PASSED');
     console.log('   Your Redis server is running and accessible');

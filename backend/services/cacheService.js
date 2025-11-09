@@ -11,7 +11,7 @@ class CacheService {
     this.isConnected = false;
     this.defaultTTL = 3600; // 1 hour
     this.memoryCache = new Map(); // Fallback memory cache
-    
+
     this.connect();
   }
 
@@ -64,7 +64,7 @@ class CacheService {
         winston.error('Cache get error:', error);
       }
     }
-    
+
     // Fallback to memory cache
     const memValue = this.memoryCache.get(key);
     if (memValue && memValue.expires > Date.now()) {
@@ -77,7 +77,7 @@ class CacheService {
 
   async set(key, value, ttl = this.defaultTTL) {
     let success = false;
-    
+
     if (this.isConnected) {
       try {
         const serialized = JSON.stringify(value);
@@ -87,19 +87,19 @@ class CacheService {
         winston.error('Cache set error:', error);
       }
     }
-    
+
     // Always set in memory cache as fallback
     this.memoryCache.set(key, {
       data: value,
       expires: Date.now() + (ttl * 1000)
     });
-    
+
     return success || true; // Return true if at least memory cache worked
   }
 
   async del(key) {
     let success = false;
-    
+
     if (this.isConnected) {
       try {
         await this.client.del(key);
@@ -108,16 +108,16 @@ class CacheService {
         winston.error('Cache delete error:', error);
       }
     }
-    
+
     // Also delete from memory cache
     this.memoryCache.delete(key);
-    
+
     return success || true; // Return true if at least memory cache worked
   }
 
   async exists(key) {
-    if (!this.isConnected) return false;
-    
+    if (!this.isConnected) {return false;}
+
     try {
       const result = await this.client.exists(key);
       return result === 1;
@@ -129,16 +129,16 @@ class CacheService {
 
   // Advanced cache operations
   async mget(keys) {
-    if (!this.isConnected) return {};
-    
+    if (!this.isConnected) {return {};}
+
     try {
       const values = await this.client.mGet(keys);
       const result = {};
-      
+
       keys.forEach((key, index) => {
         result[key] = values[index] ? JSON.parse(values[index]) : null;
       });
-      
+
       return result;
     } catch (error) {
       winston.error('Cache mget error:', error);
@@ -147,16 +147,16 @@ class CacheService {
   }
 
   async mset(keyValuePairs, ttl = this.defaultTTL) {
-    if (!this.isConnected) return false;
-    
+    if (!this.isConnected) {return false;}
+
     try {
       const pipeline = this.client.multi();
-      
+
       Object.entries(keyValuePairs).forEach(([key, value]) => {
         const serialized = JSON.stringify(value);
         pipeline.setEx(key, ttl, serialized);
       });
-      
+
       await pipeline.exec();
       return true;
     } catch (error) {
@@ -167,8 +167,8 @@ class CacheService {
 
   // Pattern-based operations
   async keys(pattern) {
-    if (!this.isConnected) return [];
-    
+    if (!this.isConnected) {return [];}
+
     try {
       return await this.client.keys(pattern);
     } catch (error) {
@@ -178,8 +178,8 @@ class CacheService {
   }
 
   async deletePattern(pattern) {
-    if (!this.isConnected) return false;
-    
+    if (!this.isConnected) {return false;}
+
     try {
       const keys = await this.keys(pattern);
       if (keys.length > 0) {
@@ -194,8 +194,8 @@ class CacheService {
 
   // Hash operations for complex data
   async hget(key, field) {
-    if (!this.isConnected) return null;
-    
+    if (!this.isConnected) {return null;}
+
     try {
       const value = await this.client.hGet(key, field);
       return value ? JSON.parse(value) : null;
@@ -206,8 +206,8 @@ class CacheService {
   }
 
   async hset(key, field, value, ttl = this.defaultTTL) {
-    if (!this.isConnected) return false;
-    
+    if (!this.isConnected) {return false;}
+
     try {
       const serialized = JSON.stringify(value);
       await this.client.hSet(key, field, serialized);
@@ -220,16 +220,16 @@ class CacheService {
   }
 
   async hgetall(key) {
-    if (!this.isConnected) return {};
-    
+    if (!this.isConnected) {return {};}
+
     try {
       const hash = await this.client.hGetAll(key);
       const result = {};
-      
+
       Object.entries(hash).forEach(([field, value]) => {
         result[field] = JSON.parse(value);
       });
-      
+
       return result;
     } catch (error) {
       winston.error('Cache hgetall error:', error);
@@ -239,8 +239,8 @@ class CacheService {
 
   // List operations for queues and logs
   async lpush(key, value) {
-    if (!this.isConnected) return false;
-    
+    if (!this.isConnected) {return false;}
+
     try {
       const serialized = JSON.stringify(value);
       await this.client.lPush(key, serialized);
@@ -252,8 +252,8 @@ class CacheService {
   }
 
   async rpop(key) {
-    if (!this.isConnected) return null;
-    
+    if (!this.isConnected) {return null;}
+
     try {
       const value = await this.client.rPop(key);
       return value ? JSON.parse(value) : null;
@@ -264,8 +264,8 @@ class CacheService {
   }
 
   async lrange(key, start = 0, stop = -1) {
-    if (!this.isConnected) return [];
-    
+    if (!this.isConnected) {return [];}
+
     try {
       const values = await this.client.lRange(key, start, stop);
       return values.map(value => JSON.parse(value));
@@ -276,7 +276,7 @@ class CacheService {
   }
 
   // Specialized caching methods for the application
-  
+
   // Product caching
   async cacheProduct(productId, productData, ttl = 1800) { // 30 minutes
     return await this.set(`product:${productId}`, productData, ttl);
@@ -361,19 +361,19 @@ class CacheService {
 
   // Rate limiting
   async checkRateLimit(identifier, limit, window) {
-    if (!this.isConnected) return { allowed: true, remaining: limit };
-    
+    if (!this.isConnected) {return { allowed: true, remaining: limit };}
+
     try {
       const key = `rate_limit:${identifier}`;
       const current = await this.client.incr(key);
-      
+
       if (current === 1) {
         await this.client.expire(key, window);
       }
-      
+
       const remaining = Math.max(0, limit - current);
       const allowed = current <= limit;
-      
+
       return { allowed, remaining, current };
     } catch (error) {
       winston.error('Rate limit check error:', error);
@@ -383,17 +383,17 @@ class CacheService {
 
   // Lock mechanism for critical operations
   async acquireLock(resource, ttl = 30) {
-    if (!this.isConnected) return null;
-    
+    if (!this.isConnected) {return null;}
+
     try {
       const lockKey = `lock:${resource}`;
       const lockValue = Date.now().toString();
-      
+
       const result = await this.client.set(lockKey, lockValue, {
         NX: true,
         EX: ttl
       });
-      
+
       return result === 'OK' ? lockValue : null;
     } catch (error) {
       winston.error('Lock acquisition error:', error);
@@ -402,8 +402,8 @@ class CacheService {
   }
 
   async releaseLock(resource, lockValue) {
-    if (!this.isConnected) return false;
-    
+    if (!this.isConnected) {return false;}
+
     try {
       const lockKey = `lock:${resource}`;
       const script = `
@@ -413,12 +413,12 @@ class CacheService {
           return 0
         end
       `;
-      
+
       const result = await this.client.eval(script, {
         keys: [lockKey],
         arguments: [lockValue]
       });
-      
+
       return result === 1;
     } catch (error) {
       winston.error('Lock release error:', error);
@@ -428,12 +428,12 @@ class CacheService {
 
   // Cache statistics
   async getStats() {
-    if (!this.isConnected) return null;
-    
+    if (!this.isConnected) {return null;}
+
     try {
       const info = await this.client.info('memory');
       const keyspace = await this.client.info('keyspace');
-      
+
       return {
         connected: this.isConnected,
         memory: info,
@@ -447,8 +447,8 @@ class CacheService {
 
   // Cleanup and maintenance
   async flushAll() {
-    if (!this.isConnected) return false;
-    
+    if (!this.isConnected) {return false;}
+
     try {
       await this.client.flushAll();
       return true;

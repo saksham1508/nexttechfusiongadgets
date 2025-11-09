@@ -39,7 +39,7 @@ const mockCoupons = [
     userRestrictions: { newUsersOnly: false, premiumUsersOnly: false, specificUsers: [] },
     paymentMethods: [],
     isActive: true,
-    priority: 10,
+    priority: 10
   },
   {
     _id: 'mock_coupon_upi50',
@@ -61,7 +61,7 @@ const mockCoupons = [
     userRestrictions: { newUsersOnly: false, premiumUsersOnly: false, specificUsers: [] },
     paymentMethods: ['upi'],
     isActive: true,
-    priority: 8,
+    priority: 8
   },
   {
     _id: 'mock_coupon_loyalty100',
@@ -83,8 +83,8 @@ const mockCoupons = [
     userRestrictions: { newUsersOnly: false, premiumUsersOnly: false, specificUsers: [] },
     paymentMethods: [],
     isActive: true,
-    priority: 9,
-  },
+    priority: 9
+  }
 ];
 
 // In-memory user usage tracker for mock mode (per-process)
@@ -262,13 +262,13 @@ router.post('/apply', auth, async (req, res) => {
 
       await coupon.save();
       return res.json({ message: 'Coupon applied successfully' });
-    } else {
-      // Mock mode: track usage in-memory
-      const key = `${userId}:${code.toUpperCase()}`;
-      const current = mockUserUsage.get(key) || 0;
-      mockUserUsage.set(key, current + 1);
-      return res.json({ message: 'Coupon applied successfully (mock)' });
     }
+    // Mock mode: track usage in-memory
+    const key = `${userId}:${code.toUpperCase()}`;
+    const current = mockUserUsage.get(key) || 0;
+    mockUserUsage.set(key, current + 1);
+    return res.json({ message: 'Coupon applied successfully (mock)' });
+
   } catch (error) {
     console.error('Apply coupon error:', error);
     res.status(500).json({ message: 'Server error' });

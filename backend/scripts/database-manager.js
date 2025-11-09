@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 
 /**
  * Database Manager Script
@@ -14,13 +13,13 @@ const envPath = path.join(__dirname, '..', '.env');
 function updateEnvVariable(key, value) {
   let envContent = fs.readFileSync(envPath, 'utf8');
   const regex = new RegExp(`^${key}=.*$`, 'm');
-  
+
   if (regex.test(envContent)) {
     envContent = envContent.replace(regex, `${key}=${value}`);
   } else {
     envContent += `\n${key}=${value}`;
   }
-  
+
   fs.writeFileSync(envPath, envContent);
 }
 
@@ -60,7 +59,7 @@ function checkDatabaseStatus() {
   const mongoUri = getEnvVariable('MONGO_URI');
   console.log('📊 Database Configuration Status:');
   console.log(`   MONGO_URI: ${mongoUri || 'Not set'}`);
-  
+
   if (mongoUri) {
     if (mongoUri.includes('mongodb+srv://')) {
       console.log('   Type: ☁️  MongoDB Atlas (Cloud)');
@@ -70,7 +69,7 @@ function checkDatabaseStatus() {
       console.log('   Type: 🌐 Remote MongoDB');
     }
   }
-  
+
   console.log('\n🔍 Testing database connection...');
   try {
     execSync('node scripts/test-database.js', { stdio: 'inherit', cwd: path.join(__dirname, '..') });
@@ -88,23 +87,23 @@ function showDatabaseInfo() {
   console.log('🎯 Current Status:');
   const mongoUri = getEnvVariable('MONGO_URI');
   if (mongoUri) {
-    console.log(`   ✅ Database URI configured`);
+    console.log('   ✅ Database URI configured');
     console.log(`   🔗 ${mongoUri}`);
   } else {
-    console.log(`   ❌ No database URI configured`);
+    console.log('   ❌ No database URI configured');
   }
-  
+
   console.log('');
   console.log('🚀 Available Options:');
   console.log('   • MongoDB Atlas (Cloud) - Recommended for development');
   console.log('   • Local MongoDB - Full control, offline development');
   console.log('   • Mock Data Mode - Continue without database');
-  
+
   console.log('');
   console.log('📈 Application Behavior:');
   console.log('   ✅ With Database: Full functionality, data persistence');
   console.log('   ⚠️  Without Database: Mock data, limited persistence');
-  
+
   console.log('');
   console.log('🛠️  Quick Commands:');
   console.log('   npm run db:status    - Check database connection');
@@ -135,28 +134,28 @@ function showHelp() {
 const command = process.argv[2];
 
 switch (command) {
-  case 'atlas':
-    setAtlasDatabase();
-    break;
-  case 'local':
-    setLocalDatabase();
-    break;
-  case 'status':
-    checkDatabaseStatus();
-    break;
-  case 'info':
-    showDatabaseInfo();
-    break;
-  case 'help':
-  case '--help':
-  case '-h':
-    showHelp();
-    break;
-  default:
-    if (command) {
-      console.log(`❌ Unknown command: ${command}`);
-      console.log('');
-    }
-    showHelp();
-    process.exit(1);
+case 'atlas':
+  setAtlasDatabase();
+  break;
+case 'local':
+  setLocalDatabase();
+  break;
+case 'status':
+  checkDatabaseStatus();
+  break;
+case 'info':
+  showDatabaseInfo();
+  break;
+case 'help':
+case '--help':
+case '-h':
+  showHelp();
+  break;
+default:
+  if (command) {
+    console.log(`❌ Unknown command: ${command}`);
+    console.log('');
+  }
+  showHelp();
+  process.exit(1);
 }

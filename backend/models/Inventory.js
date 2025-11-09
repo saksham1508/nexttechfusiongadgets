@@ -12,7 +12,7 @@ const inventoryTransactionSchema = new mongoose.Schema({
   },
   reason: String,
   reference: {
-    type: String, // Order ID, Purchase Order, etc.
+    type: String // Order ID, Purchase Order, etc.
   },
   performedBy: {
     type: mongoose.Schema.Types.ObjectId,
@@ -123,13 +123,13 @@ const inventorySchema = new mongoose.Schema({
 // Calculate available stock before saving
 inventorySchema.pre('save', function(next) {
   this.availableStock = Math.max(0, this.currentStock - this.reservedStock);
-  
+
   // Update status based on stock levels
   if (this.currentStock <= 0) {
     this.status = 'out_of_stock';
   } else if (this.currentStock <= this.reorderLevel) {
     // Add low stock alert if not already present
-    const hasLowStockAlert = this.alerts.some(alert => 
+    const hasLowStockAlert = this.alerts.some(alert =>
       alert.type === 'low_stock' && alert.isActive
     );
     if (!hasLowStockAlert) {
@@ -140,7 +140,7 @@ inventorySchema.pre('save', function(next) {
       });
     }
   }
-  
+
   next();
 });
 
@@ -154,13 +154,13 @@ inventorySchema.methods.addStock = function(quantity, type = 'purchase', perform
     performedBy,
     cost
   });
-  
+
   if (cost) {
     // Update average cost using weighted average
     const totalValue = (this.averageCost * (this.currentStock - quantity)) + (cost * quantity);
     this.averageCost = totalValue / this.currentStock;
   }
-  
+
   return this.save();
 };
 
@@ -168,7 +168,7 @@ inventorySchema.methods.removeStock = function(quantity, type = 'sale', performe
   if (quantity > this.availableStock) {
     throw new Error('Insufficient stock available');
   }
-  
+
   this.currentStock -= quantity;
   this.transactions.push({
     type,
@@ -177,7 +177,7 @@ inventorySchema.methods.removeStock = function(quantity, type = 'sale', performe
     reference,
     performedBy
   });
-  
+
   return this.save();
 };
 
@@ -185,7 +185,7 @@ inventorySchema.methods.reserveStock = function(quantity) {
   if (quantity > this.availableStock) {
     throw new Error('Insufficient stock available for reservation');
   }
-  
+
   this.reservedStock += quantity;
   return this.save();
 };

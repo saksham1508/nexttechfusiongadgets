@@ -16,7 +16,7 @@ class ErrorMetrics {
   recordError(errorType, statusCode, endpoint, responseTime) {
     const key = `${errorType}_${statusCode}`;
     this.errorCounts.set(key, (this.errorCounts.get(key) || 0) + 1);
-    
+
     this.errorTrends.push({
       timestamp: new Date(),
       errorType,
@@ -82,7 +82,7 @@ const logError = async (error, req, additionalInfo = {}) => {
   try {
     const logDir = path.join(__dirname, '../logs');
     await fs.mkdir(logDir, { recursive: true });
-    
+
     const logFile = path.join(logDir, `error-${new Date().toISOString().split('T')[0]}.log`);
     await fs.appendFile(logFile, JSON.stringify(logEntry) + '\n');
   } catch (logError) {
@@ -98,7 +98,7 @@ const errorHandler = async (err, req, res, next) => {
 
   // Six Sigma: Measure - Track error metrics
   const responseTime = Date.now() - (req.startTime || startTime);
-  
+
   // Enhanced error categorization
   let statusCode = 500;
   let errorType = 'INTERNAL_SERVER_ERROR';
@@ -167,11 +167,11 @@ const errorHandler = async (err, req, res, next) => {
   errorMetrics.recordError(errorType, statusCode, req.originalUrl, responseTime);
 
   // Log error details
-  await logError(err, req, { 
-    errorType, 
-    statusCode, 
+  await logError(err, req, {
+    errorType,
+    statusCode,
     responseTime,
-    shouldRetry 
+    shouldRetry
   });
 
   // Six Sigma: Control - Structured error response

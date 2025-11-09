@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 
 /**
  * Database Connection Test Script
@@ -14,7 +13,7 @@ dotenv.config({ path: path.join(__dirname, '..', '.env') });
 
 async function testDatabaseConnection() {
   console.log('🔍 Testing MongoDB Connection...\n');
-  
+
   // Display configuration
   console.log('📋 Configuration:');
   console.log(`   MONGO_URI: ${process.env.MONGO_URI || 'Not set'}`);
@@ -22,22 +21,22 @@ async function testDatabaseConnection() {
 
   try {
     console.log('🔌 Connecting to MongoDB...');
-    
+
     // Connect with timeout
     const conn = await mongoose.connect(process.env.MONGO_URI, {
       useNewUrlParser: true,
       useUnifiedTopology: true,
-      serverSelectionTimeoutMS: 5000, // 5 second timeout
+      serverSelectionTimeoutMS: 5000 // 5 second timeout
     });
 
-    console.log(`✅ MongoDB Connected Successfully!`);
+    console.log('✅ MongoDB Connected Successfully!');
     console.log(`   Host: ${conn.connection.host}`);
     console.log(`   Port: ${conn.connection.port}`);
     console.log(`   Database: ${conn.connection.name}`);
 
     // Test basic operations
     console.log('\n🧪 Testing basic database operations...');
-    
+
     // Create a test collection
     const TestModel = mongoose.model('Test', new mongoose.Schema({
       message: String,
@@ -55,7 +54,7 @@ async function testDatabaseConnection() {
 
     // Update test document
     await TestModel.updateOne(
-      { _id: foundDoc._id }, 
+      { _id: foundDoc._id },
       { message: 'Database connection test updated!' }
     );
     console.log('✅ Update operation successful');
@@ -70,8 +69,8 @@ async function testDatabaseConnection() {
     console.log('\n🎉 All database operations completed successfully!');
     console.log('\n📊 Database Status:');
     console.log(`   Connection State: ${mongoose.connection.readyState === 1 ? 'Connected' : 'Disconnected'}`);
-    console.log(`   Collections: Available`);
-    console.log(`   Operations: All working`);
+    console.log('   Collections: Available');
+    console.log('   Operations: All working');
 
     await mongoose.connection.close();
     console.log('\n✅ Database connection test PASSED');
@@ -80,9 +79,9 @@ async function testDatabaseConnection() {
   } catch (error) {
     console.log('\n❌ Database connection test FAILED');
     console.error('Error:', error.message);
-    
+
     console.log('\n🔧 Troubleshooting Steps:');
-    
+
     if (error.message.includes('ECONNREFUSED')) {
       console.log('   1. MongoDB server is not running');
       console.log('   2. Check if MongoDB service is started');
@@ -107,7 +106,7 @@ async function testDatabaseConnection() {
     console.log('   • MongoDB Atlas (Cloud): https://www.mongodb.com/atlas');
     console.log('   • Local Installation: https://www.mongodb.com/try/download/community');
     console.log('   • Docker: docker run -d -p 27017:27017 mongo');
-    
+
     process.exit(1);
   }
 }

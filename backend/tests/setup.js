@@ -9,13 +9,13 @@ const setupTestEnvironment = async () => {
   // Create in-memory MongoDB instance for testing
   mongoServer = await MongoMemoryServer.create();
   const mongoUri = mongoServer.getUri();
-  
+
   // Connect to the in-memory database
   await mongoose.connect(mongoUri, {
     useNewUrlParser: true,
-    useUnifiedTopology: true,
+    useUnifiedTopology: true
   });
-  
+
   console.log('✅ Test database connected');
 };
 
@@ -25,18 +25,18 @@ const teardownTestEnvironment = async () => {
     await mongoose.connection.dropDatabase();
     await mongoose.connection.close();
   }
-  
+
   if (mongoServer) {
     await mongoServer.stop();
   }
-  
+
   console.log('🧹 Test database cleaned up');
 };
 
 // Clear all collections between tests
 const clearDatabase = async () => {
   const collections = mongoose.connection.collections;
-  
+
   for (const key in collections) {
     const collection = collections[key];
     await collection.deleteMany({});
@@ -142,13 +142,13 @@ class PerformanceMonitor {
   endTimer(timer) {
     const endTime = process.hrtime.bigint();
     const duration = Number(endTime - timer.startTime) / 1000000; // Convert to milliseconds
-    
+
     this.metrics.push({
       operation: timer.operation,
       duration,
       timestamp: new Date()
     });
-    
+
     return duration;
   }
 
@@ -158,8 +158,8 @@ class PerformanceMonitor {
 
   getAverageTime(operation) {
     const operationMetrics = this.metrics.filter(m => m.operation === operation);
-    if (operationMetrics.length === 0) return 0;
-    
+    if (operationMetrics.length === 0) {return 0;}
+
     const total = operationMetrics.reduce((sum, m) => sum + m.duration, 0);
     return total / operationMetrics.length;
   }
@@ -174,7 +174,7 @@ const assertValidResponse = (response, expectedStatus = 200) => {
   expect(response.status).toBe(expectedStatus);
   expect(response.body).toHaveProperty('success');
   expect(response.body).toHaveProperty('timestamp');
-  
+
   if (response.body.success) {
     expect(response.body).toHaveProperty('data');
   } else {
@@ -187,14 +187,14 @@ const assertValidResponse = (response, expectedStatus = 200) => {
 const assertValidPagination = (response) => {
   expect(response.body.data).toHaveProperty('pagination');
   const pagination = response.body.data.pagination;
-  
+
   expect(pagination).toHaveProperty('currentPage');
   expect(pagination).toHaveProperty('totalPages');
   expect(pagination).toHaveProperty('totalProducts');
   expect(pagination).toHaveProperty('hasNextPage');
   expect(pagination).toHaveProperty('hasPrevPage');
   expect(pagination).toHaveProperty('limit');
-  
+
   expect(typeof pagination.currentPage).toBe('number');
   expect(typeof pagination.totalPages).toBe('number');
   expect(typeof pagination.totalProducts).toBe('number');
@@ -214,7 +214,7 @@ const assertValidProduct = (product) => {
   expect(product).toHaveProperty('isActive');
   expect(product).toHaveProperty('createdAt');
   expect(product).toHaveProperty('updatedAt');
-  
+
   expect(typeof product.name).toBe('string');
   expect(typeof product.price).toBe('number');
   expect(typeof product.countInStock).toBe('number');
@@ -225,7 +225,7 @@ const assertValidProduct = (product) => {
 
 // Load testing utilities
 const generateLoadTestData = (count, factory) => {
-  return Array.from({ length: count }, (_, index) => 
+  return Array.from({ length: count }, (_, index) =>
     factory({ name: `Test Item ${index + 1}` })
   );
 };
@@ -233,14 +233,14 @@ const generateLoadTestData = (count, factory) => {
 const runLoadTest = async (testFunction, iterations = 100) => {
   const monitor = new PerformanceMonitor();
   const results = [];
-  
+
   for (let i = 0; i < iterations; i++) {
     const timer = monitor.startTimer(`load-test-${i}`);
-    
+
     try {
       const result = await testFunction();
       const duration = monitor.endTimer(timer);
-      
+
       results.push({
         iteration: i + 1,
         success: true,
@@ -249,7 +249,7 @@ const runLoadTest = async (testFunction, iterations = 100) => {
       });
     } catch (error) {
       const duration = monitor.endTimer(timer);
-      
+
       results.push({
         iteration: i + 1,
         success: false,
@@ -258,11 +258,11 @@ const runLoadTest = async (testFunction, iterations = 100) => {
       });
     }
   }
-  
+
   const successCount = results.filter(r => r.success).length;
   const failureCount = results.filter(r => !r.success).length;
   const averageTime = monitor.getAverageTime('load-test-0');
-  
+
   return {
     totalIterations: iterations,
     successCount,

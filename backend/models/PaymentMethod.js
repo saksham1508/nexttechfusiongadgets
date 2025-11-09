@@ -100,7 +100,7 @@ const paymentMethodSchema = new mongoose.Schema({
   },
   verifiedAt: Date,
   expiresAt: Date,
-  
+
   // Fraud detection
   fraudFlags: [{
     type: String,
@@ -114,13 +114,13 @@ const paymentMethodSchema = new mongoose.Schema({
       default: Date.now
     }
   }],
-  
+
   // Compliance
   pciCompliant: {
     type: Boolean,
     default: true
   },
-  
+
   metadata: {
     type: Map,
     of: String

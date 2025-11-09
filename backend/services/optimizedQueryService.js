@@ -14,7 +14,7 @@ class OptimizedQueryService {
   // O(1) - Optimized product search with indexing
   async searchProducts(query, options = {}) {
     const cacheKey = this.generateCacheKey('products', query, options);
-    
+
     // O(1) cache lookup
     if (this.queryCache.has(cacheKey)) {
       this.cacheHits++;
@@ -85,7 +85,7 @@ class OptimizedQueryService {
     try {
       const Product = mongoose.model('Product');
       const results = await Product.aggregate(pipeline);
-      
+
       // O(1) - Get total count efficiently
       const totalPipeline = pipeline.slice(0, 2); // Only match and addFields
       totalPipeline.push({ $count: 'total' });
@@ -110,7 +110,7 @@ class OptimizedQueryService {
       // O(1) - Cache with LRU eviction
       this.setCacheWithLRU(cacheKey, response);
       this.cacheMisses++;
-      
+
       return response;
     } catch (error) {
       console.error('Optimized search error:', error);
@@ -121,7 +121,7 @@ class OptimizedQueryService {
   // O(1) - Optimized product recommendations
   async getRecommendations(userId, productId, limit = 10) {
     const cacheKey = `recommendations:${userId}:${productId}:${limit}`;
-    
+
     if (this.queryCache.has(cacheKey)) {
       return this.queryCache.get(cacheKey);
     }
@@ -179,7 +179,7 @@ class OptimizedQueryService {
     try {
       const Order = mongoose.model('Order');
       const recommendations = await Order.aggregate(pipeline);
-      
+
       this.setCacheWithLRU(cacheKey, recommendations);
       return recommendations;
     } catch (error) {
@@ -191,7 +191,7 @@ class OptimizedQueryService {
   // O(1) - Optimized user analytics
   async getUserAnalytics(userId) {
     const cacheKey = `analytics:${userId}`;
-    
+
     if (this.queryCache.has(cacheKey)) {
       return this.queryCache.get(cacheKey);
     }
@@ -246,7 +246,7 @@ class OptimizedQueryService {
     try {
       const Order = mongoose.model('Order');
       const analytics = await Order.aggregate(pipeline);
-      
+
       const result = analytics[0] || {
         totalOrders: 0,
         totalSpent: 0,
@@ -280,7 +280,7 @@ class OptimizedQueryService {
     try {
       const Product = mongoose.model('Product');
       const result = await Product.bulkWrite(bulkOps, { ordered: false });
-      
+
       // O(n) - Invalidate related caches
       updates.forEach(({ productId }) => {
         this.invalidateProductCache(productId);
@@ -300,7 +300,7 @@ class OptimizedQueryService {
   // O(log n) - Optimized price range aggregation
   async getPriceRanges(category = null) {
     const cacheKey = `priceRanges:${category || 'all'}`;
-    
+
     if (this.queryCache.has(cacheKey)) {
       return this.queryCache.get(cacheKey);
     }
@@ -376,7 +376,7 @@ class OptimizedQueryService {
       const firstKey = this.queryCache.keys().next().value;
       this.queryCache.delete(firstKey);
     }
-    
+
     this.queryCache.set(key, {
       data: value,
       timestamp: Date.now(),
