@@ -29,31 +29,6 @@
 
 ### **Option 1: Cloud Platform (Recommended)**
 
-#### **Vercel (Frontend) + Railway/Render (Backend)**
-
-##### **Frontend Deployment (Vercel)**
-```bash
-# Install Vercel CLI
-npm i -g vercel
-
-# Deploy frontend
-cd frontend
-vercel --prod
-
-# Configure environment variables in Vercel dashboard
-```
-
-##### **Backend Deployment (Railway)**
-```bash
-# Install Railway CLI
-npm install -g @railway/cli
-
-# Login and deploy
-railway login
-railway init
-railway up
-```
-
 #### **AWS Deployment**
 
 ##### **Frontend (S3 + CloudFront)**
