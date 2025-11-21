@@ -7,7 +7,7 @@ const {
   deleteProduct,
   searchProducts
 } = require('../controllers/productControllerFallback');
-const { auth, seller, adminAuth } = require('../middleware/authFallback');
+const { auth, seller, adminAuth } = require('../middleware/auth');
 const { ValidationRules, handleValidationErrors, rateLimits } = require('../middleware/validation');
 
 const router = express.Router();

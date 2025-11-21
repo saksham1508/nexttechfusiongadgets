@@ -2,34 +2,17 @@ const express = require('express');
 const { body } = require('express-validator');
 const passport = require('../config/passport');
 
-// Check if MongoDB is available
-const mongoose = require('mongoose');
-const isMongoConnected = mongoose.connection.readyState === 1;
+// Import real controllers and middleware
+const {
+  register,
+  login,
+  getProfile,
+  updateProfile,
+  appleAuthCallback,
+  appleAuth
+} = require('../controllers/authController');
 
-// Use appropriate controller and middleware based on MongoDB availability
-let authController, auth;
-if (isMongoConnected) {
-  authController = require('../controllers/authController');
-  auth = require('../middleware/auth').auth;
-} else {
-  console.log('🔄 Using mock auth controller (MongoDB not available)');
-  authController = require('../controllers/mockAuthController');
-  auth = require('../middleware/mockAuth').auth;
-}
-
-let register, login, getProfile, updateProfile, appleAuthCallback, appleAuth;
-
-if (isMongoConnected) {
-  ({ register, login, getProfile, updateProfile, appleAuthCallback, appleAuth } = authController);
-} else {
-  // Map mock functions to expected names
-  register = authController.mockRegister;
-  login = authController.mockLogin;
-  getProfile = authController.mockGetProfile;
-  updateProfile = authController.mockUpdateProfile;
-  appleAuthCallback = authController.mockAppleLogin; // Fallback
-  appleAuth = authController.mockAppleLogin; // Fallback
-}
+const { auth } = require('../middleware/auth');
 
 const router = express.Router();
 

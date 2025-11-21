@@ -436,7 +436,7 @@ console.log('Loaded REDIS_URL:', process.env.REDIS_URL);
 
 // Import configs & middleware
 const passport = require('./config/passport');
-const connectDB = require('./config/database');
+const { connectDB } = require('./config/database');
 const RedisConfig = require('./config/redis');
 const { errorHandler, getHealthMetrics } = require('./middleware/errorHandler');
 const { rateLimits, sanitizeInput, addCorrelationId } = require('./middleware/validation');
@@ -483,7 +483,9 @@ const WEBSITE = process.env.PAYTM_WEBSITE;
 const CALLBACK = process.env.PAYTM_CALLBACK;
 
 // Connect MongoDB
-connectDB();
+(async () => {
+  await connectDB();
+})();
 
 // Initialize cache service with Redis fallback
 const FallbackCacheService = require('./services/fallbackCacheService');
