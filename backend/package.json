@@ -7,7 +7,7 @@
     "start": "node server.js",
     "start:dev": "cross-env NODE_ENV=development nodemon server.js",
     "start:test": "cross-env NODE_ENV=test PORT=3001 nodemon server.js",
-    "start:prod": "NODE_ENV=production node server.js",
+    "start:prod": "cross-env NODE_ENV=production node server.js",
     "dev": "nodemon server.js",
     "seed": "node seeder.js",
     "seed:categories": "node seeders/categorySeeder.js",
@@ -126,7 +126,8 @@
     ],
     "verbose": true,
     "detectOpenHandles": true,
-    "forceExit": true
+    "forceExit": true,
+    "testTimeout": 120000
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx}": [

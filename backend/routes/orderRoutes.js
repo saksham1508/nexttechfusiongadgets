@@ -1,7 +1,7 @@
 const express = require('express');
 const real = require('../controllers/orderController');
 const mock = require('../controllers/orderControllerFallback');
-const { auth, adminAuth } = require('../middleware/authFallback');
+const { auth, adminAuth } = require('../middleware/auth');
 
 const router = express.Router();
 

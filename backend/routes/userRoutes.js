@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
-const { auth } = require('../middleware/authFallback'); // Use fallback auth
+const { auth } = require('../middleware/auth'); // Use fallback auth
 const axios = require('axios');
 
 // Check if MongoDB is available

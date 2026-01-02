@@ -1,6 +1,6 @@
 const express = require('express');
 const { auth: realAuth } = require('../middleware/auth');
-const { auth: mockAuth } = require('../middleware/authFallback');
+const { auth: mockAuth } = require('../middleware/auth');
 const { getVendorAnalytics } = require('../controllers/vendorAnalyticsController');
 const { listVendorOrders, updateItemStatus } = require('../controllers/vendorOrderController');
 
