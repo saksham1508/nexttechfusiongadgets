@@ -44,8 +44,7 @@ const productSchema = new mongoose.Schema({
     min: 0
   },
   category: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Category',
+    type: mongoose.Schema.Types.Mixed, // Supports both ObjectId and String (for simple categories)
     required: true
   },
   categoryPath: [String], // For breadcrumb navigation

@@ -18,18 +18,18 @@ $env:REACT_APP_ENV = "production"
 
 # Build frontend for production
 Write-Host "🏗️ Building Frontend for Production..." -ForegroundColor Red
-Push-Location "d:/NexFuga2/nexttechfusiongadgets/frontend"
+Push-Location "$PSScriptRoot/frontend"
 cp .env.production .env
 npm run build:prod
 Pop-Location
 
 # Start backend in production mode
 Write-Host "📡 Starting Backend (Production)..." -ForegroundColor Red
-Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd 'd:/NexFuga2/nexttechfusiongadgets/backend'; cp .env.production .env; npm run start:prod"
+Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$PSScriptRoot/backend'; cp .env.production .env; npm run start:prod"
 
 # Serve frontend build
 Write-Host "🌐 Serving Frontend (Production Build)..." -ForegroundColor Red
-Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd 'd:/NexFuga2/nexttechfusiongadgets/frontend'; npx serve -s build -l 3000"
+Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$PSScriptRoot/frontend'; npx serve -s build -l 3000"
 
 Write-Host "✅ Production environment started!" -ForegroundColor Red
 Write-Host "Backend: http://localhost:5000" -ForegroundColor Cyan

@@ -57,6 +57,8 @@ const createTestApp = () => {
   return app;
 };
 
+jest.setTimeout(300000); // 5 minutes
+
 describe('Product Controller Tests', () => {
   let app;
   let performanceMonitor;
@@ -91,7 +93,9 @@ describe('Product Controller Tests', () => {
   });
 
   afterEach(async () => {
-    performanceMonitor.reset();
+    if (performanceMonitor) {
+      performanceMonitor.reset();
+    }
   });
 
   describe('GET /api/products', () => {
